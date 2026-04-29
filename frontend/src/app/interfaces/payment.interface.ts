@@ -1,0 +1,56 @@
+export interface IPayment {
+  _id: string;
+  id?: string;
+  student: any;       // ObjectId or populated { _id, firstName, lastName, email }
+  course: any;        // ObjectId or populated { _id, name, price }
+  schedule?: any;     // ObjectId or null
+  paymentType?: 'per_class' | 'monthly';
+  paymentMonth?: string;
+  amount: number;
+  method: 'transfer' | 'promptpay' | 'credit_card' | 'gateway';
+  slipImage?: string;
+  transactionRef?: string;
+  status: 'pending' | 'confirmed' | 'rejected';
+  confirmedBy?: any;
+  note?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IRevenueSchedule {
+  scheduleId: string;
+  date: Date;
+  startTime: string;
+  endTime: string;
+  courseName: string;
+  teacherName: string;
+  attendedStudents: { studentId: string; name: string; scannedAt: Date }[];
+  attendanceCount: number;
+  coursePrice: number;
+  total: number;
+  paid: number;
+  unpaid: number;
+  status: string;
+  actualTeacherIncome: number;
+}
+
+export interface IPaymentRequest {
+  course: string;         // course ObjectId
+  amount: number;
+  method: string;         // 'transfer' | 'promptpay' | 'credit_card' | 'gateway'
+  schedule?: string;
+  paymentType?: string;
+  paymentMonth?: string;
+  transactionRef?: string;
+}
+
+// Keep for backward compatibility — methods now take (id, note) directly
+export interface IPaymentConfirmRequest {
+  paymentId: string;
+  note?: string;
+}
+
+export interface IPaymentRejectRequest {
+  paymentId: string;
+  note?: string;
+}

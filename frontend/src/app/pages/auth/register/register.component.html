@@ -1,0 +1,500 @@
+<div class="auth-layout">
+  <!-- Left Brand Panel -->
+  <div class="brand-panel">
+    <div class="brand-orbs">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+    </div>
+    <div class="brand-content">
+      <div class="brand-logo">
+        <div class="logo-icon">
+          <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="48" height="48" rx="14" fill="white" fill-opacity="0.15"/>
+            <polygon points="24,10 42,20 24,30 6,20" fill="white" opacity="0.95"/>
+            <path d="M15,24 L15,35 C15,35 19,41 24,41 C29,41 33,35 33,35 L33,24 L24,30 Z" fill="white" opacity="0.8"/>
+            <line x1="42" y1="20" x2="42" y2="32" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="42" cy="34" r="2.5" fill="#f9a8d4"/>
+          </svg>
+        </div>
+        <div class="brand-name-wrap">
+          <span class="brand-name">KMS</span>
+          <span class="brand-tagline">Know More Sci</span>
+        </div>
+      </div>
+      <h1 class="brand-title">เริ่มต้น<br/>การเรียนรู้<br/>ของคุณ</h1>
+      <p class="brand-subtitle">สมัครสมาชิกฟรีและเข้าถึงทรัพยากรการเรียนการสอน ที่ครอบคลุมที่สุด</p>
+    </div>
+    <div class="brand-footer">© 2025 Know More Sci Platform</div>
+  </div>
+
+  <!-- Right Form Panel -->
+  <div class="form-panel">
+    <div class="form-inner">
+
+      <!-- Step Progress Bar -->
+      <div class="step-progress">
+        <div class="step-track">
+          <div class="step-fill" [style.width.%]="getStepProgress()"></div>
+        </div>
+        <div class="step-items">
+          <div class="step-item" [class.active]="currentStep === 'role'" [class.done]="currentStep !== 'role'">
+            <div class="step-dot">
+              <svg *ngIf="currentStep !== 'role'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span *ngIf="currentStep === 'role'">1</span>
+            </div>
+            <span class="step-lbl">ประเภท</span>
+          </div>
+          <div class="step-item" [class.active]="currentStep === 'form'" [class.done]="currentStep === 'totp'">
+            <div class="step-dot">
+              <svg *ngIf="currentStep === 'totp'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span *ngIf="currentStep !== 'totp'">2</span>
+            </div>
+            <span class="step-lbl">ข้อมูล</span>
+          </div>
+          <div class="step-item" [class.active]="currentStep === 'totp'">
+            <div class="step-dot"><span>3</span></div>
+            <span class="step-lbl">OTP</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Step 1: Role Selection ────────────────────────────────── -->
+      <div *ngIf="currentStep === 'role'" class="form-card">
+        <div class="form-header">
+          <h2 class="form-title">สมัครสมาชิกใหม่</h2>
+          <p class="form-desc">เลือกประเภทบัญชีที่ต้องการ</p>
+        </div>
+
+        <div class="role-grid">
+          <button type="button" class="role-card" (click)="selectRole('student')">
+            <div class="role-icon-wrap student">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+              </svg>
+            </div>
+            <div class="role-info">
+              <h3>นักเรียน</h3>
+              <p>เข้าเรียนคอร์สและแบบฝึกหัด พร้อมติดตามความก้าวหน้า</p>
+            </div>
+            <div class="role-arrow">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+          </button>
+
+          <button type="button" class="role-card" (click)="selectRole('teacher')">
+            <div class="role-icon-wrap teacher">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+            <div class="role-info">
+              <h3>ครูผู้สอน</h3>
+              <p>สอนและจัดการคอร์ส รอการอนุมัติจาก Manager</p>
+            </div>
+            <div class="role-arrow">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+          </button>
+        </div>
+
+        <div class="info-note">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span>ครูผู้สอนจะต้องรอการอนุมัติจาก Manager ก่อนเข้าใช้งาน</span>
+        </div>
+
+        <div class="form-link-row">
+          <p>มีบัญชีอยู่แล้ว? <a routerLink="/login">เข้าสู่ระบบ</a></p>
+        </div>
+      </div>
+
+      <!-- ── Step 2: Registration Form ─────────────────────────────── -->
+      <div *ngIf="currentStep === 'form'" class="form-card">
+        <div class="form-header">
+          <button type="button" class="back-btn" (click)="goBackToRole()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+            ย้อนกลับ
+          </button>
+          <h2 class="form-title">
+            <span *ngIf="selectedRole === 'student'">สมัครเป็นนักเรียน</span>
+            <span *ngIf="selectedRole === 'teacher'">สมัครเป็นครูผู้สอน</span>
+          </h2>
+          <p class="form-desc">กรอกข้อมูลส่วนตัวให้ครบถ้วน</p>
+        </div>
+
+        <!-- ── Sub-step Indicator ──────────────────────────── -->
+        <div class="rg-sub-stepper">
+          <div *ngFor="let lbl of subStepLabels; let i = index"
+               class="rg-sub-step"
+               [class.active]="formSubStep === i + 1"
+               [class.done]="formSubStep > i + 1">
+            <div class="rg-sub-circle">
+              <svg *ngIf="formSubStep > i + 1" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span *ngIf="formSubStep <= i + 1">{{ i + 1 }}</span>
+            </div>
+            <span class="rg-sub-lbl">{{ lbl }}</span>
+            <div *ngIf="i < subStepLabels.length - 1" class="rg-sub-line"></div>
+          </div>
+        </div>
+
+        <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="auth-form">
+          <div *ngIf="errorMessage" class="alert alert-error">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            {{ errorMessage }}
+          </div>
+
+          <!-- Section: Basic Info (Sub-step 1) -->
+          <div class="form-section" *ngIf="formSubStep === 1">
+            <h4 class="section-title">
+              <span class="section-num">01</span> ข้อมูลส่วนตัว
+            </h4>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="firstName">ชื่อ</label>
+                <input type="text" id="firstName" formControlName="firstName" placeholder="ชื่อ"
+                  [class.error]="submitted && f['firstName'].invalid"/>
+                <div *ngIf="submitted && f['firstName'].invalid" class="error-text">กรุณากรอกชื่อ</div>
+              </div>
+              <div class="form-group">
+                <label for="lastName">นามสกุล</label>
+                <input type="text" id="lastName" formControlName="lastName" placeholder="นามสกุล"
+                  [class.error]="submitted && f['lastName'].invalid"/>
+                <div *ngIf="submitted && f['lastName'].invalid" class="error-text">กรุณากรอกนามสกุล</div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="nickname">ชื่อเล่น</label>
+              <input type="text" id="nickname" formControlName="nickname" placeholder="ชื่อเล่น"
+                [class.error]="submitted && f['nickname'].invalid"/>
+              <div *ngIf="submitted && f['nickname'].invalid" class="error-text">กรุณากรอกชื่อเล่น</div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="age">อายุ</label>
+                <input type="number" id="age" formControlName="age" placeholder="อายุ"
+                  [class.error]="submitted && f['age'].invalid"/>
+                <div *ngIf="submitted && f['age'].invalid" class="error-text">
+                  <span *ngIf="f['age'].hasError('required')">กรุณากรอกอายุ</span>
+                  <span *ngIf="f['age'].hasError('min') || f['age'].hasError('max')">อายุ 1-120 ปี</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="gender">เพศ</label>
+                <select id="gender" formControlName="gender" [class.error]="submitted && f['gender'].invalid">
+                  <option value="">-- เลือกเพศ --</option>
+                  <option value="male">ชาย</option>
+                  <option value="female">หญิง</option>
+                  <option value="other">อื่นๆ</option>
+                </select>
+                <div *ngIf="submitted && f['gender'].invalid" class="error-text">กรุณาเลือกเพศ</div>
+              </div>
+            </div>
+
+            <div class="rg-step-actions">
+              <button type="button" class="rg-btn rg-btn-next" (click)="goNextSubStep()">
+                ถัดไป
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Section: Contact Info (Sub-step 2) -->
+          <div class="form-section" *ngIf="formSubStep === 2">
+            <h4 class="section-title">
+              <span class="section-num">02</span> ข้อมูลติดต่อ
+            </h4>
+
+            <div class="form-group">
+              <label for="email">อีเมล</label>
+              <div class="input-wrapper">
+                <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                <input type="email" id="email" formControlName="email" placeholder="your@email.com"
+                  [class.error]="submitted && f['email'].invalid"/>
+              </div>
+              <div *ngIf="submitted && f['email'].invalid" class="error-text">
+                <span *ngIf="f['email'].hasError('required')">กรุณากรอกอีเมล</span>
+                <span *ngIf="f['email'].hasError('email')">รูปแบบอีเมลไม่ถูกต้อง</span>
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="phone">เบอร์โทร</label>
+                <input type="tel" id="phone" formControlName="phone" placeholder="0xxxxxxxxx"
+                  [class.error]="submitted && f['phone'].invalid"/>
+                <div *ngIf="submitted && f['phone'].invalid" class="error-text">
+                  <span *ngIf="f['phone'].hasError('required')">กรุณากรอกเบอร์โทร</span>
+                  <span *ngIf="f['phone'].hasError('pattern')">เบอร์โทร 9-10 หลัก</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="lineId">ไอดีไลน์</label>
+                <input type="text" id="lineId" formControlName="lineId" placeholder="Line ID"
+                  [class.error]="submitted && f['lineId'].invalid"/>
+                <div *ngIf="submitted && f['lineId'].invalid" class="error-text">กรุณากรอก Line ID</div>
+              </div>
+            </div>
+
+            <!-- เลขบัตรประชาชน -->
+            <div class="form-group">
+              <label for="nationalId">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-2px;margin-right:4px">
+                  <rect x="2" y="5" width="20" height="14" rx="2"/>
+                  <circle cx="8" cy="12" r="2"/><path d="M14 10h4M14 14h3"/>
+                </svg>
+                เลขบัตรประชาชน
+              </label>
+              <input type="text" id="nationalId" formControlName="nationalId"
+                placeholder="เลข 13 หลัก (ไม่ต้องมีขีด)"
+                maxlength="13" inputmode="numeric"
+                [class.error]="submitted && f['nationalId'].invalid"/>
+              <div *ngIf="submitted && f['nationalId'].invalid" class="error-text">
+                <span *ngIf="f['nationalId'].hasError('required')">กรุณากรอกเลขบัตรประชาชน</span>
+                <span *ngIf="f['nationalId'].hasError('pattern')">เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลัก</span>
+              </div>
+            </div>
+
+            <div class="rg-step-actions">
+              <button type="button" class="rg-btn rg-btn-prev" (click)="goPrevSubStep()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                ย้อนกลับ
+              </button>
+              <button type="button" class="rg-btn rg-btn-next" (click)="goNextSubStep()">
+                ถัดไป
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Section: Student Specific (Sub-step 3) -->
+          <div class="form-section" *ngIf="formSubStep === 3 && selectedRole === 'student'">
+            <h4 class="section-title">
+              <span class="section-num">03</span> ข้อมูลการศึกษา
+            </h4>
+            <div class="form-group">
+              <label for="academicYear">ชั้นปี / ระดับชั้น</label>
+              <input type="text" id="academicYear" formControlName="academicYear"
+                placeholder="เช่น ปีที่ 1, ม.4, มัธยมศึกษาปีที่ 6"
+                [class.error]="submitted && f['academicYear'].invalid"/>
+              <div *ngIf="submitted && f['academicYear'].invalid" class="error-text">กรุณากรอกชั้นปี</div>
+            </div>
+
+            <div class="rg-step-actions">
+              <button type="button" class="rg-btn rg-btn-prev" (click)="goPrevSubStep()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                ย้อนกลับ
+              </button>
+              <button type="button" class="rg-btn rg-btn-next" (click)="goNextSubStep()">
+                ถัดไป
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Section: Teacher Specific (Sub-step 3) -->
+          <div class="form-section" *ngIf="formSubStep === 3 && selectedRole === 'teacher'">
+            <h4 class="section-title">
+              <span class="section-num">03</span> ข้อมูลอาจารย์
+            </h4>
+            <div class="form-group">
+              <label for="university">มหาวิทยาลัย (จบการศึกษา)</label>
+              <input type="text" id="university" formControlName="university" placeholder="ชื่อมหาวิทยาลัย"
+                [class.error]="submitted && f['university'].invalid"/>
+              <div *ngIf="submitted && f['university'].invalid" class="error-text">กรุณากรอกมหาวิทยาลัย</div>
+            </div>
+            <div class="form-group">
+              <label for="paymentChannel">ช่องทางรับเงิน</label>
+              <select id="paymentChannel" formControlName="paymentChannel"
+                [class.error]="submitted && f['paymentChannel'].invalid">
+                <option value="">-- เลือกช่องทาง --</option>
+                <option value="bank">บัญชีธนาคาร</option>
+                <option value="promptpay">PromptPay</option>
+                <option value="paypal">PayPal</option>
+                <option value="other">อื่นๆ</option>
+              </select>
+              <div *ngIf="submitted && f['paymentChannel'].invalid" class="error-text">กรุณาเลือกช่องทางรับเงิน</div>
+            </div>
+
+            <!-- ข้อมูลบัญชีธนาคาร -->
+            <div class="bank-info-box">
+              <div class="bank-info-header">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-2px;margin-right:6px">
+                  <line x1="3" y1="22" x2="21" y2="22"/>
+                  <rect x="5" y="11" width="4" height="11"/><rect x="10" y="7" width="4" height="15"/><rect x="15" y="3" width="4" height="19"/>
+                  <polyline points="3 7 12 2 21 7"/>
+                </svg>
+                ข้อมูลบัญชีธนาคาร
+              </div>
+              <p class="bank-info-note">ใช้สำหรับรับค่าตอบแทนการสอน — ชื่อบัญชีต้องตรงกับชื่อ-นามสกุลที่กรอกไว้</p>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="bankAccountNumber">เลขบัญชีธนาคาร</label>
+                  <input type="text" id="bankAccountNumber" formControlName="bankAccountNumber"
+                    placeholder="เลข 10-15 หลัก" maxlength="15" inputmode="numeric"
+                    [class.error]="submitted && f['bankAccountNumber']?.invalid"/>
+                  <div *ngIf="submitted && f['bankAccountNumber']?.invalid" class="error-text">
+                    <span *ngIf="f['bankAccountNumber']?.hasError('required')">กรุณากรอกเลขบัญชี</span>
+                    <span *ngIf="f['bankAccountNumber']?.hasError('pattern')">เลขบัญชี 10-15 หลัก</span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="bankAccountName">ชื่อบัญชี (ต้องตรงกับชื่อ-นามสกุล)</label>
+                  <input type="text" id="bankAccountName" formControlName="bankAccountName"
+                    placeholder="ชื่อ นามสกุล (ภาษาไทยหรืออังกฤษ)"
+                    [class.error]="submitted && (f['bankAccountName']?.invalid || registerForm.hasError('bankAccountNameMismatch'))"/>
+                  <div *ngIf="submitted && f['bankAccountName']?.invalid" class="error-text">กรุณากรอกชื่อบัญชี</div>
+                  <div *ngIf="submitted && !f['bankAccountName']?.invalid && registerForm.hasError('bankAccountNameMismatch')" class="error-text">
+                    ชื่อบัญชีต้องตรงกับ "{{ f['firstName']?.value }} {{ f['lastName']?.value }}"
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="rg-step-actions">
+              <button type="button" class="rg-btn rg-btn-prev" (click)="goPrevSubStep()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                ย้อนกลับ
+              </button>
+              <button type="button" class="rg-btn rg-btn-next" (click)="goNextSubStep()">
+                ถัดไป
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Section: Password (Sub-step 4) -->
+          <div class="form-section" *ngIf="formSubStep === 4">
+            <h4 class="section-title">
+              <span class="section-num">04</span>
+              รหัสผ่าน
+            </h4>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="password">รหัสผ่าน</label>
+                <div class="input-wrapper">
+                  <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  <input [type]="showPassword ? 'text' : 'password'" id="password" formControlName="password"
+                    placeholder="อย่างน้อย 6 ตัวอักษร"
+                    [class.error]="submitted && f['password'].invalid"/>
+                  <button type="button" class="eye-btn" (click)="showPassword = !showPassword" tabindex="-1">
+                    <svg *ngIf="!showPassword" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg *ngIf="showPassword" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  </button>
+                </div>
+                <div *ngIf="submitted && f['password'].invalid" class="error-text">
+                  <span *ngIf="f['password'].hasError('required')">กรุณากรอกรหัสผ่าน</span>
+                  <span *ngIf="f['password'].hasError('minlength')">อย่างน้อย 6 ตัวอักษร</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="confirmPassword">ยืนยันรหัสผ่าน</label>
+                <input type="password" id="confirmPassword" formControlName="confirmPassword"
+                  placeholder="ยืนยันรหัสผ่าน"
+                  [class.error]="submitted && (f['confirmPassword'].invalid || registerForm.hasError('passwordMismatch'))"/>
+                <div *ngIf="submitted && (f['confirmPassword'].invalid || registerForm.hasError('passwordMismatch'))" class="error-text">
+                  <span *ngIf="f['confirmPassword'].hasError('required')">กรุณายืนยันรหัสผ่าน</span>
+                  <span *ngIf="registerForm.hasError('passwordMismatch')">รหัสผ่านไม่ตรงกัน</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="formSubStep === 4" class="rg-step-actions">
+            <button type="button" class="rg-btn rg-btn-prev" (click)="goPrevSubStep()" [disabled]="loading">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              ย้อนกลับ
+            </button>
+            <button type="submit" class="rg-btn rg-btn-submit" [disabled]="loading">
+              <div *ngIf="loading" class="spinner-sm"></div>
+              <span *ngIf="!loading">ถัดไป — ตั้งค่า 2FA</span>
+              <span *ngIf="loading">กำลังดำเนินการ...</span>
+            </button>
+          </div>
+        </form>
+
+        <div class="form-link-row">
+          <p>มีบัญชีอยู่แล้ว? <a routerLink="/login">เข้าสู่ระบบ</a></p>
+        </div>
+      </div>
+
+      <!-- ── Step 3: TOTP Setup ─────────────────────────────────────── -->
+      <div *ngIf="currentStep === 'totp'" class="form-card">
+        <div class="form-header">
+          <div class="totp-icon-wrap">
+            <div class="totp-shield">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <path d="M9 12l2 2 4-4"/>
+              </svg>
+            </div>
+          </div>
+          <h2 class="form-title text-center">ตั้งค่า Google Authenticator</h2>
+          <p class="form-desc text-center">สแกน QR Code ด้านล่างด้วยแอป Google Authenticator</p>
+        </div>
+
+        <div *ngIf="errorMessage" class="alert alert-error">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          {{ errorMessage }}
+        </div>
+
+        <!-- QR Code -->
+        <div *ngIf="totpQrCode" class="qr-container">
+          <div class="qr-frame">
+            <img [src]="totpQrCode" alt="Google Authenticator QR Code" class="qr-image"/>
+          </div>
+          <div class="qr-steps">
+            <div class="qr-step">
+              <div class="qr-step-num">1</div>
+              <span>เปิดแอป <strong>Google Authenticator</strong></span>
+            </div>
+            <div class="qr-step">
+              <div class="qr-step-num">2</div>
+              <span>กด <strong>+ เพิ่มบัญชี</strong> และสแกน QR Code</span>
+            </div>
+            <div class="qr-step">
+              <div class="qr-step-num">3</div>
+              <span>ป้อนรหัส <strong>6 หลัก</strong> ที่ได้จากแอป</span>
+            </div>
+          </div>
+        </div>
+
+        <form [formGroup]="totpForm" (ngSubmit)="verifyTotp()" class="auth-form">
+          <div class="otp-input-group">
+            <input
+              type="text"
+              id="otp"
+              formControlName="otp"
+              placeholder="000000"
+              maxlength="6"
+              inputmode="numeric"
+              class="otp-input"
+              [class.error]="totpSubmitted && otpf['otp'].invalid"
+              autocomplete="one-time-code"
+            />
+          </div>
+          <div *ngIf="totpSubmitted && otpf['otp'].invalid" class="error-text" style="justify-content: center;">
+            <span *ngIf="otpf['otp'].hasError('required')">กรุณาป้อนรหัส OTP</span>
+            <span *ngIf="otpf['otp'].hasError('pattern')">รหัส OTP ต้องเป็นตัวเลข 6 หลัก</span>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block submit-btn" [disabled]="loading">
+            <div *ngIf="loading" class="spinner"></div>
+            <span *ngIf="!loading">ยืนยันและเสร็จสิ้น</span>
+            <span *ngIf="loading">กำลังยืนยัน...</span>
+          </button>
+
+          <button type="button" class="btn btn-ghost btn-block" (click)="goBackToForm()" [disabled]="loading">
+            ← ย้อนกลับ
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>

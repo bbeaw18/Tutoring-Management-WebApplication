@@ -1,0 +1,439 @@
+<div class="manager-calendar-container" [class.is-dragging-cursor]="isDragging">
+
+  <!-- ─── Header ──────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div>
+      <h1>ปฏิทินตารางเรียนการสอน</h1>
+      <p>ดูตารางครู/นักเรียนทั้งหมด
+        <ng-container *ngIf="isManager"> · ลากนัดสอนเพื่อย้ายเวลาได้</ng-container>
+      </p>
+    </div>
+    <div *ngIf="rescheduling" class="saving-badge">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mc-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+      กำลังบันทึก...
+    </div>
+  </div>
+
+  <!-- ─── Filter Panel ─────────────────────────────────────────── -->
+  <div class="filter-panel">
+    <div class="filter-mode-tabs">
+      <button [class.active]="filterMode === 'all'"     (click)="setFilterMode('all')"     class="filter-tab">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        ทั้งหมด
+      </button>
+      <button [class.active]="filterMode === 'teacher'" (click)="setFilterMode('teacher')" class="filter-tab">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        ตารางสอนครู
+      </button>
+      <button [class.active]="filterMode === 'student'" (click)="setFilterMode('student')" class="filter-tab">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+        ตารางเรียนนักเรียน
+      </button>
+    </div>
+    <div class="filter-select-wrap" *ngIf="filterMode === 'teacher'">
+      <select [ngModel]="selectedTeacherId"
+              (ngModelChange)="selectedTeacherId = $event; onTeacherFilterChange()"
+              class="filter-select">
+        <option value="">— เลือกครู —</option>
+        <option *ngFor="let t of teachers" [value]="t._id">{{ t.firstName }} {{ t.lastName }} [{{ t._displayRole }}]</option>
+      </select>
+    </div>
+    <div class="filter-select-wrap" *ngIf="filterMode === 'student'">
+      <select [ngModel]="selectedStudentId"
+              (ngModelChange)="selectedStudentId = $event; onStudentFilterChange()"
+              class="filter-select">
+        <option value="">— เลือกนักเรียน —</option>
+        <option *ngFor="let s of students" [value]="s._id">{{ s.firstName }} {{ s.lastName }}</option>
+      </select>
+    </div>
+    <div class="filter-badge" *ngIf="filterMode !== 'all' && (selectedTeacherId || selectedStudentId)">
+      <span class="filter-badge-label">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-1.5-6h-11z"/><path d="M9 11V6a3 3 0 0 1 6 0v5"/></svg>
+        {{ getFilterLabel() }}
+      </span>
+      <button class="filter-clear" (click)="setFilterMode('all')" aria-label="ล้างตัวกรอง">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ─── View Toggle ─────────────────────────────────────────── -->
+  <div class="toolbar">
+    <div class="view-toggle">
+      <button [class.active]="viewMode === 'monthly'" (click)="switchView('monthly')">รายเดือน</button>
+      <button [class.active]="viewMode === 'weekly'"  (click)="switchView('weekly')">รายสัปดาห์</button>
+    </div>
+    <div class="nav-group" *ngIf="viewMode === 'weekly'">
+      <button class="nav-btn" (click)="prevWeek()">‹</button>
+      <button class="today-btn" (click)="goToday()" [class.active]="isCurrentWeek()">วันนี้</button>
+      <span class="cal-title">{{ getWeekLabel() }}</span>
+      <button class="nav-btn" (click)="nextWeek()">›</button>
+    </div>
+    <div class="nav-group" *ngIf="viewMode === 'monthly'">
+      <button class="nav-btn" (click)="prevMonth()">‹</button>
+      <span class="cal-title">{{ monthNames[currentMonth - 1] }} {{ currentYear + 543 }}</span>
+      <button class="nav-btn" (click)="nextMonth()">›</button>
+    </div>
+  </div>
+
+  <app-loading *ngIf="loading"></app-loading>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       Overview Strip + Legend + Workload
+  ═══════════════════════════════════════════════════════════ -->
+  <div *ngIf="!loading && viewMode === 'weekly'" class="mc-overview">
+
+    <!-- Status counts -->
+    <div class="mc-stat-strip">
+      <div class="mc-stat">
+        <div class="mc-stat-num">{{ overviewCounts.total }}</div>
+        <div class="mc-stat-lbl">คลาสสัปดาห์นี้</div>
+      </div>
+      <div class="mc-stat is-confirmed">
+        <div class="mc-stat-num">{{ overviewCounts.confirmed }}</div>
+        <div class="mc-stat-lbl">ยืนยันครบ</div>
+      </div>
+      <div class="mc-stat is-warning" [class.has-alert]="overviewCounts.pendingTeacher > 0">
+        <div class="mc-stat-num">{{ overviewCounts.pendingTeacher }}</div>
+        <div class="mc-stat-lbl">รอครูยืนยัน</div>
+      </div>
+      <div class="mc-stat is-success">
+        <div class="mc-stat-num">{{ overviewCounts.completed }}</div>
+        <div class="mc-stat-lbl">เสร็จสิ้น</div>
+      </div>
+      <div class="mc-stat is-muted">
+        <div class="mc-stat-num">{{ overviewCounts.cancelled }}</div>
+        <div class="mc-stat-lbl">ยกเลิก</div>
+      </div>
+    </div>
+
+    <!-- Color legend + teacher workload -->
+    <div class="mc-info-row">
+      <div class="mc-legend">
+        <div class="mc-legend-head">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          <span>คำอธิบายสี</span>
+        </div>
+        <div class="mc-legend-grid">
+          <span class="mc-lg-item"><span class="mc-chip mc-chip-confirmed"></span>ยืนยันครบ</span>
+          <span class="mc-lg-item"><span class="mc-chip mc-chip-pending"></span>รอยืนยัน</span>
+          <span class="mc-lg-item"><span class="mc-chip mc-chip-completed"></span>เสร็จสิ้น</span>
+          <span class="mc-lg-item"><span class="mc-chip mc-chip-cancelled"></span>ยกเลิก</span>
+          <ng-container *ngIf="filterMode === 'student' && selectedStudentId">
+            <span class="mc-lg-item"><span class="mc-chip mc-chip-accepted"></span>นร.ยืนยัน</span>
+            <span class="mc-lg-item"><span class="mc-chip mc-chip-declined"></span>นร.ปฏิเสธ</span>
+            <span class="mc-lg-item"><span class="mc-chip mc-chip-waiting"></span>นร.รอยืนยัน</span>
+          </ng-container>
+        </div>
+      </div>
+
+      <div class="mc-workload" *ngIf="teacherWorkload.length > 0">
+        <div class="mc-workload-head">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span>ครูที่สอนเยอะสุด</span>
+        </div>
+        <div class="mc-workload-list">
+          <div class="mc-wl-row" *ngFor="let t of teacherWorkload; let i = index">
+            <div class="mc-wl-avatar" [class.rank-1]="i === 0">{{ t.initial }}</div>
+            <div class="mc-wl-body">
+              <div class="mc-wl-top">
+                <span class="mc-wl-name">{{ t.name }}</span>
+                <span class="mc-wl-count">{{ t.count }} คลาส</span>
+              </div>
+              <div class="mc-wl-bar">
+                <div class="mc-wl-fill" [style.width.%]="t.pct"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       WEEKLY VIEW — Google Calendar Style
+  ═══════════════════════════════════════════════════════════ -->
+  <div *ngIf="!loading && viewMode === 'weekly'" class="gcal-wrapper">
+
+    <!-- Day header row (sticky) -->
+    <div class="gcal-header">
+      <div class="gcal-gutter-head"></div>
+      <div
+        class="gcal-day-head"
+        *ngFor="let day of weekDays"
+        [class.today]="isToday(day.date)"
+      >
+        <span class="gcal-dow">{{ dayNames[day.date.getDay()] }}</span>
+        <span class="gcal-datenum" [class.today-circle]="isToday(day.date)">{{ day.date.getDate() }}</span>
+      </div>
+    </div>
+
+    <!-- Scrollable time-grid body -->
+    <div class="gcal-scroll" #calScroll>
+      <div class="gcal-inner" [style.height.px]="totalGridHeight">
+
+        <!-- Time labels (left gutter) -->
+        <div class="gcal-time-col">
+          <div
+            class="gcal-hour-label"
+            *ngFor="let h of hours"
+            [style.top.px]="(h - START_HOUR) * HOUR_HEIGHT"
+          >{{ h }}:00</div>
+        </div>
+
+        <!-- Day columns -->
+        <div
+          class="gcal-day-col"
+          *ngFor="let day of weekDays; let di = index"
+          [class.today-col]="isToday(day.date)"
+        >
+          <!-- Hour-line backgrounds -->
+          <div
+            class="gcal-hr-line"
+            *ngFor="let h of hours"
+            [style.top.px]="(h - START_HOUR) * HOUR_HEIGHT"
+          ></div>
+          <div
+            class="gcal-halfhr-line"
+            *ngFor="let h of hours"
+            [style.top.px]="(h - START_HOUR) * HOUR_HEIGHT + HOUR_HEIGHT / 2"
+          ></div>
+
+          <!-- Current time indicator -->
+          <div
+            class="gcal-now-line"
+            *ngIf="isToday(day.date) && getCurrentTimeTop() >= 0"
+            [style.top.px]="getCurrentTimeTop()"
+          >
+            <div class="gcal-now-dot"></div>
+          </div>
+
+          <!-- Events -->
+          <div
+            class="gcal-event"
+            *ngFor="let sch of day.schedules"
+            [style.top.px]="getEventTop(sch)"
+            [style.height.px]="getEventHeight(sch)"
+            [style.background]="getEventBg(sch)"
+            [style.borderLeftColor]="getEventBorder(sch)"
+            [style.color]="getEventText(sch)"
+            [class.is-dragging]="isDragging && dragSchedule?._id === sch._id"
+            [class.draggable]="isManager"
+            [class.is-holding]="holdScheduleId === sch._id && !dragArmed"
+            [class.is-armed]="holdScheduleId === sch._id && dragArmed"
+            [style.--hold-progress.%]="holdScheduleId === sch._id ? holdProgress : 0"
+            (mousedown)="onEventMouseDown($event, sch, di)"
+            (click)="openDetail(sch, $event)"
+          >
+            <div class="gcal-event-time">{{ sch.startTime }}–{{ sch.endTime }}</div>
+            <div class="gcal-event-title">{{ getCourseName(sch) }}</div>
+            <div class="gcal-event-sub" *ngIf="getEventHeight(sch) > 44">{{ getTeacherName(sch) }}</div>
+            <!-- Hold progress overlay (2s click-and-hold to start drag) -->
+            <div class="gcal-hold-bar" *ngIf="holdScheduleId === sch._id && !dragArmed">
+              <div class="gcal-hold-bar-fill" [style.width.%]="holdProgress"></div>
+            </div>
+            <div class="gcal-hold-hint" *ngIf="holdScheduleId === sch._id && !dragArmed">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2v6M12 14v8M5 12H1M23 12h-4M19.07 4.93l-2.83 2.83M7.76 16.24l-2.83 2.83M19.07 19.07l-2.83-2.83M7.76 7.76L4.93 4.93"/>
+              </svg>
+              ค้างไว้เพื่อย้ายเวลา
+            </div>
+          </div>
+
+          <!-- Drag preview ghost (shown during drag in target day) -->
+          <div
+            class="gcal-drag-preview"
+            *ngIf="isDragging && dragPreviewDayIndex === di && dragSchedule"
+            [style.top.px]="getDragPreviewTop()"
+            [style.height.px]="getDragPreviewHeight()"
+          >
+            <div class="gcal-event-time">{{ formatDragTime() }}</div>
+            <div class="gcal-event-title">{{ getCourseName(dragSchedule) }}</div>
+          </div>
+        </div>
+
+      </div><!-- /gcal-inner -->
+    </div><!-- /gcal-scroll -->
+
+    <!-- Manager drag hint -->
+    <div class="drag-hint" *ngIf="isManager">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px">
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      </svg>
+      <strong>กดค้าง 2 วินาที</strong>เพื่อเริ่มย้ายเวลา · คลิกปกติเพื่อเปิดรายละเอียดและยืนยันนัดสอน · snap ทุก 30 นาที
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       MONTHLY VIEW
+  ═══════════════════════════════════════════════════════════ -->
+  <div *ngIf="!loading && viewMode === 'monthly'" class="calendar-wrapper">
+    <div class="cal-grid">
+      <div class="cal-day-header" *ngFor="let d of dayNames">{{ d }}</div>
+      <div
+        class="cal-cell"
+        *ngFor="let cell of calendarDays"
+        [class.empty]="!cell.date"
+        [class.today]="cell.date && isToday(cell.date)"
+      >
+        <span *ngIf="cell.date" class="cell-date">{{ cell.date.getDate() }}</span>
+        <div class="cell-events">
+          <div
+            class="event-chip"
+            *ngFor="let sch of cell.schedules"
+            [class.confirmed]="sch.isFullyConfirmed"
+            [class.pending]="!sch.isFullyConfirmed && sch.status === 'pending'"
+            (click)="openDetail(sch, $event)"
+          >{{ sch.startTime }} {{ getCourseName(sch) }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       MODAL: รายละเอียดนัดสอน
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" *ngIf="showDetailModal && selectedSchedule" (click)="closeDetailModal()">
+    <div class="modal-box detail-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ getCourseName(selectedSchedule) }}</h2>
+        <button class="close-btn" (click)="closeDetailModal()" aria-label="ปิด">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="detail-content">
+        <div class="detail-row">
+          <span class="detail-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            วันที่
+          </span>
+          <span>{{ selectedSchedule.date | date:'d MMMM y' }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            เวลา
+          </span>
+          <span>{{ selectedSchedule.startTime }} – {{ selectedSchedule.endTime }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            ครูผู้สอน
+          </span>
+          <span>{{ getTeacherName(selectedSchedule) }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h1M9 13h1M9 17h1M14 9h1M14 13h1M14 17h1"/></svg>
+            ห้อง
+          </span>
+          <span>{{ selectedSchedule.room || '-' }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">สถานะ</span>
+          <span class="badge" [ngClass]="getStatusClass(selectedSchedule.status)">
+            {{ getStatusLabel(selectedSchedule.status) }}
+          </span>
+        </div>
+
+        <div class="income-section">
+          <div class="income-row">
+            <span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>
+              รายได้สอนเดี่ยว
+            </span>
+            <span>฿{{ selectedSchedule.teacherIncomeIndividual | number }}</span>
+          </div>
+          <div class="income-row">
+            <span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>
+              รายได้สอนกลุ่ม
+            </span>
+            <span>฿{{ selectedSchedule.teacherIncomeGroup | number }}</span>
+          </div>
+          <div class="income-row actual"
+               *ngIf="selectedSchedule.actualTeacherIncome !== null && selectedSchedule.actualTeacherIncome !== undefined">
+            <span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              รายได้จริง
+            </span>
+            <span>฿{{ selectedSchedule.actualTeacherIncome | number }}</span>
+          </div>
+          <div class="income-row price">
+            <span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+              ราคาคอร์ส (นักเรียน)
+            </span>
+            <span>฿{{ selectedSchedule.coursePrice | number }}</span>
+          </div>
+        </div>
+
+        <div class="confirmation-section">
+          <div class="conf-status" [class.confirmed]="selectedSchedule.teacherConfirmed">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span>ครูยืนยัน:</span>
+            <ng-container *ngIf="selectedSchedule.teacherConfirmed; else tNotYet">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>แล้ว</span>
+            </ng-container>
+            <ng-template #tNotYet>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span>รอ</span>
+            </ng-template>
+          </div>
+          <div class="conf-divider" *ngIf="(selectedSchedule.studentConfirmations?.length ?? 0) > 0">
+            การยืนยันของนักเรียน:
+          </div>
+          <div class="conf-status student-conf"
+               *ngFor="let sc of selectedSchedule.studentConfirmations"
+               [class.student-accepted]="sc.status === 'accepted'"
+               [class.student-pending]="sc.status === 'pending'">
+            {{ sc.student?.firstName }} {{ sc.student?.lastName }}
+            <span class="conf-badge"
+                  [class.badge-accepted]="sc.status === 'accepted'"
+                  [class.badge-pending]="sc.status === 'pending'">
+              <ng-container *ngIf="sc.status === 'accepted'; else stPending">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                ยืนยันแล้ว
+              </ng-container>
+              <ng-template #stPending>
+                <span class="dot-live"></span>
+                ยังไม่ยืนยัน
+              </ng-template>
+            </span>
+          </div>
+        </div>
+
+        <!-- Teacher hasn't confirmed yet -->
+        <div class="action-buttons" *ngIf="!selectedSchedule.teacherConfirmed">
+          <button class="btn btn-success" (click)="confirmAsTeacher()" [disabled]="confirmLoading">
+            <svg *ngIf="!confirmLoading" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            {{ confirmLoading ? 'กำลังยืนยัน...' : 'ยืนยันรับการสอน' }}
+          </button>
+        </div>
+
+        <!-- Teacher confirmed, waiting QR session -->
+        <div class="action-buttons"
+             *ngIf="selectedSchedule.teacherConfirmed && selectedSchedule.status !== 'awaiting_confirmation' && selectedSchedule.status !== 'completed'">
+          <a [routerLink]="['/dashboard/qr-display', selectedSchedule._id]"
+             class="btn btn-primary"
+             (click)="closeDetailModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20v1"/></svg>
+            เปิดหน้าจอ QR เช็คชื่อ
+          </a>
+        </div>
+
+        <!-- Manager confirm: awaiting_confirmation → completed -->
+        <div class="action-buttons" *ngIf="selectedSchedule.status === 'awaiting_confirmation'">
+          <button class="btn btn-manager-confirm" (click)="doManagerConfirm()" [disabled]="confirmLoading">
+            <svg *ngIf="!confirmLoading" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            {{ confirmLoading ? 'กำลังยืนยัน...' : 'ยืนยันเสร็จสิ้นการสอน (Manager)' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

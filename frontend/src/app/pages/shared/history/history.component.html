@@ -1,0 +1,520 @@
+<div class="history-container">
+
+  <!-- ─── Page Header ──────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-row">
+      <div>
+        <h1>ประวัติ{{ role === 'student' ? 'การเรียน' : 'การสอน' }}</h1>
+        <p>{{ role === 'student' ? 'บันทึกการเข้าเรียนและชั่วโมงเรียนสะสม' : 'บันทึกการสอนและรายได้' }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Filter Bar ──────────────────────────────────────── -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label>เดือน</label>
+      <kms-month-picker [(ngModel)]="selectedMonth" (valueChange)="onMonthChange()" placeholder="ทั้งหมด"></kms-month-picker>
+    </div>
+    <ng-container *ngIf="role === 'manager' || role === 'admin'">
+      <div class="filter-group">
+        <label>ครู</label>
+        <select [(ngModel)]="selectedTeacherId" (change)="onTeacherChange()" class="filter-input">
+          <option value="">ครูทั้งหมด</option>
+          <option *ngFor="let t of teachers" [value]="t._id">
+            {{ getTeacherDisplayName(t) }}
+          </option>
+        </select>
+      </div>
+    </ng-container>
+    <div class="filter-label">{{ formatMonth(selectedMonth) }}</div>
+    <div class="h-view-toggle" role="tablist" aria-label="มุมมอง">
+      <button class="h-view-btn" [class.active]="hViewMode === 'timeline'" (click)="setHViewMode('timeline')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+          <circle cx="3.5" cy="6" r="1.5"/><circle cx="3.5" cy="12" r="1.5"/><circle cx="3.5" cy="18" r="1.5"/>
+        </svg>
+        Timeline
+      </button>
+      <button class="h-view-btn" [class.active]="hViewMode === 'table'" (click)="setHViewMode('table')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="12" y1="3" x2="12" y2="21"/>
+        </svg>
+        ตาราง
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Status filter chips (teacher/manager only) ─────────── -->
+  <div class="h-status-chips" *ngIf="!loading && role !== 'student' && filteredTeachingHistory.length > 0">
+    <button class="h-chip" [class.active]="hStatusFilter === 'all'" (click)="setHStatus('all')">
+      <span class="h-chip-dot dot-all"></span>
+      ทั้งหมด <span class="h-chip-count">{{ hStatusCounts.all }}</span>
+    </button>
+    <button class="h-chip" [class.active]="hStatusFilter === 'completed'" (click)="setHStatus('completed')">
+      <span class="h-chip-dot dot-completed"></span>
+      เสร็จสิ้น <span class="h-chip-count">{{ hStatusCounts.completed }}</span>
+    </button>
+    <button class="h-chip" [class.active]="hStatusFilter === 'awaiting_confirmation'" (click)="setHStatus('awaiting_confirmation')">
+      <span class="h-chip-dot dot-awaiting"></span>
+      รอ Manager <span class="h-chip-count">{{ hStatusCounts.awaiting }}</span>
+    </button>
+    <button class="h-chip" [class.active]="hStatusFilter === 'pending'" (click)="setHStatus('pending')">
+      <span class="h-chip-dot dot-pending"></span>
+      ยังไม่จบ <span class="h-chip-count">{{ hStatusCounts.pending }}</span>
+    </button>
+    <button class="h-chip" [class.active]="hStatusFilter === 'cancelled'" (click)="setHStatus('cancelled')">
+      <span class="h-chip-dot dot-cancelled"></span>
+      ยกเลิก <span class="h-chip-count">{{ hStatusCounts.cancelled }}</span>
+    </button>
+  </div>
+
+  <!-- ─── KPI Stats ────────────────────────────────────────── -->
+  <div class="kpi-section">
+    <div class="kpi-section-title">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="14"/>
+      </svg>
+      <span *ngIf="role === 'student'">สถิติการนัดเรียน {{ formatMonth(selectedMonth) }}</span>
+      <span *ngIf="role !== 'student'">สถิติสะสมทั้งหมด</span>
+    </div>
+    <div class="stats-grid">
+
+      <ng-container *ngIf="role === 'student'">
+        <div class="stat-card green">
+          <div class="stat-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ acceptedCount }}</div>
+            <div class="stat-label">ยืนยันแล้ว</div>
+          </div>
+        </div>
+        <div class="stat-card rose">
+          <div class="stat-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ pendingConfirmCount }}</div>
+            <div class="stat-label">รอยืนยัน</div>
+          </div>
+        </div>
+        <div class="stat-card blue-light">
+          <div class="stat-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ declinedCount }}</div>
+            <div class="stat-label">ปฏิเสธ</div>
+          </div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ currentUser?.learningHours?.toFixed(1) || '0' }} ชม.</div>
+            <div class="stat-label">ชั่วโมงเรียนสะสม</div>
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="role !== 'student'">
+        <div class="stat-card blue">
+          <div class="stat-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ formatDuration(totalTeachingMinutes) }}</div>
+            <div class="stat-label">เวลาสอนสะสม</div>
+          </div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+            </svg>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ totalClasses }}</div>
+            <div class="stat-label">คลาสที่สอน</div>
+          </div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ currentUser?.teachingHours?.toFixed(1) || '0' }} ชม.</div>
+            <div class="stat-label">ชั่วโมงสะสม (ระบบ)</div>
+          </div>
+        </div>
+        <!-- รายได้รวมสะสม: แสดงเฉพาะ manager/admin ไม่ให้ครูเห็น (ดูเฉพาะรายได้เดือน) -->
+        <div class="stat-card amber" *ngIf="role === 'manager' || role === 'admin'">
+          <div class="stat-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="1" x2="12" y2="23"/>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">฿{{ totalIncome | number }}</div>
+            <div class="stat-label">รายได้รวมสะสม</div>
+          </div>
+        </div>
+      </ng-container>
+
+    </div>
+  </div>
+
+  <!-- ─── KPI Stats: Selected Month (teacher/manager only) ─── -->
+  <div class="kpi-section" *ngIf="selectedMonth && role !== 'student'">
+    <div class="kpi-section-title">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <rect x="3" y="4" width="18" height="18" rx="2"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+      </svg>
+      สถิติ {{ formatMonth(selectedMonth) }}
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card blue-light">
+        <div class="stat-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">{{ formatDuration(monthTeachingMinutes) }}</div>
+          <div class="stat-label">เวลาสอนเดือนนี้</div>
+        </div>
+      </div>
+      <div class="stat-card purple-light">
+        <div class="stat-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">{{ monthClasses }}</div>
+          <div class="stat-label">คลาสเดือนนี้</div>
+        </div>
+      </div>
+      <div class="stat-card amber-light">
+        <div class="stat-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="1" x2="12" y2="23"/>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">฿{{ monthIncome | number }}</div>
+          <div class="stat-label">รายได้เดือนนี้</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Loading ──────────────────────────────────────────── -->
+  <div *ngIf="loading" class="loading-state">กำลังโหลดประวัติ...</div>
+
+  <!-- ─── Student Timeline View ──────────────────────────── -->
+  <div *ngIf="!loading && role === 'student' && hViewMode === 'timeline'" class="history-timeline-wrapper">
+    <div class="table-header-row">
+      <h2>Timeline การนัดเรียน {{ formatMonth(selectedMonth) }}</h2>
+      <span class="record-count">{{ studentSchedules.length }} นัด</span>
+    </div>
+    <div *ngIf="studentSchedules.length === 0" class="empty-state">
+      ยังไม่มีการนัดเรียนในเดือนนี้
+    </div>
+    <div *ngIf="studentSchedules.length > 0" class="h-timeline">
+      <div *ngFor="let g of sTimelineGroups" class="h-tl-group">
+        <div class="h-tl-date">
+          <div class="h-tl-date-circle">{{ g.dateLabel.split(' ')[0] }}</div>
+          <div class="h-tl-date-info">
+            <div class="h-tl-date-label">{{ g.dateLabel }}</div>
+            <div class="h-tl-date-weekday">วัน{{ g.weekday }}</div>
+          </div>
+          <div class="h-tl-date-count">{{ g.items.length }} นัด</div>
+        </div>
+        <div class="h-tl-items">
+          <div *ngFor="let sch of g.items" class="h-tl-item h-tl-student"
+               [class.tl-cancelled]="sch.status === 'cancelled'"
+               [class.tl-completed]="sch.status === 'completed'"
+               [class.tl-pending]="sch.status === 'pending' || sch.status === 'confirmed' || sch.status === 'scheduled'">
+            <div class="h-tl-marker"
+                 [class.marker-completed]="sch.status === 'completed'"
+                 [class.marker-cancelled]="sch.status === 'cancelled'"></div>
+            <div class="h-tl-card">
+              <div class="h-tl-card-top">
+                <div class="h-tl-time">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  {{ sch.startTime }} – {{ sch.endTime }}
+                </div>
+                <span [class]="'status-badge ' + getScheduleStatusClass(sch.status)">{{ getScheduleStatusLabel(sch.status) }}</span>
+              </div>
+              <div class="h-tl-title">{{ getCourseName2(sch) }}</div>
+              <div class="h-tl-meta">
+                <span class="h-tl-meta-item">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  ครู {{ getTeacherName2(sch) }}
+                </span>
+                <span class="h-tl-meta-item">{{ formatDuration(sch.totalDurationMinutes || 0) }}</span>
+                <span [class]="'conf-badge ' + getConfirmClass(getMyConfirmStatus(sch))">{{ getConfirmLabel(getMyConfirmStatus(sch)) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Student Schedule History (Table) ────────────────── -->
+  <div *ngIf="!loading && role === 'student' && hViewMode === 'table'" class="history-table-wrapper">
+    <div class="table-header-row">
+      <h2>ตารางนัดเรียน {{ formatMonth(selectedMonth) }}</h2>
+      <span class="record-count">{{ studentSchedules.length }} นัด</span>
+    </div>
+    <div *ngIf="studentSchedules.length === 0" class="empty-state">
+      ยังไม่มีการนัดเรียนในเดือนนี้
+    </div>
+    <div class="table-scroll" *ngIf="studentSchedules.length > 0">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>วันที่</th>
+            <th>คลาส / วิชา</th>
+            <th>ครูผู้สอน</th>
+            <th>เวลา</th>
+            <th>ระยะเวลา</th>
+            <th>สถานะนัด</th>
+            <th>การยืนยันของฉัน</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let sch of studentSchedules; let i = index">
+            <td>{{ i + 1 }}</td>
+            <td>{{ sch.date | date:'d MMM y' }}</td>
+            <td>
+              <div class="cell-primary">{{ getCourseName2(sch) }}</div>
+              <div class="cell-secondary">{{ $any(sch.course)?.subject }}</div>
+            </td>
+            <td>{{ getTeacherName2(sch) }}</td>
+            <td>{{ sch.startTime }} – {{ sch.endTime }}</td>
+            <td>{{ formatDuration(sch.totalDurationMinutes || 0) }}</td>
+            <td>
+              <span [class]="'status-badge ' + getScheduleStatusClass(sch.status)">
+                {{ getScheduleStatusLabel(sch.status) }}
+              </span>
+            </td>
+            <td>
+              <span [class]="'conf-badge ' + getConfirmClass(getMyConfirmStatus(sch))">
+                {{ getConfirmLabel(getMyConfirmStatus(sch)) }}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ─── Teacher/Manager Timeline View ──────────────────── -->
+  <div *ngIf="!loading && role !== 'student' && hViewMode === 'timeline'" class="history-timeline-wrapper">
+    <div class="table-header-row">
+      <h2>Timeline การสอน</h2>
+      <span class="record-count">{{ hStatusFilteredTeaching.length }} รายการ</span>
+    </div>
+    <div *ngIf="hStatusFilteredTeaching.length === 0" class="empty-state">
+      ไม่พบรายการที่ตรงกับเงื่อนไข
+    </div>
+    <div *ngIf="hStatusFilteredTeaching.length > 0" class="h-timeline">
+      <div *ngFor="let g of hTimelineGroups" class="h-tl-group">
+        <div class="h-tl-date">
+          <div class="h-tl-date-circle">{{ g.dateLabel.split(' ')[0] }}</div>
+          <div class="h-tl-date-info">
+            <div class="h-tl-date-label">{{ g.dateLabel }}</div>
+            <div class="h-tl-date-weekday">วัน{{ g.weekday }}</div>
+          </div>
+          <div class="h-tl-date-count">{{ g.items.length }} คลาส</div>
+        </div>
+        <div class="h-tl-items">
+          <div *ngFor="let s of g.items" class="h-tl-item"
+               [class.tl-cancelled]="s.status === 'cancelled'"
+               [class.tl-completed]="s.status === 'completed'"
+               [class.tl-awaiting]="s.status === 'awaiting_confirmation'"
+               [class.tl-pending]="s.status === 'pending' || s.status === 'confirmed' || s.status === 'scheduled'">
+            <div class="h-tl-marker"
+                 [class.marker-completed]="s.status === 'completed'"
+                 [class.marker-awaiting]="s.status === 'awaiting_confirmation'"
+                 [class.marker-cancelled]="s.status === 'cancelled'"></div>
+            <div class="h-tl-card">
+              <div class="h-tl-card-top">
+                <div class="h-tl-time">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  {{ s.startTime }} – {{ s.endTime }}
+                </div>
+                <span [class]="'status-badge ' + getStatusClass(s.status)">{{ getStatusLabel(s.status) }}</span>
+              </div>
+              <div class="h-tl-title">{{ s.course?.name || '-' }}<span *ngIf="s.course?.subject" class="h-tl-sub"> · {{ s.course?.subject }}</span></div>
+              <div class="h-tl-meta">
+                <span class="h-tl-meta-item" *ngIf="role === 'manager' || role === 'admin'">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  ครู {{ s.teacher?.firstName }} {{ s.teacher?.lastName }}
+                </span>
+                <span class="h-tl-meta-item">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  {{ s.students?.length || 0 }} คน
+                </span>
+                <span class="h-tl-meta-item">{{ formatDuration(s.totalDurationMinutes || 0) }}</span>
+                <span class="h-tl-meta-item h-tl-income"
+                      *ngIf="s.status === 'completed' || s.status === 'awaiting_confirmation'">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                  ฿{{ s.actualTeacherIncome || 0 | number }}
+                  <span *ngIf="s.status === 'awaiting_confirmation'" class="h-tl-pending-tag">รอยืนยัน</span>
+                </span>
+              </div>
+              <div class="h-tl-actions" *ngIf="(role === 'manager' || role === 'admin') && s.status === 'awaiting_confirmation'">
+                <button class="btn-confirm"
+                        [disabled]="confirmingId === s._id"
+                        (click)="confirmClass(s._id)">
+                  <ng-container *ngIf="confirmingId !== s._id">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    ยืนยันสำเร็จการสอน
+                  </ng-container>
+                  <span *ngIf="confirmingId === s._id">...</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Teacher/Manager History Table ────────────────────── -->
+  <div *ngIf="!loading && role !== 'student' && hViewMode === 'table'" class="history-table-wrapper">
+    <div class="table-header-row">
+      <h2>บันทึกการสอน</h2>
+      <span class="record-count">{{ filteredTeachingHistory.length }} รายการ</span>
+    </div>
+    <div *ngIf="filteredTeachingHistory.length === 0" class="empty-state">
+      ยังไม่มีประวัติการสอน{{ selectedMonth ? 'ในเดือนนี้' : '' }}
+    </div>
+    <div class="table-scroll" *ngIf="filteredTeachingHistory.length > 0">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>วันที่สอน</th>
+            <th>คลาส / วิชา</th>
+            <ng-container *ngIf="role === 'manager' || role === 'admin'">
+              <th>ครู</th>
+            </ng-container>
+            <th>นักเรียน</th>
+            <th>เวลา</th>
+            <th>ระยะเวลา</th>
+            <th>ครูยืนยัน</th>
+            <th>เข้าเรียน</th>
+            <th>รายได้จริง</th>
+            <th>สถานะ</th>
+            <ng-container *ngIf="role === 'manager' || role === 'admin'">
+              <th>การดำเนินการ</th>
+            </ng-container>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let s of filteredTeachingHistory; let i = index"
+              [class.row-awaiting]="s.status === 'awaiting_confirmation'"
+              [class.row-pending]="s.status === 'pending'">
+            <td>{{ i + 1 }}</td>
+            <td>{{ s.date | date:'d MMM y' }}</td>
+            <td>
+              <div class="cell-primary">{{ s.course?.name || '-' }}</div>
+              <div class="cell-secondary">{{ s.course?.subject }}</div>
+            </td>
+            <ng-container *ngIf="role === 'manager' || role === 'admin'">
+              <td>{{ s.teacher?.firstName }} {{ s.teacher?.lastName }}</td>
+            </ng-container>
+            <td>{{ s.students?.length || 0 }} คน</td>
+            <td>{{ s.startTime }} – {{ s.endTime }}</td>
+            <td>{{ formatDuration(s.totalDurationMinutes || 0) }}</td>
+            <td>
+              <span *ngIf="s.teacherConfirmed" class="teacher-confirmed">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                ยืนยันแล้ว
+              </span>
+              <span *ngIf="!s.teacherConfirmed" class="teacher-pending">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+                ยังไม่ยืนยัน
+              </span>
+            </td>
+            <td>
+              <span *ngIf="s.status === 'awaiting_confirmation' || s.status === 'completed'"
+                    class="attend-count">{{ s.attendanceCount || 0 }} คน</span>
+              <span *ngIf="s.status !== 'awaiting_confirmation' && s.status !== 'completed'"
+                    class="income-pending">—</span>
+            </td>
+            <td>
+              <span *ngIf="s.status === 'completed'" class="income-value">
+                ฿{{ s.actualTeacherIncome | number }}
+              </span>
+              <span *ngIf="s.status === 'awaiting_confirmation'" class="income-pending">
+                ฿{{ s.actualTeacherIncome || 0 | number }} (รอยืนยัน)
+              </span>
+              <span *ngIf="s.status !== 'completed' && s.status !== 'awaiting_confirmation'" class="income-pending">
+                —
+              </span>
+            </td>
+            <td>
+              <span [class]="'status-badge ' + getStatusClass(s.status)">
+                {{ getStatusLabel(s.status) }}
+              </span>
+            </td>
+            <ng-container *ngIf="role === 'manager' || role === 'admin'">
+              <td>
+                <button *ngIf="s.status === 'awaiting_confirmation'"
+                        class="btn-confirm"
+                        [disabled]="confirmingId === s._id"
+                        (click)="confirmClass(s._id)">
+                  <ng-container *ngIf="confirmingId !== s._id">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    ยืนยันสำเร็จ
+                  </ng-container>
+                  <span *ngIf="confirmingId === s._id">...</span>
+                </button>
+                <span *ngIf="s.status === 'completed'" class="confirmed-label">ยืนยันแล้ว</span>
+                <span *ngIf="s.status !== 'awaiting_confirmation' && s.status !== 'completed'" class="income-pending">—</span>
+              </td>
+            </ng-container>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,233 @@
+<div class="home-container">
+
+  <!-- ══ Hero Greeting ══════════════════════════════════════════════ -->
+  <div class="hero-section">
+    <div class="hero-bg">
+      <div class="hero-orb hero-orb-1"></div>
+      <div class="hero-orb hero-orb-2"></div>
+    </div>
+    <div class="hero-content">
+      <div class="hero-left">
+        <p class="greeting-label">
+          <span class="greeting-ico" [innerHTML]="greetingIcon"></span>
+          {{ greeting }}
+        </p>
+        <h1 class="hero-title">
+          {{ currentUser?.firstName }}<span class="hero-title-accent"> {{ currentUser?.lastName }}</span>
+        </h1>
+        <div class="role-chip">
+          <span class="role-dot"></span>
+          {{ getRoleLabel() }}
+        </div>
+        <p class="tip-line" *ngIf="tipOfDay">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V16a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-1.3A7 7 0 0 0 12 2z"/></svg>
+          <span>{{ tipOfDay }}</span>
+        </p>
+      </div>
+      <div class="hero-avatar">
+        <div class="avatar-ring">
+          <div class="avatar-inner">{{ getInitials() }}</div>
+        </div>
+        <div class="avatar-status"></div>
+      </div>
+    </div>
+    <div class="hero-date-pill">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      {{ today | date:'EEEE, d MMMM yyyy' }}
+    </div>
+  </div>
+
+  <!-- ══ Loading skeleton ══════════════════════════════════════════ -->
+  <div *ngIf="loading" class="skeleton-section">
+    <div class="skeleton-grid">
+      <div class="skeleton-card" *ngFor="let i of [1,2,3,4]"></div>
+    </div>
+    <div class="skeleton-grid">
+      <div class="skeleton-card tall" *ngFor="let i of [1,2]"></div>
+    </div>
+  </div>
+
+  <!-- ══ Main Content ══════════════════════════════════════════════ -->
+  <div *ngIf="!loading" class="main-grid">
+
+    <!-- ══ Focus Card (Next upcoming event) ══════════════════════ -->
+    <div *ngIf="nextFocus" class="focus-card">
+      <div class="focus-left">
+        <div class="focus-label">
+          <span class="focus-pulse"></span>
+          กำลังจะถึง
+        </div>
+        <h3 class="focus-title">{{ getUpcomingLabel(nextFocus) }}</h3>
+        <div class="focus-meta">
+          <span class="focus-countdown">{{ getMinutesUntil(nextFocus) }}</span>
+          <span class="focus-dot">•</span>
+          <span>{{ getUpcomingDate(nextFocus) }}</span>
+          <span *ngIf="getUpcomingTime(nextFocus)" class="focus-dot">•</span>
+          <span *ngIf="getUpcomingTime(nextFocus)">{{ getUpcomingTime(nextFocus) }}</span>
+          <span *ngIf="nextFocus.room" class="focus-dot">•</span>
+          <span *ngIf="nextFocus.room">ห้อง {{ nextFocus.room }}</span>
+        </div>
+      </div>
+      <div class="focus-right">
+        <button class="focus-btn" [routerLink]="currentUser?.role === 'student' ? '/dashboard/calendar' : (currentUser?.role === 'teacher' ? '/dashboard/teacher-calendar' : '/dashboard/manager-calendar')">
+          ดูปฏิทิน
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ══ Today's Timeline ══════════════════════════════════════ -->
+    <div class="timeline-card">
+      <div class="timeline-head">
+        <div class="timeline-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          วันนี้
+        </div>
+        <div class="timeline-count">
+          <span *ngIf="todaySchedules.length > 0">{{ todaySchedules.length }} คลาส</span>
+          <span *ngIf="todaySchedules.length === 0" class="timeline-empty-pill">ไม่มีคลาส</span>
+        </div>
+      </div>
+      <div class="timeline-track">
+        <!-- Hour ticks -->
+        <div class="tl-tick" *ngFor="let h of [8,10,12,14,16,18,20]"
+             [style.left.%]="((h - DAY_START_HOUR) / (DAY_END_HOUR - DAY_START_HOUR)) * 100">
+          <span class="tl-tick-label">{{ h }}:00</span>
+        </div>
+        <!-- Now indicator -->
+        <div class="tl-now" [style.left.%]="currentHourPct">
+          <div class="tl-now-dot"></div>
+        </div>
+        <!-- Event pills -->
+        <div class="tl-event"
+             *ngFor="let s of todaySchedules"
+             [style.left.%]="getEventLeftPct(s)"
+             [style.width.%]="getEventWidthPct(s)"
+             [class.tl-event-confirmed]="s.status === 'active' || s.status === 'approved'"
+             [class.tl-event-pending]="s.status === 'pending'"
+             [title]="getUpcomingLabel(s) + ' ' + getUpcomingTime(s)">
+          <span class="tl-event-time">{{ s.startTime }}</span>
+          <span class="tl-event-name">{{ getUpcomingLabel(s) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Stats Row ─────────────────────────────────────────── -->
+    <div class="stats-row">
+      <div
+        *ngFor="let stat of stats; let i = index"
+        class="stat-card stat-{{ stat.color }}"
+        [style.animation-delay]="(i * 60) + 'ms'"
+      >
+        <div class="stat-icon-wrap">
+          <span [innerHTML]="stat.icon"></span>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value">{{ stat.value }}<span *ngIf="stat.sub" class="stat-unit"> {{ stat.sub }}</span></div>
+          <div class="stat-label">{{ stat.label }}</div>
+        </div>
+        <div class="stat-glow"></div>
+      </div>
+    </div>
+
+    <!-- ── Two-column content ─────────────────────────────── -->
+    <div class="content-cols">
+
+      <!-- Quick Actions -->
+      <div class="panel actions-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            ไปยังหน้า
+          </div>
+        </div>
+        <div class="actions-grid">
+          <button
+            *ngFor="let action of actions; let i = index"
+            class="action-tile action-{{ action.color }}"
+            [style.animation-delay]="(i * 50) + 'ms'"
+            (click)="navigate(action.route)"
+          >
+            <div class="action-icon" [innerHTML]="action.icon"></div>
+            <div class="action-text">
+              <div class="action-label">{{ action.label }}</div>
+              <div class="action-desc">{{ action.desc }}</div>
+            </div>
+            <svg class="action-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Upcoming / Recent -->
+      <div class="side-stack">
+
+        <!-- Upcoming items -->
+        <div class="panel upcoming-panel" *ngIf="upcomingItems.length > 0">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+              กิจกรรมล่าสุด
+            </div>
+            <span class="panel-count">{{ upcomingItems.length }}</span>
+          </div>
+          <div class="upcoming-list">
+            <div
+              *ngFor="let item of upcomingItems; let i = index"
+              class="upcoming-item"
+              [style.animation-delay]="(i * 40) + 'ms'"
+            >
+              <div class="upcoming-dot {{ getStatusClass(item.status) }}"></div>
+              <div class="upcoming-body">
+                <div class="upcoming-title">{{ getUpcomingLabel(item) }}</div>
+                <div class="upcoming-meta">
+                  <span *ngIf="getUpcomingDate(item) !== '—'">{{ getUpcomingDate(item) }}</span>
+                  <span *ngIf="getUpcomingTime(item)" class="upcoming-time">{{ getUpcomingTime(item) }}</span>
+                </div>
+              </div>
+              <span class="status-pill {{ getStatusClass(item.status) }}">{{ getStatusLabel(item.status) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notifications -->
+        <div class="panel notif-panel" *ngIf="recentNotifications.length > 0">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              การแจ้งเตือน
+            </div>
+            <button class="panel-link" [routerLink]="'/dashboard/notifications'">ดูทั้งหมด</button>
+          </div>
+          <div class="notif-list">
+            <div
+              *ngFor="let n of recentNotifications; let i = index"
+              class="notif-item"
+              [class.unread]="!n.isRead"
+              [style.animation-delay]="(i * 40) + 'ms'"
+            >
+              <div class="notif-indicator" [class.active]="!n.isRead"></div>
+              <div class="notif-body">
+                <div class="notif-title">{{ n.title }}</div>
+                <div class="notif-msg">{{ n.message }}</div>
+                <div class="notif-time">{{ n.createdAt | date:'d MMM, HH:mm' }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty state when no data -->
+        <div class="panel empty-panel" *ngIf="upcomingItems.length === 0 && recentNotifications.length === 0">
+          <div class="empty-illus">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+            </svg>
+          </div>
+          <p class="empty-title">ยังไม่มีกิจกรรม</p>
+          <p class="empty-sub">ข้อมูลจะปรากฏที่นี่เมื่อมีกิจกรรม</p>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>

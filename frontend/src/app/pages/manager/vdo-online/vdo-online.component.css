@@ -1,0 +1,62 @@
+/* ═══════════════════════════════════════════════════════
+   VDO Online — Manager/Admin
+   ═══════════════════════════════════════════════════════ */
+.vdo-container { max-width: 900px; margin: 0 auto; padding: 24px 20px; animation: pageEnter 350ms ease both; }
+
+/* ─── Header ─── */
+.page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+.page-header h1 { font-size: 22px; font-weight: 700; color: #1e293b; margin: 0; }
+.page-header p  { color: #64748b; margin: 4px 0 0; font-size: 13px; }
+.filter-group { display: flex; align-items: center; gap: 8px; }
+.filter-group label { font-size: 13px; font-weight: 600; color: #475569; }
+.filter-input { padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 13px; font-family: inherit; background: white; cursor: pointer; }
+.filter-input:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.12); }
+
+/* ─── Notice Bar ─── */
+.notice-bar { background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: #5b21b6; margin-bottom: 24px; }
+
+/* ─── Empty ─── */
+.empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
+.empty-icon { width: 88px; height: 88px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #ede9fe, #f5f3ff 60%, transparent); display: inline-flex; align-items: center; justify-content: center; color: #7c3aed; margin: 0 auto 12px; }
+.empty-state p { font-size: 15px; }
+
+/* ─── Schedule Cards ─── */
+.schedule-list { display: flex; flex-direction: column; gap: 16px; }
+.schedule-card { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,.06); border: 1px solid #e2e8f0; overflow: hidden; }
+.card-info { padding: 20px 20px 0; }
+.card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 12px; }
+.course-name { font-size: 16px; font-weight: 700; color: #1e293b; }
+.card-meta { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: #64748b; margin-bottom: 10px; }
+.card-meta span { display: flex; align-items: center; gap: 4px; }
+.student-emails { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding-bottom: 16px; }
+.email-label { font-size: 11px; color: #64748b; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+.email-label svg { color: #7c3aed; opacity: .85; }
+.meta-item svg { color: #7c3aed; opacity: .7; flex-shrink: 0; }
+.btn-send { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.send-success, .send-error { display: inline-flex; align-items: center; gap: 6px; }
+.spin { animation: vdo-spin 0.9s linear infinite; }
+@keyframes vdo-spin { to { transform: rotate(360deg); } }
+.notice-bar svg { color: #7c3aed; flex-shrink: 0; }
+.email-chip { font-size: 11px; background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; padding: 3px 10px; border-radius: 20px; }
+
+/* ─── Action Area ─── */
+.card-action { background: #f8fafc; border-top: 1px solid #f1f5f9; padding: 16px 20px; }
+.link-input-row { display: flex; gap: 10px; align-items: stretch; }
+.link-input { flex: 1; padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13px; font-family: inherit; color: #1e293b; transition: border-color .2s; }
+.link-input:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.1); }
+.link-input.input-error { border-color: #ef4444; }
+.btn-send { background: linear-gradient(135deg, #7c3aed, #4f46e5); color: white; border: none; padding: 10px 20px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .2s; white-space: nowrap; }
+.btn-send:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
+.btn-send:disabled { opacity: .5; cursor: not-allowed; }
+.send-success { margin-top: 10px; font-size: 13px; color: #15803d; font-weight: 600; }
+.send-error   { margin-top: 10px; font-size: 13px; color: #dc2626; }
+
+/* ─── Status Badges ─── */
+.status-badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
+.status-completed  { background: #d1fae5; color: #065f46; }
+.status-awaiting   { background: #fef3c7; color: #92400e; }
+.status-confirmed  { background: #dbeafe; color: #1d4ed8; }
+.status-pending    { background: #e0e7ff; color: #3730a3; }
+
+@keyframes pageEnter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 768px) { .vdo-container { padding: 16px; } .link-input-row { flex-direction: column; } }

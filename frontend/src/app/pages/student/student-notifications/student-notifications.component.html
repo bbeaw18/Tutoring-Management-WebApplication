@@ -1,0 +1,177 @@
+<div class="notifications-container">
+  <div class="page-header">
+    <div class="header-top">
+      <div>
+        <h1>กล่องข้อความ</h1>
+        <p>การแจ้งเตือนทั้งหมดของคุณ จัดกลุ่มตามช่วงเวลา</p>
+      </div>
+      <button class="btn btn-ghost btn-sm" (click)="markAllAsRead()" [disabled]="unreadCount === 0">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><polyline points="20 6 9 17 4 12"/><polyline points="3 12 5 14"/></svg>
+        ทำเครื่องหมายว่าอ่านทั้งหมด
+        <span *ngIf="unreadCount > 0" class="n-badge-count">{{ unreadCount }}</span>
+      </button>
+    </div>
+  </div>
+
+  <app-loading *ngIf="loading"></app-loading>
+
+  <div *ngIf="!loading" class="content">
+
+    <!-- ── Inbox Header (stat strip) ─────────────────────── -->
+    <div *ngIf="notifications.length > 0" class="n-inbox-strip">
+      <div class="n-strip-card n-strip-total">
+        <div class="n-strip-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <div class="n-strip-body">
+          <div class="n-strip-num">{{ nFilterCounts.all }}</div>
+          <div class="n-strip-lbl">ทั้งหมด</div>
+        </div>
+      </div>
+      <div class="n-strip-card n-strip-unread" [class.has-unread]="unreadCount > 0">
+        <div class="n-strip-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <div class="n-strip-body">
+          <div class="n-strip-num">{{ nFilterCounts.unread }}</div>
+          <div class="n-strip-lbl">ยังไม่ได้อ่าน</div>
+        </div>
+      </div>
+      <div class="n-strip-card n-strip-today">
+        <div class="n-strip-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="n-strip-body">
+          <div class="n-strip-num">{{ nFilterCounts.today }}</div>
+          <div class="n-strip-lbl">วันนี้</div>
+        </div>
+      </div>
+      <div class="n-strip-card n-strip-archive">
+        <div class="n-strip-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+        </div>
+        <div class="n-strip-body">
+          <div class="n-strip-num">{{ nFilterCounts.archive }}</div>
+          <div class="n-strip-lbl">อ่านแล้ว</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Inbox Tabs (primary filter) ───────────────────── -->
+    <div *ngIf="notifications.length > 0" class="n-tabs">
+      <button class="n-tab" [class.active]="nFilter === 'all'" (click)="setFilter('all')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        ทั้งหมด <span class="n-tab-num">{{ nFilterCounts.all }}</span>
+      </button>
+      <button class="n-tab" [class.active]="nFilter === 'unread'" (click)="setFilter('unread')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        ยังไม่อ่าน <span class="n-tab-num n-tab-num-alert" *ngIf="nFilterCounts.unread > 0">{{ nFilterCounts.unread }}</span>
+      </button>
+      <button class="n-tab" [class.active]="nFilter === 'today'" (click)="setFilter('today')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        วันนี้ <span class="n-tab-num">{{ nFilterCounts.today }}</span>
+      </button>
+      <button class="n-tab" [class.active]="nFilter === 'archive'" (click)="setFilter('archive')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/></svg>
+        คลัง <span class="n-tab-num">{{ nFilterCounts.archive }}</span>
+      </button>
+    </div>
+
+    <!-- ── Type filter chips ──────────────────────────────── -->
+    <div *ngIf="notifications.length > 0" class="n-type-chips">
+      <button class="n-chip" [class.active]="nTypeFilter === 'all'" (click)="setTypeFilter('all')">
+        ทุกประเภท
+      </button>
+      <button class="n-chip" [class.active]="nTypeFilter === 'info'" (click)="setTypeFilter('info')">
+        <span class="n-chip-dot dot-info"></span>
+        ข้อมูล <span class="n-chip-count">{{ nTypeCounts.info }}</span>
+      </button>
+      <button class="n-chip" [class.active]="nTypeFilter === 'success'" (click)="setTypeFilter('success')">
+        <span class="n-chip-dot dot-success"></span>
+        สำเร็จ <span class="n-chip-count">{{ nTypeCounts.success }}</span>
+      </button>
+      <button class="n-chip" [class.active]="nTypeFilter === 'warning'" (click)="setTypeFilter('warning')">
+        <span class="n-chip-dot dot-warning"></span>
+        แจ้งเตือน <span class="n-chip-count">{{ nTypeCounts.warning }}</span>
+      </button>
+      <button class="n-chip" [class.active]="nTypeFilter === 'error'" (click)="setTypeFilter('error')">
+        <span class="n-chip-dot dot-error"></span>
+        ข้อผิดพลาด <span class="n-chip-count">{{ nTypeCounts.error }}</span>
+      </button>
+    </div>
+
+    <!-- Empty (no data at all) -->
+    <div *ngIf="notifications.length === 0" class="empty-state n-empty">
+      <div class="n-empty-art">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+      </div>
+      <h3>ยังไม่มีการแจ้งเตือน</h3>
+      <p>เมื่อมีกิจกรรมใหม่ในระบบ จะปรากฏที่นี่</p>
+    </div>
+
+    <!-- Empty (filtered) -->
+    <div *ngIf="notifications.length > 0 && visibleNotifications.length === 0" class="empty-state n-empty">
+      <div class="n-empty-art">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h3>ไม่มีรายการในกลุ่มนี้</h3>
+      <p>ลองเลือกตัวกรองอื่น</p>
+    </div>
+
+    <!-- ── Grouped Inbox ─────────────────────────────────── -->
+    <div *ngIf="visibleNotifications.length > 0" class="n-inbox">
+      <div *ngFor="let group of groupedNotifications" class="n-group">
+        <div class="n-group-header">
+          <span class="n-group-label">{{ group.label }}</span>
+          <span class="n-group-count">{{ group.items.length }}</span>
+        </div>
+        <div class="n-group-items">
+          <div *ngFor="let notif of group.items"
+               class="notification-item"
+               [class.unread]="!notif.isRead"
+               [attr.data-type]="notif.type">
+            <div class="n-leading">
+              <span class="n-unread-dot" *ngIf="!notif.isRead" aria-label="ยังไม่อ่าน"></span>
+              <div class="notification-icon" [class]="'icon-' + notif.type">
+                <svg *ngIf="notif.type === 'info'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <svg *ngIf="notif.type === 'success'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <svg *ngIf="notif.type === 'warning'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <svg *ngIf="notif.type === 'error'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              </div>
+            </div>
+            <div class="notification-content">
+              <div class="n-headline">
+                <h3 class="notification-title">{{ notif.title }}</h3>
+                <span class="n-type-tag" [class]="'tag-' + notif.type">{{ getTypeLabel(notif.type) }}</span>
+              </div>
+              <p class="notification-message">{{ notif.message }}</p>
+              <span class="notification-time">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                {{ formatDate(notif.createdAt) }}
+              </span>
+            </div>
+            <div class="notification-actions">
+              <button
+                *ngIf="!notif.isRead"
+                class="n-act-btn n-act-read"
+                (click)="markAsRead(notif.id)"
+                title="ทำเครื่องหมายว่าอ่านแล้ว"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+              <button
+                class="n-act-btn n-act-delete"
+                (click)="deleteNotification(notif.id)"
+                title="ลบ"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

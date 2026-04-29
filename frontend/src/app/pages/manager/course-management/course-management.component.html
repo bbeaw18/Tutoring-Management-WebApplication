@@ -1,0 +1,749 @@
+<div class="course-booking-page">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-inner">
+      <div class="header-text">
+        <h1 class="page-title">จัดการนัดสอน</h1>
+        <p class="page-subtitle">สร้างและจัดการการนัดสอนสำหรับครูและนักเรียน</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn-refresh" (click)="loadAll()" [disabled]="loading" [title]="'โหลดข้อมูลใหม่'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" [class.spinning]="loading">
+            <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+          <span>รีเฟรช</span>
+        </button>
+        <button class="btn-create" (click)="showForm = !showForm; errorMessage = ''">
+          <svg *ngIf="!showForm" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          <svg *ngIf="showForm" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+          <span>{{ showForm ? 'ปิด' : 'สร้างนัดสอน' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success / Error Banner -->
+  <div class="alert alert-success" *ngIf="successMessage">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+    {{ successMessage }}
+  </div>
+  <div class="alert alert-error" *ngIf="errorMessage && !showForm">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+    {{ errorMessage }}
+  </div>
+
+  <!-- Booking Form -->
+  <div class="form-wrapper" *ngIf="showForm">
+    <div class="form-card">
+      <div class="form-header">
+        <h2>สร้างนัดสอนใหม่</h2>
+        <p>กรอกข้อมูลด้านล่างเพื่อนัดสอน — ระบบจะส่งแจ้งเตือนไปยังครูและนักเรียนโดยอัตโนมัติ</p>
+      </div>
+
+      <form [formGroup]="bookingForm" (ngSubmit)="submitBooking()">
+
+        <!-- Row: วิชา + ครู -->
+        <div class="form-row">
+          <div class="form-group" [class.invalid]="isFieldInvalid('subject')">
+            <label class="form-label">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+              </svg>
+              วิชา <span class="required">*</span>
+            </label>
+            <input type="text" formControlName="subject" class="form-input"
+              placeholder="พิมพ์หรือเลือกจากรายการ เช่น คณิตศาสตร์"
+              list="subjects-list" autocomplete="off"/>
+            <datalist id="subjects-list">
+              <option *ngFor="let s of savedSubjects" [value]="s">{{ s }}</option>
+            </datalist>
+            <span class="field-hint" *ngIf="savedSubjects.length > 0">เลือกจาก {{ savedSubjects.length }} วิชาที่เคยสร้างไว้ หรือพิมพ์ใหม่</span>
+            <span class="field-error" *ngIf="isFieldInvalid('subject')">กรุณากรอกชื่อวิชา</span>
+          </div>
+
+          <div class="form-group" [class.invalid]="isFieldInvalid('teacher')">
+            <label class="form-label">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              ครูผู้สอน <span class="required">*</span>
+            </label>
+            <select formControlName="teacher" class="form-input">
+              <option value="">— เลือกครู/ผู้จัดการ —</option>
+              <option *ngFor="let t of teachers" [value]="getId(t)">
+                {{ t.firstName }} {{ t.lastName }} [{{ $any(t)._displayRole || (t.role === 'manager' ? 'ผู้จัดการ' : 'ครู') }}]
+              </option>
+            </select>
+            <span class="field-error" *ngIf="isFieldInvalid('teacher')">กรุณาเลือกครู</span>
+          </div>
+        </div>
+
+        <!-- Row: วันที่ + เวลา -->
+        <div class="form-row">
+          <div class="form-group" [class.invalid]="isFieldInvalid('scheduledDate')">
+            <label class="form-label">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <rect x="3" y="4" width="18" height="18" rx="2"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+              </svg>
+              วันที่นัดสอน <span class="required">*</span>
+            </label>
+            <kms-date-picker formControlName="scheduledDate" placeholder="เลือกวันที่นัดสอน"></kms-date-picker>
+            <span class="field-error" *ngIf="isFieldInvalid('scheduledDate')">กรุณาเลือกวันที่</span>
+          </div>
+
+          <div class="form-group time-group">
+            <label class="form-label">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              เวลา <span class="required">*</span>
+            </label>
+            <div class="time-row">
+              <kms-time-picker formControlName="startTime" placeholder="เริ่ม" [minuteStep]="30"></kms-time-picker>
+              <span class="time-sep">–</span>
+              <kms-time-picker formControlName="endTime" placeholder="สิ้นสุด" [minuteStep]="30"></kms-time-picker>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row: ประเภท + ประเภทการสอน + ระดับชั้น -->
+        <div class="form-row form-row-3">
+          <div class="form-group" [class.invalid]="isFieldInvalid('type')">
+            <label class="form-label">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              ประเภท <span class="required">*</span>
+            </label>
+            <div class="type-toggle">
+              <button type="button" class="toggle-btn"
+                [class.active]="bookingForm.get('type')?.value === 'group'"
+                (click)="bookingForm.get('type')?.setValue('group'); onTypeChange()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                กลุ่ม
+              </button>
+              <button type="button" class="toggle-btn"
+                [class.active]="bookingForm.get('type')?.value === 'individual'"
+                (click)="bookingForm.get('type')?.setValue('individual'); onTypeChange()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+                เดี่ยว
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              ประเภทการสอน
+            </label>
+            <input type="text" formControlName="teachingType" class="form-input"
+              placeholder="เช่น ติว, เสริม, แก้ไขเกรด"
+              list="teaching-types-list" autocomplete="off"/>
+            <datalist id="teaching-types-list">
+              <option *ngFor="let t of savedTeachingTypes" [value]="t">{{ t }}</option>
+            </datalist>
+            <span class="field-hint" *ngIf="savedTeachingTypes.length > 0">หรือเลือกจากรายการที่เคยใช้</span>
+          </div>
+
+          <div class="form-group" [class.invalid]="isFieldInvalid('gradeLevel')">
+            <label class="form-label">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+              </svg>
+              ระดับชั้น <span class="required">*</span>
+            </label>
+            <select formControlName="gradeLevel" class="form-input">
+              <option value="">— เลือกระดับชั้น —</option>
+              <option *ngFor="let g of gradeLevelOptions" [value]="g">{{ g }}</option>
+            </select>
+            <span class="field-error" *ngIf="isFieldInvalid('gradeLevel')">กรุณาเลือกระดับชั้น</span>
+          </div>
+        </div>
+
+        <!-- นักเรียน Multi-select -->
+        <div class="form-group students-section">
+          <label class="form-label">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+              <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+            </svg>
+            นักเรียน
+            <span class="badge-count" *ngIf="selectedStudentIds.length > 0">{{ selectedStudentIds.length }} คน</span>
+            <span class="required">*</span>
+          </label>
+
+          <div class="students-hint" *ngIf="bookingForm.get('type')?.value === 'individual'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            ประเภทเดี่ยว — เลือกได้ 1 คนเท่านั้น
+          </div>
+
+          <div class="students-grid" *ngIf="students.length > 0; else noStudents">
+            <div class="student-chip" *ngFor="let s of students"
+              [class.selected]="isStudentSelected(getId(s))"
+              (click)="toggleStudentSelection(getId(s))">
+              <div class="student-avatar">{{ s.firstName.charAt(0) }}{{ s.lastName.charAt(0) }}</div>
+              <div class="student-info">
+                <span class="student-name">{{ s.firstName }} {{ s.lastName }}</span>
+                <span class="student-meta">{{ s.academicYear || s.grade || '' }}</span>
+              </div>
+              <div class="student-check" *ngIf="isStudentSelected(getId(s))">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+          <ng-template #noStudents>
+            <p class="empty-hint">ยังไม่มีนักเรียนในระบบ</p>
+          </ng-template>
+
+          <div class="selected-summary" *ngIf="selectedStudentIds.length > 0">
+            <strong>เลือกแล้ว:</strong> {{ getSelectedStudentNames() }}
+          </div>
+        </div>
+
+        <!-- รายได้ครู & ราคานักเรียน -->
+        <div class="income-section">
+          <div class="income-section-header">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="1" x2="12" y2="23"/>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            <div>
+              <div class="income-title">รายได้ครู & ค่าเรียนนักเรียน</div>
+              <div class="income-subtitle">ระบบจะแสดงข้อมูลนี้ในอีเมลแจ้งเตือนไปยังครูและนักเรียน</div>
+            </div>
+          </div>
+
+          <!-- ── Group: show BOTH (group rate + individual fallback) ── -->
+          <ng-container *ngIf="bookingForm.get('type')?.value === 'group'">
+            <div class="form-row form-row-2">
+              <div class="form-group">
+                <label class="form-label">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                  </svg>
+                  รายได้ครู (สอนกลุ่ม) ฿
+                </label>
+                <div class="income-input-wrap">
+                  <span class="income-currency">฿</span>
+                  <input type="number" inputmode="numeric" formControlName="teacherIncomeGroup" class="form-input income-input" min="0" placeholder="ระบุจำนวนเงิน"/>
+                </div>
+                <span class="field-hint">ใช้เมื่อมีนักเรียนเข้าเรียน 2 คนขึ้นไป</span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                  รายได้ครู (สอนเดี่ยว — สำรอง) ฿
+                </label>
+                <div class="income-input-wrap">
+                  <span class="income-currency">฿</span>
+                  <input type="number" inputmode="numeric" formControlName="teacherIncomeIndividual" class="form-input income-input" min="0" placeholder="ระบุจำนวนเงิน"/>
+                </div>
+                <span class="field-hint">ใช้เมื่อมีนักเรียนเข้าเรียนเพียง 1 คน</span>
+              </div>
+            </div>
+
+            <div class="income-fallback-note">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <span>ระบุทั้งสองอัตราเพื่อความยืดหยุ่น — หากนักเรียนมาเรียนคนเดียวระบบจะใช้อัตราสอนเดี่ยวอัตโนมัติ</span>
+            </div>
+          </ng-container>
+
+          <!-- ── Individual: only individual rate ── -->
+          <div class="form-row form-row-2" *ngIf="bookingForm.get('type')?.value === 'individual'">
+            <div class="form-group">
+              <label class="form-label">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+                รายได้ครู (สอนเดี่ยว) ฿
+              </label>
+              <div class="income-input-wrap">
+                <span class="income-currency">฿</span>
+                <input type="number" inputmode="numeric" formControlName="teacherIncomeIndividual" class="form-input income-input" min="0" placeholder="ระบุจำนวนเงิน"/>
+              </div>
+              <span class="field-hint">ครูจะได้รับยอดนี้สำหรับการสอนเดี่ยว</span>
+            </div>
+          </div>
+
+          <!-- ค่าเรียนนักเรียน (always visible) -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                  <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                </svg>
+                ค่าเรียน (นักเรียนต้องจ่าย) ฿
+              </label>
+              <div class="income-input-wrap">
+                <span class="income-currency">฿</span>
+                <input type="number" inputmode="numeric" formControlName="coursePrice" class="form-input income-input price-input" min="0" placeholder="ระบุจำนวนเงิน"/>
+              </div>
+              <span class="field-hint">นักเรียนจะเห็นยอดนี้ในอีเมลและระบบ</span>
+            </div>
+          </div>
+
+          <!-- Preview summary -->
+          <div class="income-preview" *ngIf="(bookingForm.get('teacherIncomeIndividual')?.value > 0) || (bookingForm.get('teacherIncomeGroup')?.value > 0) || (bookingForm.get('coursePrice')?.value > 0)">
+            <div class="preview-row teacher-preview">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+              <span>ครูจะเห็น:</span>
+              <strong>
+                รายได้ {{ bookingForm.get('type')?.value === 'individual'
+                  ? '฿' + (bookingForm.get('teacherIncomeIndividual')?.value | number) + ' (เดี่ยว)'
+                  : '฿' + (bookingForm.get('teacherIncomeGroup')?.value | number) + ' (กลุ่ม)' }}
+              </strong>
+            </div>
+            <div class="preview-row student-preview">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+              <span>นักเรียนจะเห็น:</span>
+              <strong>ค่าเรียน ฿{{ bookingForm.get('coursePrice')?.value | number }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- หมายเหตุ -->
+        <div class="form-group">
+          <label class="form-label">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/>
+              <line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/>
+            </svg>
+            หมายเหตุ (ไม่บังคับ)
+          </label>
+          <textarea formControlName="description" class="form-input form-textarea"
+            placeholder="รายละเอียดเพิ่มเติม เช่น หัวข้อที่จะสอน, สื่อการสอน..." rows="3"></textarea>
+        </div>
+
+        <!-- Error Banner -->
+        <div class="alert alert-error form-error-banner" *ngIf="errorMessage" id="form-error-anchor">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <div class="error-body">
+            <strong>ไม่สามารถสร้างนัดสอนได้</strong>
+            <span>{{ errorMessage }}</span>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions">
+          <button type="submit" class="btn-submit" [disabled]="submitting">
+            <ng-container *ngIf="!submitting">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="22" y1="2" x2="11" y2="13"/>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+              สร้างนัดสอน &amp; ส่งแจ้งเตือน
+            </ng-container>
+            <span *ngIf="submitting" class="loading-dots">กำลังสร้าง...</span>
+          </button>
+          <button type="button" class="btn-cancel" (click)="resetForm()">ยกเลิก</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Courses List -->
+  <app-loading *ngIf="loading"></app-loading>
+
+  <div *ngIf="!loading" class="courses-section">
+    <div class="section-header">
+      <h2>รายการนัดสอนทั้งหมด</h2>
+      <span class="total-badge">{{ courses.length }} รายการ</span>
+    </div>
+
+    <!-- ── Status Tabs + Search ────────────────────────────── -->
+    <div *ngIf="courses.length > 0" class="cm-tabs-wrap">
+      <div class="cm-tabs">
+        <button class="cm-tab" [class.active]="cmTab === 'all'" (click)="setCmTab('all')">
+          <span>ทั้งหมด</span>
+          <span class="cm-tab-num">{{ cmCounts.all }}</span>
+        </button>
+        <button class="cm-tab pending" [class.active]="cmTab === 'pending'" (click)="setCmTab('pending')">
+          <span class="cm-tab-dot"></span>
+          <span>รอครูยืนยัน</span>
+          <span class="cm-tab-num">{{ cmCounts.pending }}</span>
+        </button>
+        <button class="cm-tab approved" [class.active]="cmTab === 'approved'" (click)="setCmTab('approved')">
+          <span class="cm-tab-dot"></span>
+          <span>ยืนยันแล้ว</span>
+          <span class="cm-tab-num">{{ cmCounts.approved }}</span>
+        </button>
+        <button class="cm-tab completed" [class.active]="cmTab === 'completed'" (click)="setCmTab('completed')">
+          <span class="cm-tab-dot"></span>
+          <span>เสร็จสิ้น</span>
+          <span class="cm-tab-num">{{ cmCounts.completed }}</span>
+        </button>
+        <button class="cm-tab cancelled" [class.active]="cmTab === 'cancelled'" (click)="setCmTab('cancelled')">
+          <span class="cm-tab-dot"></span>
+          <span>ยกเลิก</span>
+          <span class="cm-tab-num">{{ cmCounts.cancelled }}</span>
+        </button>
+      </div>
+      <div class="cm-search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" [(ngModel)]="cmSearch" placeholder="ค้นหาวิชา ครู หรือระดับชั้น..." />
+        <button *ngIf="cmSearch" class="cm-clear" (click)="cmSearch = ''" aria-label="ล้าง">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="courses.length === 0">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="3" y="4" width="18" height="18" rx="2"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+      </svg>
+      <h3>ยังไม่มีการนัดสอน</h3>
+      <p>คลิก "สร้างนัดสอน" เพื่อเริ่มต้น</p>
+    </div>
+
+    <!-- Filtered empty state -->
+    <div class="empty-state" *ngIf="courses.length > 0 && cmFiltered.length === 0">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <h3>ไม่พบรายการ</h3>
+      <p>ลองเปลี่ยนแท็บหรือล้างคำค้น</p>
+    </div>
+
+    <!-- Courses Grid -->
+    <div class="courses-grid" *ngIf="cmFiltered.length > 0">
+      <div class="course-card" *ngFor="let course of cmFiltered">
+        <!-- Card Header -->
+        <div class="card-header">
+          <div class="card-subject">{{ course.subject }}</div>
+          <span class="status-badge" [ngClass]="getStatusClass(course.status)">
+            {{ getStatusLabel(course.status) }}
+          </span>
+        </div>
+
+        <!-- Card Body -->
+        <div class="card-body">
+          <div class="card-row">
+            <svg class="card-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            <span class="card-value">{{ getTeacherName(course.teacher) }}</span>
+          </div>
+
+          <div class="card-row" *ngIf="course.students && course.students.length > 0">
+            <svg class="card-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+              <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+            </svg>
+            <span class="card-value">
+              <span class="student-pill" *ngFor="let s of course.students">
+                {{ s.firstName || '' }} {{ s.lastName || '' }}
+              </span>
+            </span>
+          </div>
+
+          <div class="card-row" *ngIf="course.scheduledDate">
+            <svg class="card-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <rect x="3" y="4" width="18" height="18" rx="2"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+            </svg>
+            <span class="card-value">
+              {{ formatDateTime(course.scheduledDate) }}
+              <span *ngIf="course.startTime"> {{ course.startTime }}–{{ course.endTime }}</span>
+            </span>
+          </div>
+
+          <div class="card-tags">
+            <span class="tag tag-type" *ngIf="course.type">{{ getTypeLabel(course.type) }}</span>
+            <span class="tag tag-difficulty" *ngIf="course.teachingType">{{ course.teachingType }}</span>
+            <span class="tag tag-grade" *ngIf="course.gradeLevel">{{ course.gradeLevel }}</span>
+          </div>
+
+          <div class="card-finance" *ngIf="(course.coursePrice || 0) > 0 || (course.teacherIncomeGroup || 0) > 0 || (course.teacherIncomeIndividual || 0) > 0">
+            <div class="finance-item teacher-income" *ngIf="(course.teacherIncomeIndividual || 0) > 0 || (course.teacherIncomeGroup || 0) > 0">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="1" x2="12" y2="23"/>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+              </svg>
+              <span>รายได้ครู</span>
+              <span>
+                {{ course.type === 'individual'
+                  ? '฿' + ((course.teacherIncomeIndividual || 0) | number)
+                  : '฿' + ((course.teacherIncomeGroup || 0) | number) }}
+              </span>
+            </div>
+            <div class="finance-item student-price" *ngIf="(course.coursePrice || 0) > 0">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+              </svg>
+              <span>ค่าเรียน</span>
+              <span>฿{{ (course.coursePrice || 0) | number }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card Footer -->
+        <div class="card-footer">
+          <div class="teacher-status pending-pulse" *ngIf="course.status === 'pending' && !course.teacherAccepted"
+               [title]="'รอ ' + getTeacherName(course.teacher) + ' กดยอมรับการนัดสอน'">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            รอครู<strong>{{ getTeacherName(course.teacher) }}</strong>ยืนยัน
+          </div>
+          <div class="teacher-status confirmed" *ngIf="course.teacherAccepted">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            ครูยืนยันการสอนแล้ว
+          </div>
+          <div class="card-actions">
+            <button class="btn-edit-course" (click)="openEditModal(course)"
+              *ngIf="course.status !== 'cancelled' && course.status !== 'completed'">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+              แก้ไข
+            </button>
+            <button class="btn-cancel-course" (click)="cancelCourse(getId(course))"
+              *ngIf="course.status !== 'cancelled' && course.status !== 'completed'">ยกเลิก</button>
+            <button class="btn-delete-course" (click)="permanentDelete(getId(course))"
+              *ngIf="course.status === 'cancelled'">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14H6L5 6"/>
+                <path d="M10 11v6M14 11v6"/>
+                <path d="M9 6V4h6v2"/>
+              </svg>
+              ลบออก
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Edit Modal ──────────────────────────────────────────── -->
+  <div class="modal-overlay" *ngIf="showEditModal && editingCourse" (click)="closeEditModal()">
+    <div class="modal-box edit-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h2>แก้ไขนัดสอน</h2>
+          <p class="modal-subtitle">{{ editingCourse?.subject }} — {{ getTeacherName(editingCourse?.teacher) }}</p>
+        </div>
+        <button class="close-btn" (click)="closeEditModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+
+        <div class="edit-row">
+          <div class="edit-group">
+            <label class="edit-label">วิชา</label>
+            <input type="text" class="edit-input" [(ngModel)]="editSubject" list="edit-subjects-list" placeholder="ชื่อวิชา"/>
+            <datalist id="edit-subjects-list">
+              <option *ngFor="let s of savedSubjects" [value]="s"></option>
+            </datalist>
+          </div>
+          <div class="edit-group">
+            <label class="edit-label">ครู</label>
+            <select class="edit-input" [(ngModel)]="editTeacherId">
+              <option value="">— เลือกครู —</option>
+              <option *ngFor="let t of teachers" [value]="t._id">{{ t.firstName }} {{ t.lastName }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="edit-row">
+          <div class="edit-group">
+            <label class="edit-label">วันที่นัดสอน</label>
+            <kms-date-picker [(ngModel)]="editDate" placeholder="เลือกวันที่"></kms-date-picker>
+          </div>
+          <div class="edit-group">
+            <label class="edit-label">เวลาเริ่ม</label>
+            <kms-time-picker [(ngModel)]="editStartTime" placeholder="เริ่ม" [minuteStep]="30"></kms-time-picker>
+          </div>
+          <div class="edit-group">
+            <label class="edit-label">เวลาสิ้นสุด</label>
+            <kms-time-picker [(ngModel)]="editEndTime" placeholder="สิ้นสุด" [minuteStep]="30"></kms-time-picker>
+          </div>
+        </div>
+
+        <div class="edit-row">
+          <div class="edit-group">
+            <label class="edit-label">ประเภทการสอน</label>
+            <input type="text" class="edit-input" [(ngModel)]="editTeachingType" list="edit-teaching-list" placeholder="เช่น Individual, Group"/>
+            <datalist id="edit-teaching-list">
+              <option *ngFor="let t of savedTeachingTypes" [value]="t"></option>
+            </datalist>
+          </div>
+          <div class="edit-group">
+            <label class="edit-label">ระดับชั้น</label>
+            <input type="text" class="edit-input" [(ngModel)]="editGradeLevel" placeholder="เช่น ม.3, ป.6"/>
+          </div>
+        </div>
+
+        <!-- ประเภทการนัดสอน (toggle) -->
+        <div class="edit-row" style="margin-bottom:8px;">
+          <div class="edit-group" style="flex:1;">
+            <label class="edit-label">ประเภทการนัดสอน</label>
+            <div class="edit-type-toggle">
+              <button type="button" class="edit-toggle-btn"
+                      [class.active]="editType === 'group'"
+                      (click)="editType = 'group'; onEditTypeChange()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                สอนกลุ่ม
+              </button>
+              <button type="button" class="edit-toggle-btn"
+                      [class.active]="editType === 'individual'"
+                      (click)="editType = 'individual'; onEditTypeChange()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                </svg>
+                สอนเดี่ยว
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="edit-income-section">
+          <!-- เมื่อเป็นกลุ่ม: แสดงทั้ง 2 อัตราเพื่อรองรับกรณีนักเรียนมาคนเดียว -->
+          <ng-container *ngIf="editType === 'group'">
+            <div class="edit-group">
+              <label class="edit-label">รายได้ครู (กลุ่ม) ฿</label>
+              <div class="income-input-wrap">
+                <span class="income-currency">฿</span>
+                <input type="number" inputmode="numeric" class="edit-input" [(ngModel)]="editIncomeGrp" min="0" placeholder="ระบุจำนวนเงิน"/>
+              </div>
+              <span class="field-hint" style="font-size:10px;color:#9ca3af;margin-top:3px;display:block;">ใช้เมื่อมี ≥ 2 คน</span>
+            </div>
+            <div class="edit-group">
+              <label class="edit-label">รายได้ครู (เดี่ยว — สำรอง) ฿</label>
+              <div class="income-input-wrap">
+                <span class="income-currency">฿</span>
+                <input type="number" inputmode="numeric" class="edit-input" [(ngModel)]="editIncomeInd" min="0" placeholder="ระบุจำนวนเงิน"/>
+              </div>
+              <span class="field-hint" style="font-size:10px;color:#9ca3af;margin-top:3px;display:block;">ใช้เมื่อมีคนเดียว</span>
+            </div>
+          </ng-container>
+
+          <!-- เมื่อเป็นเดี่ยว: แสดงเฉพาะอัตราเดี่ยว -->
+          <div class="edit-group" *ngIf="editType === 'individual'">
+            <label class="edit-label">รายได้ครู (เดี่ยว) ฿</label>
+            <div class="income-input-wrap">
+              <span class="income-currency">฿</span>
+              <input type="number" inputmode="numeric" class="edit-input" [(ngModel)]="editIncomeInd" min="0" placeholder="ระบุจำนวนเงิน"/>
+            </div>
+          </div>
+
+          <div class="edit-group">
+            <label class="edit-label">ค่าเรียน/คน ฿</label>
+            <div class="income-input-wrap">
+              <span class="income-currency">฿</span>
+              <input type="number" inputmode="numeric" class="edit-input" [(ngModel)]="editPrice" min="0" placeholder="ระบุจำนวนเงิน"/>
+            </div>
+          </div>
+        </div>
+
+        <div class="edit-group" style="margin-top:12px;">
+          <label class="edit-label">หมายเหตุ / คำอธิบาย</label>
+          <textarea class="edit-textarea" [(ngModel)]="editDescription" rows="3" placeholder="รายละเอียดเพิ่มเติม..."></textarea>
+        </div>
+
+        <div class="edit-email-notice">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          </svg>
+          ระบบจะส่งอีเมลแจ้งเวลาใหม่ไปยัง <strong>ครู</strong> และ <strong>นักเรียนทุกคน</strong> โดยอัตโนมัติ
+        </div>
+
+        <div class="edit-error" *ngIf="editErrorMessage">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          {{ editErrorMessage }}
+        </div>
+
+        <div class="edit-actions">
+          <button class="btn-cancel-edit" (click)="closeEditModal()" [disabled]="editSubmitting">ยกเลิก</button>
+          <button class="btn-submit-edit" (click)="submitEdit()" [disabled]="editSubmitting">
+            <ng-container *ngIf="!editSubmitting">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/>
+                <polyline points="7 3 7 8 15 8"/>
+              </svg>
+              บันทึกการแก้ไข
+            </ng-container>
+            <span *ngIf="editSubmitting">กำลังบันทึก...</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>

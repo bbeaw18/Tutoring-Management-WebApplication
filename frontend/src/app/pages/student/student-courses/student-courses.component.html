@@ -1,0 +1,206 @@
+<div class="student-courses-container">
+  <div class="page-header">
+    <h1>นัดสอนของฉัน</h1>
+    <p>ติดตามสถานะการนัดสอนทุกครั้งได้ที่นี่</p>
+  </div>
+
+  <app-loading *ngIf="loading"></app-loading>
+
+  <div *ngIf="!loading" class="content">
+
+    <!-- ── Filter Toolbar ────────────────────────────────────── -->
+    <div *ngIf="courses.length > 0" class="sc-toolbar">
+      <div class="sc-search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" [(ngModel)]="searchTerm" placeholder="ค้นหาวิชา ครู หรือระดับชั้น..." />
+        <button *ngIf="searchTerm" (click)="searchTerm = ''" class="sc-clear" aria-label="ล้าง">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="sc-chips">
+        <button class="sc-chip" [class.active]="filterMode === 'all'"       (click)="setFilter('all')">
+          <span>ทั้งหมด</span><span class="sc-chip-num">{{ courseCounts.all }}</span>
+        </button>
+        <button class="sc-chip pending" [class.active]="filterMode === 'pending'" (click)="setFilter('pending')">
+          <span>รอยืนยัน</span><span class="sc-chip-num">{{ courseCounts.pending }}</span>
+        </button>
+        <button class="sc-chip approved" [class.active]="filterMode === 'approved'" (click)="setFilter('approved')">
+          <span>ยืนยันแล้ว</span><span class="sc-chip-num">{{ courseCounts.approved }}</span>
+        </button>
+        <button class="sc-chip completed" [class.active]="filterMode === 'completed'" (click)="setFilter('completed')">
+          <span>เสร็จสิ้น</span><span class="sc-chip-num">{{ courseCounts.completed }}</span>
+        </button>
+        <button class="sc-chip cancelled" [class.active]="filterMode === 'cancelled'" (click)="setFilter('cancelled')">
+          <span>ยกเลิก</span><span class="sc-chip-num">{{ courseCounts.cancelled }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Empty -->
+    <div *ngIf="courses.length === 0" class="empty-state">
+      <div class="empty-icon">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+        </svg>
+      </div>
+      <p>ยังไม่มีนัดสอน</p>
+      <span>ผู้จัดการจะเพิ่มคุณเข้าในนัดสอนเมื่อมีการสร้าง</span>
+    </div>
+
+    <!-- Filtered empty -->
+    <div *ngIf="courses.length > 0 && filteredCourses.length === 0" class="empty-state filtered">
+      <div class="empty-icon">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </div>
+      <p>ไม่พบนัดสอนที่ตรงกับเงื่อนไข</p>
+      <span>ลองเปลี่ยนคำค้นหรือเลือกตัวกรองอื่น</span>
+    </div>
+
+    <!-- Courses List -->
+    <div *ngIf="filteredCourses.length > 0" class="courses-grid stagger">
+      <div
+        *ngFor="let course of filteredCourses"
+        class="course-card"
+        [class.expanded]="expandedId === getId(course)"
+        [class.status-pending]="course.status === 'pending'"
+        [class.status-approved]="course.status === 'approved' || course.status === 'active'"
+        [class.status-cancelled]="course.status === 'cancelled'"
+      >
+        <!-- Card Header -->
+        <div class="card-header" (click)="toggle(getId(course))">
+          <div class="card-left">
+            <div class="subject-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+              </svg>
+            </div>
+            <div class="card-info">
+              <h3>{{ course.subject || course.name }}</h3>
+              <div class="card-meta">
+                <span *ngIf="course.scheduledDate" class="meta-item">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  {{ formatDate(course.scheduledDate) }}
+                </span>
+                <span *ngIf="course.startTime" class="meta-item">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  {{ course.startTime }}–{{ course.endTime }}
+                </span>
+                <span *ngIf="course.gradeLevel" class="tag-grade">{{ course.gradeLevel }}</span>
+                <span *ngIf="getRelativeLabel(course.scheduledDate)" class="tag-relative"
+                      [class.is-today]="getDaysUntil(course.scheduledDate) === 0"
+                      [class.is-soon]="(getDaysUntil(course.scheduledDate) ?? 0) > 0 && (getDaysUntil(course.scheduledDate) ?? 99) <= 3"
+                      [class.is-past]="(getDaysUntil(course.scheduledDate) ?? 0) < 0">
+                  {{ getRelativeLabel(course.scheduledDate) }}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="card-right">
+            <span [class]="'status-badge ' + getStatusClass(course.status)">
+              {{ getStatusLabel(course.status) }}
+            </span>
+            <span class="expand-chevron" [class.open]="expandedId === getId(course)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+          </div>
+        </div>
+
+        <!-- Expanded Details -->
+        <div *ngIf="expandedId === getId(course)" class="card-body">
+
+          <div class="detail-grid">
+            <!-- Teacher -->
+            <div class="detail-row">
+              <span class="d-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                ครูผู้สอน
+              </span>
+              <span class="d-value">{{ getTeacherName(course.teacher) }}</span>
+            </div>
+            <!-- Subject -->
+            <div class="detail-row" *ngIf="course.subject && course.name !== course.subject">
+              <span class="d-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                วิชา
+              </span>
+              <span class="d-value">{{ course.subject }}</span>
+            </div>
+            <!-- Date -->
+            <div class="detail-row" *ngIf="course.scheduledDate">
+              <span class="d-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                วันที่
+              </span>
+              <span class="d-value">{{ formatDate(course.scheduledDate) }}</span>
+            </div>
+            <!-- Time -->
+            <div class="detail-row" *ngIf="course.startTime">
+              <span class="d-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                เวลา
+              </span>
+              <span class="d-value">{{ course.startTime }} – {{ course.endTime }} น.</span>
+            </div>
+            <!-- Type -->
+            <div class="detail-row" *ngIf="course.type">
+              <span class="d-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                ประเภท
+              </span>
+              <span class="d-value">{{ course.type === 'individual' ? 'เดี่ยว' : 'กลุ่ม' }}</span>
+            </div>
+            <!-- Difficulty -->
+            <div class="detail-row" *ngIf="course.difficulty">
+              <span class="d-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                ระดับ
+              </span>
+              <span class="d-value">{{ getDifficultyLabel(course.difficulty) }}</span>
+            </div>
+            <!-- Grade -->
+            <div class="detail-row" *ngIf="course.gradeLevel">
+              <span class="d-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 18V10l6-4 6 4v8M9 21V13h6v8"/></svg>
+                ระดับชั้น
+              </span>
+              <span class="d-value">{{ course.gradeLevel }}</span>
+            </div>
+            <!-- Notes -->
+            <div class="detail-row" *ngIf="course.description">
+              <span class="d-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                หมายเหตุ
+              </span>
+              <span class="d-value">{{ course.description }}</span>
+            </div>
+          </div>
+
+          <!-- Status Messages -->
+          <div class="status-message" *ngIf="course.status === 'pending'">
+            <div class="msg-pending">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              รอครูยืนยันรับสอน — คุณจะได้รับการแจ้งเตือนเมื่อครูยืนยัน
+            </div>
+          </div>
+
+          <div class="status-message" *ngIf="course.status === 'approved' || course.status === 'active'">
+            <div class="msg-approved">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              ครูยืนยันรับสอนแล้ว — นัดสอนนี้ถูกเพิ่มในปฏิทินของคุณแล้ว
+            </div>
+          </div>
+
+          <div class="status-message" *ngIf="course.status === 'cancelled'">
+            <div class="msg-cancelled">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              นัดสอนนี้ถูกยกเลิก — กรุณาติดต่อผู้จัดการ
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

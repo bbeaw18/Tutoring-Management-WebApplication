@@ -1,0 +1,377 @@
+/* ═══════════════════════════════════════════════════════
+   Student Courses — Glassmorphism Design
+   ═══════════════════════════════════════════════════════ */
+
+.student-courses-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5);
+  animation: pageEnter 350ms var(--ease-out) both;
+}
+
+/* ── Header ── */
+.page-header { margin-bottom: var(--sp-7); }
+
+.page-header h1 {
+  margin: 0 0 var(--sp-1);
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -.04em;
+  background: linear-gradient(135deg, var(--gray-900) 0%, var(--brand-700) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.page-header p { margin: 0; color: var(--text-secondary); font-size: var(--text-sm); }
+
+/* ── Empty ── */
+.empty-state {
+  text-align: center;
+  padding: var(--sp-16) var(--sp-6);
+  background: var(--glass-white);
+  backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  border-radius: var(--r-3xl);
+}
+.empty-icon {
+  width: 88px; height: 88px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, var(--brand-100), var(--brand-50) 60%, transparent);
+  color: var(--brand-400);
+  display: inline-flex; align-items: center; justify-content: center;
+  margin: 0 auto var(--sp-4);
+  animation: prem-drift 6s ease-in-out infinite;
+}
+.msg-pending, .msg-approved, .msg-cancelled {
+  display: flex; align-items: center; gap: var(--sp-2);
+}
+.d-label {
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.d-label svg { color: var(--brand-500); opacity: .8; flex-shrink: 0; }
+.empty-state p { font-size: var(--text-lg); font-weight: 700; color: var(--gray-900); margin: 0 0 var(--sp-2); }
+.empty-state span { color: var(--text-secondary); font-size: var(--text-sm); }
+
+/* ── Grid ── */
+.courses-grid { display: flex; flex-direction: column; gap: var(--sp-4); }
+
+/* ── Card ── */
+.course-card {
+  background: var(--glass-white);
+  backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  border-radius: var(--r-2xl);
+  overflow: hidden;
+  transition: box-shadow var(--dur-base) var(--ease-out),
+              transform var(--dur-base) var(--ease-out);
+}
+.course-card:hover {
+  box-shadow: 0 8px 32px rgba(0,0,0,.10);
+  transform: translateY(-2px);
+}
+.course-card.expanded {
+  box-shadow: 0 12px 40px rgba(102,126,234,.15);
+}
+/* Left accent by status */
+.course-card.status-pending  { border-left: 4px solid #f59e0b; }
+.course-card.status-approved { border-left: 4px solid #10b981; }
+.course-card.status-cancelled{ border-left: 4px solid #ef4444; }
+
+/* ── Card Header ── */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--sp-4) var(--sp-5);
+  cursor: pointer;
+  gap: var(--sp-4);
+}
+.card-left { display: flex; align-items: center; gap: var(--sp-4); flex: 1; min-width: 0; }
+.subject-icon {
+  width: 44px; height: 44px;
+  background: var(--gradient-brand);
+  border-radius: var(--r-xl);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+.card-info { min-width: 0; }
+.card-info h3 {
+  margin: 0 0 var(--sp-1);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--gray-900);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.card-meta {
+  display: flex; flex-wrap: wrap; gap: var(--sp-2);
+  font-size: var(--text-xs); color: var(--text-secondary);
+}
+.meta-item { display: flex; align-items: center; gap: 4px; }
+.tag-grade {
+  padding: 2px 8px;
+  background: rgba(102,126,234,.12);
+  color: var(--brand-700);
+  border-radius: var(--r-full);
+  font-weight: 600;
+  font-size: 11px;
+}
+.card-right { display: flex; align-items: center; gap: var(--sp-3); flex-shrink: 0; }
+.expand-btn { color: var(--text-tertiary); font-size: var(--text-xs); transition: transform var(--dur-base); }
+.course-card.expanded .expand-btn { transform: rotate(180deg); }
+
+/* ── Status Badge ── */
+.status-badge {
+  padding: 4px 12px;
+  border-radius: var(--r-full);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+.badge-warning  { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+.badge-success  { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+.badge-info     { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+.badge-error    { background: #fee2e2; color: #7f1d1d; border: 1px solid #fca5a5; }
+
+/* ── Card Body ── */
+.card-body {
+  padding: 0 var(--sp-5) var(--sp-5);
+  border-top: 1px solid var(--glass-border);
+  padding-top: var(--sp-4);
+  animation: expandIn 200ms var(--ease-out) both;
+}
+
+@keyframes expandIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Detail Grid ── */
+.detail-grid { display: flex; flex-direction: column; gap: var(--sp-2); margin-bottom: var(--sp-4); }
+.detail-row { display: flex; gap: var(--sp-3); align-items: baseline; }
+.d-label {
+  min-width: 130px;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.d-value {
+  font-size: var(--text-sm);
+  color: var(--gray-900);
+  font-weight: 500;
+}
+
+/* ── Status Messages ── */
+.status-message { margin-top: var(--sp-3); }
+
+.msg-pending {
+  padding: var(--sp-3) var(--sp-4);
+  background: #fffbeb;
+  border: 1.5px solid #fde68a;
+  border-radius: var(--r-xl);
+  color: #78350f;
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+.msg-approved {
+  padding: var(--sp-3) var(--sp-4);
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
+  border-radius: var(--r-xl);
+  color: #14532d;
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+.msg-cancelled {
+  padding: var(--sp-3) var(--sp-4);
+  background: #fef2f2;
+  border: 1.5px solid #fca5a5;
+  border-radius: var(--r-xl);
+  color: #7f1d1d;
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .student-courses-container { padding: var(--sp-4) var(--sp-3); }
+  .card-header { padding: var(--sp-3) var(--sp-4); flex-wrap: wrap; }
+  .card-info h3 { font-size: var(--text-sm); }
+  .card-meta { gap: var(--sp-1); }
+  .d-label { min-width: 100px; }
+}
+
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Filter Toolbar
+   ═══════════════════════════════════════════════════════ */
+.sc-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+  padding: var(--sp-3);
+  background: #fff;
+  border: 1px solid var(--gray-100);
+  border-radius: var(--r-xl);
+  box-shadow: 0 1px 2px rgba(15,23,42,.04);
+  animation: pageEnter .4s ease both;
+}
+
+.sc-search {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-100);
+  border-radius: var(--r-lg);
+  transition: border-color .15s ease, background .15s ease;
+}
+
+.sc-search:focus-within {
+  border-color: var(--brand-300, #f9a8d4);
+  background: #fff;
+}
+
+.sc-search svg { color: var(--gray-400); flex-shrink: 0; }
+
+.sc-search input {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: var(--text-sm);
+  color: var(--gray-800);
+  font-family: inherit;
+}
+
+.sc-clear {
+  background: var(--gray-200);
+  border: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: background .15s ease;
+}
+
+.sc-clear:hover { background: var(--gray-300); }
+
+.sc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gray-600);
+  transition: all .15s ease;
+  font-family: inherit;
+}
+
+.sc-chip:hover {
+  border-color: var(--gray-300);
+  color: var(--gray-800);
+}
+
+.sc-chip-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: var(--gray-100);
+  color: var(--gray-600);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.sc-chip.active {
+  background: var(--gray-900, #0f172a);
+  color: #fff;
+  border-color: var(--gray-900, #0f172a);
+}
+
+.sc-chip.active .sc-chip-num {
+  background: rgba(255,255,255,.2);
+  color: #fff;
+}
+
+.sc-chip.pending.active   { background: #f59e0b; border-color: #f59e0b; }
+.sc-chip.approved.active  { background: #16a34a; border-color: #16a34a; }
+.sc-chip.completed.active { background: #3b82f6; border-color: #3b82f6; }
+.sc-chip.cancelled.active { background: #94a3b8; border-color: #94a3b8; }
+
+/* Relative-date pill in card meta */
+.tag-relative {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 999px;
+  background: var(--gray-100);
+  color: var(--gray-600);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tag-relative.is-today {
+  background: linear-gradient(135deg, #fce7f3, #fbcfe8);
+  color: #be185d;
+  animation: relPulse 2s ease-in-out infinite;
+}
+
+.tag-relative.is-soon {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.tag-relative.is-past {
+  background: var(--gray-100);
+  color: var(--gray-500);
+}
+
+@keyframes relPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.empty-state.filtered {
+  background: #fff;
+  border: 1px dashed var(--gray-200);
+  border-radius: var(--r-xl);
+  padding: var(--sp-8);
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .sc-toolbar { flex-direction: column; align-items: stretch; }
+  .sc-search { min-width: 0; }
+  .sc-chips { overflow-x: auto; flex-wrap: nowrap; }
+}

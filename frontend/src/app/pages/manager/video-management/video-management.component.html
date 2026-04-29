@@ -1,0 +1,236 @@
+<div class="video-management-container">
+  <div class="page-header">
+    <div class="header-top">
+      <h1>คลังวิดีโอ</h1>
+      <button class="btn btn-primary" (click)="showForm = !showForm">
+        <svg *ngIf="!showForm" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        {{ showForm ? 'ยกเลิก' : 'อัพโหลดวิดีโอ' }}
+      </button>
+    </div>
+    <p>อัพโหลดและจัดการวิดีโอที่อัดไว้สำหรับนักเรียน</p>
+  </div>
+
+  <app-loading *ngIf="loading"></app-loading>
+
+  <div *ngIf="!loading" class="content">
+
+    <!-- ── Stats Strip ───────────────────────────────────────── -->
+    <div class="vm-stats" *ngIf="videos.length > 0">
+      <div class="vm-stat vm-stat-total">
+        <div class="vm-stat-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+          </svg>
+        </div>
+        <div class="vm-stat-body">
+          <div class="vm-stat-num">{{ vmStats.total }}</div>
+          <div class="vm-stat-lbl">วิดีโอทั้งหมด</div>
+        </div>
+      </div>
+      <div class="vm-stat vm-stat-hours">
+        <div class="vm-stat-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <div class="vm-stat-body">
+          <div class="vm-stat-num">{{ vmStats.hours }}<span class="vm-stat-unit"> ชม.</span></div>
+          <div class="vm-stat-lbl">ความยาวรวม</div>
+        </div>
+      </div>
+      <div class="vm-stat vm-stat-courses">
+        <div class="vm-stat-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+        </div>
+        <div class="vm-stat-body">
+          <div class="vm-stat-num">{{ vmStats.courses }}</div>
+          <div class="vm-stat-lbl">วิชาที่มีวิดีโอ</div>
+        </div>
+      </div>
+      <div class="vm-stat vm-stat-recent">
+        <div class="vm-stat-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+          </svg>
+        </div>
+        <div class="vm-stat-body">
+          <div class="vm-stat-num">{{ vmStats.recent }}</div>
+          <div class="vm-stat-lbl">เพิ่มใน 7 วันล่าสุด</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Upload Form (collapsed/expanded) ──────────────────── -->
+    <div *ngIf="showForm" class="form-section">
+      <div class="form-card">
+        <h2>อัพโหลดวิดีโอ</h2>
+        <form [formGroup]="videoForm" (ngSubmit)="submitForm()">
+          <div class="form-group">
+            <label for="courseId">วิชา</label>
+            <select id="courseId" formControlName="courseId">
+              <option value="">เลือกวิชา</option>
+              <option *ngFor="let course of courses" [value]="course.id">
+                {{ course.courseName }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="title">ชื่อบทเรียน</label>
+            <input type="text" id="title" formControlName="title" placeholder="ชื่อบทเรียน" />
+          </div>
+
+          <div class="form-group">
+            <label for="description">รายละเอียด</label>
+            <textarea id="description" formControlName="description" placeholder="รายละเอียด"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="zoomRecordingUrl">URL วิดีโอ</label>
+            <input
+              type="text"
+              id="zoomRecordingUrl"
+              formControlName="zoomRecordingUrl"
+              placeholder="https://..."
+            />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="duration">ระยะเวลา (นาที)</label>
+              <input type="number" id="duration" formControlName="duration" min="1" />
+            </div>
+            <div class="form-group">
+              <label for="recordedDate">วันที่อัดไว้</label>
+              <kms-date-picker formControlName="recordedDate" placeholder="เลือกวันที่อัด"></kms-date-picker>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" [disabled]="submitting">
+              {{ submitting ? 'กำลังอัพโหลด...' : 'อัพโหลด' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ── Toolbar (search + course chips + sort) ──────────── -->
+    <div class="vm-toolbar" *ngIf="videos.length > 0">
+      <div class="vm-search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" [(ngModel)]="vmSearch" name="vmSearch" placeholder="ค้นหาชื่อบทเรียน วิชา หรือคำอธิบาย..." />
+        <button *ngIf="vmSearch" class="vm-search-clear" (click)="vmSearch = ''" aria-label="ล้าง">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="vm-sort">
+        <span class="vm-sort-label">เรียงตาม:</span>
+        <button class="vm-sort-btn" [class.active]="vmSortBy === 'recent'" (click)="setSort('recent')">ล่าสุด</button>
+        <button class="vm-sort-btn" [class.active]="vmSortBy === 'duration'" (click)="setSort('duration')">ความยาว</button>
+        <button class="vm-sort-btn" [class.active]="vmSortBy === 'title'" (click)="setSort('title')">ชื่อ</button>
+      </div>
+    </div>
+
+    <div class="vm-course-chips" *ngIf="videos.length > 0">
+      <button class="vm-chip" [class.active]="vmCourseFilter === 'all'" (click)="setCourseFilter('all')">
+        ทั้งหมด <span class="vm-chip-count">{{ videos.length }}</span>
+      </button>
+      <button *ngFor="let c of vmCourseOptions"
+              class="vm-chip"
+              [class.active]="vmCourseFilter === c.id"
+              (click)="setCourseFilter(c.id)">
+        {{ c.label }} <span class="vm-chip-count">{{ c.count }}</span>
+      </button>
+    </div>
+
+    <!-- Empty state — no videos at all -->
+    <div *ngIf="videos.length === 0" class="empty-state vm-empty">
+      <div class="vm-empty-art">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+        </svg>
+      </div>
+      <h3>ยังไม่มีวิดีโอในคลัง</h3>
+      <p>เริ่มต้นโดยกดปุ่ม "อัพโหลดวิดีโอ" ด้านบน</p>
+    </div>
+
+    <!-- Empty state — filter no match -->
+    <div *ngIf="videos.length > 0 && vmFiltered.length === 0" class="empty-state vm-empty">
+      <div class="vm-empty-art">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </div>
+      <h3>ไม่พบวิดีโอที่ตรงกับเงื่อนไข</h3>
+      <p>ลองเปลี่ยนคำค้นหาหรือเลือกวิชาอื่น</p>
+    </div>
+
+    <!-- ── Library Grid ─────────────────────────────────────── -->
+    <div *ngIf="vmFiltered.length > 0" class="vm-library-grid">
+      <article *ngFor="let video of vmFiltered" class="vm-card" [class.vm-card-new]="isRecentlyUploaded(video)">
+        <div class="vm-thumb"
+             [style.background]="'linear-gradient(135deg, hsl(' + getVideoHue(video) + ', 78%, 58%), hsl(' + ((getVideoHue(video) + 35) % 360) + ', 80%, 42%))'"
+             (click)="openVideo(video.zoomRecordingUrl)">
+          <div class="vm-thumb-overlay"></div>
+          <button class="vm-play-btn" type="button" aria-label="เปิดวิดีโอ">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20"/></svg>
+          </button>
+          <div class="vm-thumb-duration">{{ formatDuration(video.duration) }}</div>
+          <div *ngIf="isRecentlyUploaded(video)" class="vm-new-badge">ใหม่</div>
+          <div class="vm-thumb-init">{{ (video.title || '?').charAt(0).toUpperCase() }}</div>
+        </div>
+        <div class="vm-card-body">
+          <div class="vm-card-course">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+            {{ getCourseName(video.courseId) }}
+          </div>
+          <h3 class="vm-card-title" [title]="video.title">{{ video.title }}</h3>
+          <p class="vm-card-desc" *ngIf="video.description" [title]="video.description">{{ video.description }}</p>
+          <div class="vm-card-meta">
+            <span class="vm-meta-item" title="วันที่อัด">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              {{ formatDate(video.recordedDate) }}
+            </span>
+            <span class="vm-meta-item" title="อัพโหลด">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              {{ getRelativeUpload(video) }}
+            </span>
+            <span class="vm-meta-item" *ngIf="video.grantedStudents?.length" title="นักเรียนที่สามารถดู">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              </svg>
+              {{ video.grantedStudents.length }} คน
+            </span>
+          </div>
+          <div class="vm-card-actions">
+            <button class="btn btn-sm vm-btn-open" (click)="openVideo(video.zoomRecordingUrl)">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+              เปิดวิดีโอ
+            </button>
+            <button class="btn btn-sm btn-danger" (click)="deleteVideo(video.id)">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/>
+              </svg>
+              ลบ
+            </button>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+</div>

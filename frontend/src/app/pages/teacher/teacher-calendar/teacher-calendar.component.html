@@ -1,0 +1,299 @@
+<div class="teacher-calendar-container">
+
+  <!-- ─── Header ──────────────────────────────────────────── -->
+  <div class="page-header">
+    <div>
+      <h1>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        ปฏิทินตารางสอน
+      </h1>
+      <p>ดูและยืนยันนัดสอนของคุณ</p>
+    </div>
+    <a routerLink="/dashboard/history" class="btn btn-secondary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+      ประวัติการสอน
+    </a>
+  </div>
+
+  <!-- ─── Toolbar ──────────────────────────────────────────── -->
+  <div class="toolbar">
+    <div class="view-toggle">
+      <button [class.active]="viewMode === 'monthly'" (click)="switchView('monthly')">รายเดือน</button>
+      <button [class.active]="viewMode === 'weekly'"  (click)="switchView('weekly')">รายสัปดาห์</button>
+    </div>
+    <div class="nav-group" *ngIf="viewMode === 'weekly'">
+      <button class="nav-btn" (click)="prevWeek()">‹</button>
+      <button class="today-btn" (click)="goToday()" [class.active]="isCurrentWeek()">วันนี้</button>
+      <span class="cal-title">{{ getWeekLabel() }}</span>
+      <button class="nav-btn" (click)="nextWeek()">›</button>
+    </div>
+    <div class="nav-group" *ngIf="viewMode === 'monthly'">
+      <button class="nav-btn" (click)="prevMonth()">‹</button>
+      <span class="cal-title">{{ monthNames[currentMonth - 1] }} {{ currentYear + 543 }}</span>
+      <button class="nav-btn" (click)="nextMonth()">›</button>
+    </div>
+  </div>
+
+  <app-loading *ngIf="loading"></app-loading>
+
+  <!-- ═══════════════════════════════════════════════════════
+       Teacher Earnings Dashboard (weekly)
+  ═══════════════════════════════════════════════════════ -->
+  <div *ngIf="!loading && viewMode === 'weekly'" class="tc-earnings">
+
+    <!-- Primary earnings card -->
+    <div class="tc-earn-primary">
+      <div class="tc-earn-label">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+        รายได้สัปดาห์นี้
+      </div>
+      <div class="tc-earn-value">
+        ฿<span>{{ weekTotalIncome | number: '1.0-0' }}</span>
+      </div>
+      <div class="tc-earn-breakdown">
+        <div class="tc-earn-seg">
+          <span class="tc-seg-dot tc-seg-confirmed"></span>
+          <span class="tc-seg-label">ยืนยันแล้ว</span>
+          <span class="tc-seg-val">฿{{ weekConfirmedIncome | number: '1.0-0' }}</span>
+        </div>
+        <div class="tc-earn-seg">
+          <span class="tc-seg-dot tc-seg-pending"></span>
+          <span class="tc-seg-label">รอยืนยัน</span>
+          <span class="tc-seg-val">฿{{ weekPendingIncome | number: '1.0-0' }}</span>
+        </div>
+      </div>
+      <div class="tc-earn-progress">
+        <div class="tc-earn-progress-fill" [style.width.%]="weekIncomeProgressPct"></div>
+      </div>
+      <div class="tc-earn-pct">{{ weekIncomeProgressPct | number: '1.0-0' }}% ยืนยันแล้ว</div>
+    </div>
+
+    <!-- Mini stats + daily chart -->
+    <div class="tc-earn-right">
+
+      <div class="tc-mini-stats">
+        <div class="tc-mini-stat">
+          <div class="tc-mini-val">{{ weekClassCount }}</div>
+          <div class="tc-mini-lbl">คลาส</div>
+        </div>
+        <div class="tc-mini-stat">
+          <div class="tc-mini-val">{{ weekHoursTotal }} <span>ชม.</span></div>
+          <div class="tc-mini-lbl">ชั่วโมงสอน</div>
+        </div>
+        <div class="tc-mini-stat" [class.has-alert]="weekPendingCount > 0">
+          <div class="tc-mini-val">{{ weekPendingCount }}</div>
+          <div class="tc-mini-lbl">รอยืนยัน</div>
+        </div>
+      </div>
+
+      <!-- Daily bar chart -->
+      <div class="tc-daily-chart">
+        <div class="tc-daily-head">รายได้รายวัน</div>
+        <div class="tc-daily-track">
+          <div class="tc-daily-col" *ngFor="let b of weekDailyIncome" [class.is-today]="b.isToday"
+               [title]="'฿' + (b.income | number)">
+            <div class="tc-daily-bar-wrap">
+              <div class="tc-daily-bar" [style.height.%]="b.heightPct"></div>
+            </div>
+            <span class="tc-daily-lbl">{{ b.label }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending confirmations -->
+    <div class="tc-pending-card" *ngIf="weekPendingList.length > 0">
+      <div class="tc-pending-head">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>รอคุณยืนยัน</span>
+        <span class="tc-pending-chip">{{ weekPendingCount }}</span>
+      </div>
+      <div class="tc-pending-list">
+        <button class="tc-pending-row" *ngFor="let s of weekPendingList" (click)="openDetail(s, $event)">
+          <div class="tc-pending-date">
+            <span class="tc-pd-day">{{ s.date | date:'d' }}</span>
+            <span class="tc-pd-mon">{{ s.date | date:'MMM' }}</span>
+          </div>
+          <div class="tc-pending-body">
+            <div class="tc-pending-title">{{ getCourseName(s) }}</div>
+            <div class="tc-pending-meta">{{ s.startTime }}–{{ s.endTime }}</div>
+          </div>
+          <svg class="tc-pending-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       WEEKLY VIEW — Google Calendar Style
+  ═══════════════════════════════════════════════════════ -->
+  <div *ngIf="!loading && viewMode === 'weekly'" class="gcal-wrapper">
+
+    <!-- Day header row -->
+    <div class="gcal-header">
+      <div class="gcal-gutter-head"></div>
+      <div class="gcal-day-head" *ngFor="let day of weekDays" [class.today]="isToday(day.date)">
+        <span class="gcal-dow">{{ dayNames[day.date.getDay()] }}</span>
+        <span class="gcal-datenum" [class.today-circle]="isToday(day.date)">{{ day.date.getDate() }}</span>
+      </div>
+    </div>
+
+    <!-- Scrollable time-grid body -->
+    <div class="gcal-scroll" #calScroll>
+      <div class="gcal-inner" [style.height.px]="totalGridHeight">
+
+        <!-- Time labels -->
+        <div class="gcal-time-col">
+          <div class="gcal-hour-label" *ngFor="let h of hours"
+               [style.top.px]="(h - START_HOUR) * HOUR_HEIGHT">{{ h }}:00</div>
+        </div>
+
+        <!-- Day columns -->
+        <div class="gcal-day-col" *ngFor="let day of weekDays; let di = index"
+             [class.today-col]="isToday(day.date)">
+
+          <!-- Hour lines -->
+          <div class="gcal-hr-line"     *ngFor="let h of hours" [style.top.px]="(h - START_HOUR) * HOUR_HEIGHT"></div>
+          <div class="gcal-halfhr-line" *ngFor="let h of hours" [style.top.px]="(h - START_HOUR) * HOUR_HEIGHT + HOUR_HEIGHT / 2"></div>
+
+          <!-- Current time indicator -->
+          <div class="gcal-now-line" *ngIf="isToday(day.date) && getCurrentTimeTop() >= 0" [style.top.px]="getCurrentTimeTop()">
+            <div class="gcal-now-dot"></div>
+          </div>
+
+          <!-- Events -->
+          <div class="gcal-event"
+               *ngFor="let sch of day.schedules"
+               [style.top.px]="getEventTop(sch)"
+               [style.height.px]="getEventHeight(sch)"
+               [style.background]="getEventBg(sch)"
+               [style.borderLeftColor]="getEventBorder(sch)"
+               [style.color]="getEventText(sch)"
+               (click)="openDetail(sch, $event)">
+            <div class="gcal-event-time">{{ sch.startTime }}–{{ sch.endTime }}</div>
+            <div class="gcal-event-title">{{ getCourseName(sch) }}</div>
+            <div class="gcal-event-warn" *ngIf="!sch.teacherConfirmed && getEventHeight(sch) > 44">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              รอยืนยัน
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       MONTHLY VIEW
+  ═══════════════════════════════════════════════════════ -->
+  <div *ngIf="!loading && viewMode === 'monthly'" class="calendar-wrapper">
+    <div class="cal-grid">
+      <div class="cal-day-header" *ngFor="let d of dayNames">{{ d }}</div>
+      <div class="cal-cell" *ngFor="let cell of calendarDays"
+           [class.empty]="!cell.date" [class.today]="cell.date && isToday(cell.date)">
+        <span *ngIf="cell.date" class="cell-date">{{ cell.date.getDate() }}</span>
+        <div class="cell-events">
+          <div class="event-chip" *ngFor="let sch of cell.schedules"
+               [class.confirmed]="sch.isFullyConfirmed"
+               [class.need-confirm]="!sch.teacherConfirmed"
+               (click)="openDetail(sch, $event)">
+            <span *ngIf="!sch.teacherConfirmed" class="dot-warn">●</span>
+            {{ sch.startTime }} {{ getCourseName(sch) }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       MODAL: รายละเอียดนัดสอน
+  ═══════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" *ngIf="showDetailModal && selectedSchedule" (click)="closeDetailModal()">
+    <div class="modal-box detail-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ getCourseName(selectedSchedule) }}</h2>
+        <button class="close-btn" (click)="closeDetailModal()" aria-label="ปิด">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="detail-content">
+        <div class="detail-row">
+          <span class="detail-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            วันที่
+          </span>
+          <span>{{ selectedSchedule.date | date:'d MMMM y' }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            เวลา
+          </span>
+          <span>{{ selectedSchedule.startTime }} – {{ selectedSchedule.endTime }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M5 3 2 6"/><path d="m22 6-3-3"/><path d="M12 9v4l2 2"/></svg>
+            ระยะเวลา
+          </span>
+          <span>{{ selectedSchedule.totalDurationMinutes }} นาที</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/><path d="M14 9h1"/><path d="M14 13h1"/><path d="M14 17h1"/></svg>
+            ห้อง
+          </span>
+          <span>{{ selectedSchedule.room || '-' }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">สถานะ</span>
+          <span class="badge" [ngClass]="getStatusClass(selectedSchedule.status)">{{ getStatusLabel(selectedSchedule.status) }}</span>
+        </div>
+        <div class="income-section">
+          <div class="income-row">
+            <span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>
+              รายได้สอนเดี่ยว
+            </span>
+            <span>฿{{ selectedSchedule.teacherIncomeIndividual | number }}</span>
+          </div>
+          <div class="income-row">
+            <span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>
+              รายได้สอนกลุ่ม
+            </span>
+            <span>฿{{ selectedSchedule.teacherIncomeGroup | number }}</span>
+          </div>
+          <div class="income-row price">
+            <span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+              ราคาคอร์ส (นักเรียน)
+            </span>
+            <span>฿{{ selectedSchedule.coursePrice | number }}</span>
+          </div>
+        </div>
+
+        <div class="action-buttons">
+          <button *ngIf="!selectedSchedule.teacherConfirmed" class="btn btn-success"
+            (click)="confirmAsTeacher()" [disabled]="confirmLoading">
+            <svg *ngIf="!confirmLoading" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            {{ confirmLoading ? 'กำลังยืนยัน...' : 'ยืนยันรับการสอน' }}
+          </button>
+          <div *ngIf="selectedSchedule.teacherConfirmed" class="confirmed-badge">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            คุณยืนยันแล้ว
+          </div>
+          <a *ngIf="selectedSchedule.teacherConfirmed"
+             [routerLink]="['/dashboard/qr-display', selectedSchedule._id]"
+             class="btn btn-primary" (click)="closeDetailModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20v1"/></svg>
+            เปิดหน้าจอ QR เช็คชื่อ
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

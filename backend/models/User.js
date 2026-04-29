@@ -1,0 +1,173 @@
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+
+const UserSchema = new mongoose.Schema({
+  firstName: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  lastName: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true,
+    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email']
+  },
+  password: {
+    type: String,
+    required: true,
+    minlength: 6,
+    select: false
+  },
+  phone: {
+    type: String,
+    trim: true
+  },
+  role: {
+    type: String,
+    enum: ['admin', 'manager', 'student', 'teacher'],
+    default: 'student'
+  },
+  profileImage: {
+    type: String,
+    default: null
+  },
+  teachingHours: {
+    type: Number,
+    default: 0
+  },
+  // สำหรับนักเรียน — ชม.เรียนสะสม
+  learningHours: {
+    type: Number,
+    default: 0
+  },
+  subjects: [{
+    type: String
+  }],
+  bio: {
+    type: String,
+    default: null
+  },
+  grade: {
+    type: String,
+    default: null
+  },
+  parentContact: {
+    type: String,
+    default: null
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  lineId: {
+    type: String,
+    trim: true
+  },
+  age: {
+    type: Number
+  },
+  gender: {
+    type: String,
+    enum: ['male', 'female', 'other']
+  },
+  // ชื่อเล่น (ทั้งครูและนักเรียน)
+  nickname: {
+    type: String,
+    trim: true
+  },
+  // เลขบัตรประชาชน (ทั้งครูและนักเรียน)
+  nationalId: {
+    type: String,
+    trim: true,
+    unique: true,
+    sparse: true,     // อนุญาต null ได้ (ไม่บังคับ unique ถ้าเป็น null)
+    match: [/^\d{13}$/, 'เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลัก']
+  },
+  // Teacher specific
+  university: {
+    type: String
+  },
+  paymentChannel: {
+    type: String
+  },
+  // ข้อมูลบัญชีธนาคาร (ครูเท่านั้น)
+  bankAccountNumber: {
+    type: String,
+    trim: true
+  },
+  bankAccountName: {
+    type: String,
+    trim: true
+  },
+  // Student specific
+  academicYear: {
+    type: String
+  },
+  // Google Authenticator TOTP
+  totpSecret: {
+    type: String
+  },
+  totpEnabled: {
+    type: Boolean,
+    default: false
+  },
+  registrationStatus: {
+    type: String,
+    enum: ['registered', 'unregistered'],
+    default: function() {
+      return this.role === 'teacher' ? 'unregistered' : 'registered';
+    }
+  },
+  approvedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  approvedAt: {
+    type: Date,
+    default: null
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+UserSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) return next();
+
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    this.updatedAt = Date.now();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+UserSchema.methods.comparePassword = async function (enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
+};
+
+UserSchema.methods.toJSON = function () {
+  // virtuals: true → includes the virtual `id` field (string form of _id)
+  // Mongoose 7 does NOT include virtuals by default in toObject()
+  const user = this.toObject({ virtuals: true });
+  delete user.password;
+  return user;
+};
+
+module.exports = mongoose.model('User', UserSchema);

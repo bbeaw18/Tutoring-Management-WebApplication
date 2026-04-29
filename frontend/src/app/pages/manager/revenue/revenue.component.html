@@ -1,0 +1,225 @@
+<div class="revenue-container">
+  <div class="page-header">
+    <h1>รายได้</h1>
+    <p>สถิติรายได้และการชำระเงินตามคลาส</p>
+  </div>
+
+  <app-loading *ngIf="loading"></app-loading>
+
+  <div *ngIf="!loading" class="content">
+
+    <!-- ── KPI Cards ── -->
+    <div class="revenue-cards">
+
+      <div
+        class="revenue-card total"
+        [class.active]="activeKpi === 'all'"
+        (click)="selectKpi('all')"
+      >
+        <h3>รายได้รวม</h3>
+        <div class="amount">{{ kpiTotal | number: '1.0-0' }} <span class="unit">บาท</span></div>
+        <div class="amount-change">ยอดชำระนักเรียนทั้งหมด</div>
+      </div>
+
+      <div
+        class="revenue-card confirmed"
+        [class.active]="activeKpi === 'paid'"
+        (click)="selectKpi('paid')"
+      >
+        <h3>ยืนยันแล้ว</h3>
+        <div class="amount">{{ kpiPaid | number: '1.0-0' }} <span class="unit">บาท</span></div>
+        <div class="amount-change positive">ยอดที่นักเรียนชำระแล้ว</div>
+      </div>
+
+      <div
+        class="revenue-card pending"
+        [class.active]="activeKpi === 'unpaid'"
+        (click)="selectKpi('unpaid')"
+      >
+        <h3>รอการชำระ</h3>
+        <div class="amount">{{ kpiUnpaid | number: '1.0-0' }} <span class="unit">บาท</span></div>
+        <div class="amount-change negative">ยอดค้างชำระ</div>
+      </div>
+
+    </div>
+
+    <!-- ── Analytics Charts ── -->
+    <div class="rev-charts">
+
+      <!-- Daily revenue bar chart -->
+      <div class="rev-chart-card rev-bar-card">
+        <div class="rev-chart-head">
+          <div class="rev-chart-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>
+            </svg>
+            รายได้รายวัน
+          </div>
+          <div class="rev-chart-legend">
+            <span class="lg-item"><span class="lg-sw lg-paid"></span>ชำระแล้ว</span>
+            <span class="lg-item"><span class="lg-sw lg-unpaid"></span>ค้างชำระ</span>
+          </div>
+        </div>
+        <div class="rev-bar-track">
+          <div class="rev-bar-col" *ngFor="let b of dailyBars" [class.is-peak]="b.isPeak"
+               [title]="'วันที่ ' + b.day + ' · ชำระ ' + (b.paid | number) + ' · ค้าง ' + (b.unpaid | number)">
+            <div class="rev-bar-stack">
+              <div class="rev-bar-seg rev-bar-unpaid" [style.height.%]="b.heightUnpaid"></div>
+              <div class="rev-bar-seg rev-bar-paid" [style.height.%]="b.heightPaid"></div>
+            </div>
+            <span class="rev-bar-day" *ngIf="b.day % 5 === 0 || b.day === 1">{{ b.day }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Paid vs unpaid donut -->
+      <div class="rev-chart-card rev-donut-card">
+        <div class="rev-chart-head">
+          <div class="rev-chart-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10h-10z"/>
+            </svg>
+            สัดส่วนการชำระ
+          </div>
+        </div>
+        <div class="rev-donut-wrap">
+          <svg class="rev-donut-svg" viewBox="0 0 100 100">
+            <circle class="rev-donut-bg" cx="50" cy="50" r="42"/>
+            <circle class="rev-donut-fg" cx="50" cy="50" r="42"
+                    [attr.stroke-dasharray]="donutDashArray"
+                    stroke-dashoffset="0"
+                    transform="rotate(-90 50 50)"/>
+          </svg>
+          <div class="rev-donut-center">
+            <div class="rev-donut-pct">{{ paidRatioPct | number: '1.0-0' }}%</div>
+            <div class="rev-donut-sub">ชำระแล้ว</div>
+          </div>
+        </div>
+        <div class="rev-donut-legend">
+          <div class="dl-row">
+            <span class="dl-dot dl-paid"></span>
+            <span class="dl-label">ชำระแล้ว</span>
+            <span class="dl-val">{{ kpiPaid | number: '1.0-0' }} ฿</span>
+          </div>
+          <div class="dl-row">
+            <span class="dl-dot dl-unpaid"></span>
+            <span class="dl-label">ค้างชำระ</span>
+            <span class="dl-val">{{ kpiUnpaid | number: '1.0-0' }} ฿</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Teachers leaderboard -->
+      <div class="rev-chart-card rev-top-card">
+        <div class="rev-chart-head">
+          <div class="rev-chart-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+            </svg>
+            ครูทำรายได้สูงสุด
+          </div>
+        </div>
+        <div class="rev-top-list" *ngIf="topTeachers.length > 0">
+          <div class="rev-top-row" *ngFor="let t of topTeachers; let i = index">
+            <div class="rev-top-rank" [class.rank-1]="i === 0" [class.rank-2]="i === 1" [class.rank-3]="i === 2">{{ i + 1 }}</div>
+            <div class="rev-top-body">
+              <div class="rev-top-top">
+                <span class="rev-top-name">{{ t.name }}</span>
+                <span class="rev-top-total">{{ t.total | number: '1.0-0' }} ฿</span>
+              </div>
+              <div class="rev-top-bar">
+                <div class="rev-top-fill" [style.width.%]="t.pct"></div>
+              </div>
+              <div class="rev-top-sub">{{ t.count }} คลาส</div>
+            </div>
+          </div>
+        </div>
+        <div class="rev-top-empty" *ngIf="topTeachers.length === 0">
+          ไม่มีข้อมูลในช่วงเวลานี้
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Filter Bar ── -->
+    <div class="filter-bar">
+
+      <div class="filter-group">
+        <span class="filter-label">เดือน</span>
+        <kms-month-picker [(ngModel)]="filterMonth" (valueChange)="onFilterChange()" placeholder="ทั้งหมด"></kms-month-picker>
+      </div>
+
+      <div class="filter-group">
+        <span class="filter-label">ครูผู้สอน</span>
+        <select
+          class="filter-select"
+          [(ngModel)]="filterTeacher"
+          (change)="onFilterChange()"
+        >
+          <option value="">ทั้งหมด</option>
+          <option *ngFor="let t of teachers" [value]="t._id">
+            {{ t.firstName }} {{ t.lastName }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <span class="filter-label">นักเรียน</span>
+        <select
+          class="filter-select"
+          [(ngModel)]="filterStudent"
+          (change)="onFilterChange()"
+        >
+          <option value="">ทั้งหมด</option>
+          <option *ngFor="let s of students" [value]="s._id">
+            {{ s.firstName }} {{ s.lastName }}
+          </option>
+        </select>
+      </div>
+
+    </div>
+
+    <!-- ── Empty State ── -->
+    <div *ngIf="filteredSchedules.length === 0" class="empty-state">
+      <h3>ไม่พบข้อมูล</h3>
+      <p>ยังไม่มีคลาสที่เสร็จสิ้นในช่วงเวลานี้</p>
+    </div>
+
+    <!-- ── Schedules Table ── -->
+    <div *ngIf="filteredSchedules.length > 0" class="payments-table">
+      <table>
+        <thead>
+          <tr>
+            <th>วันที่</th>
+            <th>วิชา</th>
+            <th>ครูผู้สอน</th>
+            <th>เข้าเรียน</th>
+            <th>ราคาต่อคน</th>
+            <th>ยอดรวม</th>
+            <th>ชำระแล้ว</th>
+            <th>ค้างชำระ</th>
+            <th>สถานะ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let s of filteredSchedules">
+            <td>{{ formatDate(s.date) }}<br><span class="time-text">{{ s.startTime }}–{{ s.endTime }}</span></td>
+            <td>{{ s.courseName }}</td>
+            <td>{{ s.teacherName }}</td>
+            <td class="center">{{ s.attendanceCount }} คน</td>
+            <td class="currency">{{ s.coursePrice | number: '1.0-0' }}</td>
+            <td class="currency">{{ s.total | number: '1.0-0' }}</td>
+            <td class="currency paid">{{ s.paid | number: '1.0-0' }}</td>
+            <td class="currency unpaid">{{ s.unpaid | number: '1.0-0' }}</td>
+            <td>
+              <span [class]="'badge ' + getStatusClass(s.status)">
+                {{ getStatusLabel(s.status) }}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>

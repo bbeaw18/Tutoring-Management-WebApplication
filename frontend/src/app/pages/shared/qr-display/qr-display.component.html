@@ -1,0 +1,253 @@
+<div class="qr-display-container">
+
+  <!-- Back -->
+  <div class="back-nav">
+    <a routerLink="/dashboard" class="back-link">← กลับ</a>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">กำลังโหลด...</div>
+
+  <div *ngIf="!loading" class="qr-layout">
+
+    <!-- ─── ซ้าย: QR Code ──────────────────────── -->
+    <div class="qr-panel">
+      <div class="qr-header">
+        <h2>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20v1"/></svg>
+          เช็คชื่อเข้าเรียน
+        </h2>
+        <div class="class-info">
+          <span class="course-name">{{ getCourseName() }}</span>
+          <span class="teacher-name">ครู: {{ getTeacherName() }}</span>
+          <span class="class-time" *ngIf="schedule">
+            {{ schedule.date | date:'d MMM y' }} | {{ schedule.startTime }}–{{ schedule.endTime }}
+          </span>
+        </div>
+      </div>
+
+      <!-- ─── สถานะ: ยืนยันเสร็จสิ้นแล้ว ─── -->
+      <div *ngIf="classConfirmed" class="confirmed-state">
+        <div class="confirmed-icon">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <h3>ยืนยันเสร็จสิ้นการสอนแล้ว</h3>
+        <p class="confirmed-sub">รอผู้จัดการยืนยันเพื่อบันทึกรายได้</p>
+
+        <div class="confirmed-summary">
+          <div class="summary-row">
+            <span class="summary-label">จำนวนนักเรียนในคลาส</span>
+            <span class="summary-value">{{ schedule?.students?.length || 0 }} คน</span>
+          </div>
+          <div class="student-name-list" *ngIf="schedule?.students?.length">
+            <div class="student-name-item" *ngFor="let s of schedule!.students">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              {{ s.firstName }} {{ s.lastName }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── QR Image (เมื่อ QR เปิดอยู่) ─── -->
+      <div class="qr-image-wrapper" *ngIf="!classConfirmed && qrActive && qrDataURL">
+        <img [src]="qrDataURL" alt="QR Code" class="qr-image">
+        <button class="qr-theater-btn" (click)="toggleTheater()" title="แสดงแบบเต็มจอ">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+          แสดงเต็มจอ
+        </button>
+        <div class="qr-instruction">นักเรียนสแกนด้วยกล้องโทรศัพท์</div>
+        <div class="qr-expire" *ngIf="qrExpiresAt">
+          หมดอายุ: {{ qrExpiresAt | date:'HH:mm' }}
+        </div>
+        <div class="qr-progress-mini" *ngIf="expectedTotal > 0">
+          <div class="qr-progress-bar"><div class="qr-progress-fill" [style.width.%]="attendancePct"></div></div>
+          <div class="qr-progress-info">
+            <span><strong>{{ attendances.length }}</strong> / {{ expectedTotal }} คน</span>
+            <span>{{ attendancePct }}%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── ยังไม่ได้เปิด QR ─── -->
+      <div class="qr-placeholder" *ngIf="!classConfirmed && !qrActive">
+        <div class="placeholder-icon">
+          <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20v1"/></svg>
+        </div>
+        <p>กด "เปิด QR เช็คชื่อ" เพื่อเริ่มต้น</p>
+      </div>
+
+      <div class="qr-error" *ngIf="error">{{ error }}</div>
+
+      <!-- ─── ปุ่มต่าง ๆ ─── -->
+      <div class="qr-actions" *ngIf="!classConfirmed">
+
+        <!-- เปิด QR -->
+        <button
+          *ngIf="!qrActive"
+          class="btn btn-primary btn-lg"
+          (click)="generateQR()"
+          [disabled]="generating"
+        >
+          <svg *ngIf="!generating" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+          {{ generating ? 'กำลังสร้าง QR...' : 'เปิด QR เช็คชื่อ' }}
+        </button>
+
+        <!-- เมื่อ QR เปิดอยู่: แสดงปุ่มยืนยันเสร็จสิ้น -->
+        <div *ngIf="qrActive" class="confirm-group">
+          <p class="confirm-hint" *ngIf="attendances.length > 0">
+            มีนักเรียนเช็คชื่อแล้ว <strong>{{ attendances.length }}</strong> คน — เมื่อพร้อมแล้วกดปุ่มด้านล่างเพื่อยืนยันเสร็จสิ้น
+          </p>
+          <p class="confirm-hint confirm-hint-warn" *ngIf="attendances.length === 0">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            ยังไม่มีนักเรียนเช็คชื่อ — รอให้นักเรียนสแกน QR ก่อนกดยืนยันเสร็จสิ้น
+          </p>
+          <button
+            class="btn btn-success btn-lg"
+            (click)="confirmClass()"
+            [disabled]="confirming || attendances.length === 0"
+            [title]="attendances.length === 0 ? 'ต้องมีนักเรียนเช็คชื่ออย่างน้อย 1 คน' : ''"
+          >
+            <svg *ngIf="!confirming" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            {{ confirming ? 'กำลังยืนยัน...' : 'ยืนยันเสร็จสิ้นการสอน' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── ขวา: รายชื่อ real-time ────────────── -->
+    <div class="attendance-panel">
+      <div class="attendance-header">
+        <h3>รายชื่อผู้เข้าเรียน</h3>
+        <div class="count-badge">{{ attendances.length }} คน</div>
+      </div>
+
+      <!-- ─── Admin: เพิ่มนักเรียนด้วยตนเอง (ทดสอบระบบ) ─── -->
+      <div *ngIf="isAdmin" class="manual-add-panel">
+        <div class="manual-add-label">
+          <span class="admin-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Admin
+          </span>
+          เพิ่มการเข้าเรียนเพื่อทดสอบ
+        </div>
+
+        <div class="manual-add-row">
+          <select
+            class="manual-select"
+            [(ngModel)]="selectedStudentId"
+            [disabled]="manualAdding"
+          >
+            <option value="">— เลือกนักเรียน —</option>
+            <option
+              *ngFor="let s of unenrolledStudents"
+              [value]="s._id"
+            >
+              {{ s.firstName }} {{ s.lastName }}
+            </option>
+          </select>
+
+          <button
+            class="btn btn-manual"
+            (click)="manualAddStudent()"
+            [disabled]="!selectedStudentId || manualAdding"
+          >
+            {{ manualAdding ? '...' : '+ เพิ่ม' }}
+          </button>
+        </div>
+
+        <div *ngIf="manualSuccess" class="manual-success">{{ manualSuccess }}</div>
+        <div *ngIf="manualError"   class="manual-error">{{ manualError }}</div>
+      </div>
+
+      <div class="attendance-list">
+        <div *ngIf="attendances.length === 0" class="empty-list">
+          <p>ยังไม่มีนักเรียนสแกน</p>
+        </div>
+
+        <div
+          class="student-item"
+          *ngFor="let att of attendances; let i = index"
+        >
+          <div class="student-avatar">
+            <img *ngIf="att.student?.profileImage" [src]="att.student.profileImage" alt="">
+            <div *ngIf="!att.student?.profileImage" class="avatar-placeholder">
+              {{ att.student?.firstName?.[0] }}{{ att.student?.lastName?.[0] }}
+            </div>
+          </div>
+          <div class="student-info">
+            <span class="student-name">{{ att.student?.firstName }} {{ att.student?.lastName }}</span>
+            <span class="scan-time">{{ att.scannedAt | date:'HH:mm:ss' }}</span>
+          </div>
+          <div class="check-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Theater Mode Overlay ────────────────────────────── -->
+  <div *ngIf="theaterMode && qrActive && qrDataURL" class="qr-theater" (click)="exitTheater()">
+    <div class="qr-theater-inner" (click)="$event.stopPropagation()">
+      <button class="qr-theater-exit" (click)="exitTheater()" aria-label="ปิด">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+
+      <div class="qr-theater-header">
+        <div class="qr-theater-pulse"></div>
+        <div>
+          <div class="qr-theater-eyebrow">QR Code เช็คชื่อ</div>
+          <div class="qr-theater-course">{{ getCourseName() }}</div>
+          <div class="qr-theater-time" *ngIf="schedule">
+            {{ schedule.date | date:'d MMM y' }} · {{ schedule.startTime }}–{{ schedule.endTime }}
+          </div>
+        </div>
+      </div>
+
+      <div class="qr-theater-main">
+        <div class="qr-theater-qr-wrap">
+          <div class="qr-theater-corners">
+            <span class="corner tl"></span><span class="corner tr"></span>
+            <span class="corner bl"></span><span class="corner br"></span>
+          </div>
+          <img [src]="qrDataURL" alt="QR Code" class="qr-theater-image">
+        </div>
+
+        <div class="qr-theater-stats">
+          <div class="qr-theater-stat-card">
+            <div class="qr-theater-stat-label">เช็คชื่อแล้ว</div>
+            <div class="qr-theater-stat-num">{{ attendances.length }}<span class="qr-theater-stat-of"> / {{ expectedTotal }}</span></div>
+            <div class="qr-theater-stat-bar">
+              <div class="qr-theater-stat-fill" [style.width.%]="attendancePct"></div>
+            </div>
+            <div class="qr-theater-stat-pct">{{ attendancePct }}%</div>
+          </div>
+
+          <div class="qr-theater-stat-card qr-theater-time-card" *ngIf="qrExpiresAt">
+            <div class="qr-theater-stat-label">หมดอายุใน</div>
+            <div class="qr-theater-stat-num">{{ minutesUntilExpire }}<span class="qr-theater-stat-of"> นาที</span></div>
+            <div class="qr-theater-stat-time">{{ qrExpiresAt | date:'HH:mm' }} น.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="qr-theater-instruction">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>
+        </svg>
+        นักเรียนสแกนด้วยกล้องโทรศัพท์ของคุณ
+      </div>
+
+      <div *ngIf="attendances.length > 0" class="qr-theater-recent">
+        <div class="qr-theater-recent-title">สแกนล่าสุด</div>
+        <div class="qr-theater-recent-list">
+          <div class="qr-theater-recent-item" *ngFor="let att of attendances.slice(-5).reverse()">
+            <span class="qr-theater-recent-avatar">{{ att.student?.firstName?.[0] }}{{ att.student?.lastName?.[0] }}</span>
+            <span class="qr-theater-recent-name">{{ att.student?.firstName }} {{ att.student?.lastName }}</span>
+            <span class="qr-theater-recent-time">{{ att.scannedAt | date:'HH:mm:ss' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

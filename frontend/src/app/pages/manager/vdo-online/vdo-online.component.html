@@ -1,0 +1,109 @@
+<div class="vdo-container">
+
+  <!-- ─── Header ──────────────────────────────────────────── -->
+  <div class="page-header">
+    <div>
+      <h1>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+        VDO Online
+      </h1>
+      <p>ส่งลิ้งค์วิดีโอไปยังนักเรียนในคลาสกลุ่ม</p>
+    </div>
+    <div class="filter-group">
+      <label>เดือน</label>
+      <kms-month-picker [(ngModel)]="selectedMonth" (valueChange)="onMonthChange()" placeholder="ทั้งหมด"></kms-month-picker>
+    </div>
+  </div>
+
+  <div class="notice-bar">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-1.5-6h-11z"/><path d="M9 11V6a3 3 0 0 1 6 0v5"/></svg>
+    <span>ระบบจะส่งลิ้งค์ VDO ไปยังอีเมลของนักเรียนทุกคนในคลาสกลุ่มนั้น — <strong>เฉพาะคลาสกลุ่มเท่านั้น</strong></span>
+  </div>
+
+  <app-loading *ngIf="loading"></app-loading>
+
+  <ng-container *ngIf="!loading">
+
+    <div *ngIf="schedules.length === 0" class="empty-state">
+      <div class="empty-icon">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+      </div>
+      <p>ไม่มีคลาสกลุ่มในเดือน {{ formatMonth(selectedMonth) }}</p>
+    </div>
+
+    <div class="schedule-list" *ngIf="schedules.length > 0">
+      <div class="schedule-card" *ngFor="let sch of schedules">
+
+        <div class="card-info">
+          <div class="card-top">
+            <div class="course-name">{{ getCourseName(sch) }}</div>
+            <span [class]="'status-badge ' + getStatusClass(sch.status)">{{ getStatusLabel(sch.status) }}</span>
+          </div>
+          <div class="card-meta">
+            <span class="meta-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              {{ sch.date | date:'d MMMM y' }}
+            </span>
+            <span class="meta-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              {{ sch.startTime }} – {{ sch.endTime }}
+            </span>
+            <span class="meta-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              {{ getTeacherName(sch) }}
+            </span>
+            <span class="meta-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              {{ sch.students?.length || 0 }} นักเรียน
+            </span>
+          </div>
+          <div class="student-emails" *ngIf="(sch.students?.length ?? 0) > 0">
+            <span class="email-label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              จะส่งไปยัง:
+            </span>
+            <span class="email-chip" *ngFor="let s of sch.students">
+              {{ s.firstName }} {{ s.lastName }}
+            </span>
+          </div>
+        </div>
+
+        <div class="card-action">
+          <div class="link-input-row">
+            <input
+              type="url"
+              [(ngModel)]="videoLinks[sch._id]"
+              placeholder="วางลิ้งค์วิดีโอที่นี่ เช่น https://zoom.us/..."
+              class="link-input"
+              [class.input-error]="errorId === sch._id"
+            />
+            <button
+              class="btn-send"
+              [disabled]="!videoLinks[sch._id]?.trim() || sendingId === sch._id"
+              (click)="sendVideoLink(sch)">
+              <ng-container *ngIf="sendingId === sch._id; else sendIdle">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                กำลังส่ง...
+              </ng-container>
+              <ng-template #sendIdle>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                ส่งลิ้งค์
+              </ng-template>
+            </button>
+          </div>
+          <div class="send-success" *ngIf="successId === sch._id">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            ส่งลิ้งค์ไปยัง {{ sch.students?.length || 0 }} คนเรียบร้อยแล้ว!
+          </div>
+          <div class="send-error" *ngIf="errorId === sch._id">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            {{ errorMsg }}
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </ng-container>
+
+</div>
