@@ -24,7 +24,14 @@ export interface IRevenueSchedule {
   endTime: string;
   courseName: string;
   teacherName: string;
-  attendedStudents: { studentId: string; name: string; scannedAt: Date }[];
+  attendedStudents: {
+    studentId: string;
+    name: string;
+    scannedAt: Date;
+    paymentId?: string | null;
+    paymentStatus?: 'unpaid' | 'pending' | 'confirmed' | 'rejected';
+    paymentAmount?: number;
+  }[];
   attendanceCount: number;
   coursePrice: number;
   total: number;

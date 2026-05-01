@@ -124,17 +124,21 @@
               <td>
                 <span *ngIf="a.paymentStatus === 'paid'" class="badge badge-paid">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  ชำระแล้ว
+                  ชำระเงินสำเร็จ
                 </span>
                 <span *ngIf="a.paymentStatus === 'pending'" class="badge badge-pending">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  รอยืนยัน
+                  รอ Manager ยืนยัน
+                </span>
+                <span *ngIf="a.paymentStatus === 'rejected'" class="badge badge-rejected">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                  ปฏิเสธ — ติดต่อ Manager
                 </span>
                 <button *ngIf="!a.paymentStatus || a.paymentStatus === 'unpaid'"
                         class="btn-qr-pay"
-                        (click)="openPaymentQR(a.schedule?._id)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-                  ชำระ
+                        (click)="openPaymentQR(a)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                  ชำระเงิน
                 </button>
               </td>
             </tr>
@@ -147,107 +151,128 @@
 
 </div>
 
-<!-- ─── Payment QR Modal ──────────────────────────────────── -->
-<div class="modal-overlay" *ngIf="showPaymentModal" (click)="paymentStatus !== 'pending' && closePaymentModal()">
-  <div class="modal-card" (click)="$event.stopPropagation()">
+<!-- ─── Bank Transfer Modal ──────────────────────────────── -->
+<div class="modal-overlay" *ngIf="showPaymentModal" (click)="!transferClaimed && closePaymentModal()">
+  <div class="modal-card bank-modal" (click)="$event.stopPropagation()">
     <button class="modal-close" (click)="closePaymentModal()" aria-label="ปิด">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
 
     <!-- ── Stepper ── -->
-    <div class="pay-stepper" *ngIf="!paymentLoading">
-      <div class="pay-step"
-           [class.active]="paymentStatus === 'pending'"
-           [class.done]="paymentStatus === 'paid'">
+    <div class="pay-stepper">
+      <div class="pay-step" [class.active]="!transferClaimed" [class.done]="transferClaimed">
         <div class="pay-step-dot">
-          <svg *ngIf="paymentStatus === 'paid'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          <span *ngIf="paymentStatus !== 'paid'">1</span>
+          <svg *ngIf="transferClaimed" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span *ngIf="!transferClaimed">1</span>
         </div>
-        <span class="pay-step-label">สแกน QR</span>
+        <span class="pay-step-label">โอนเงิน</span>
       </div>
-      <div class="pay-step-line" [class.filled]="paymentStatus === 'paid'"></div>
-      <div class="pay-step"
-           [class.active]="paymentStatus === 'pending'"
-           [class.done]="paymentStatus === 'paid'">
-        <div class="pay-step-dot">
-          <svg *ngIf="paymentStatus === 'paid'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          <span *ngIf="paymentStatus !== 'paid'">2</span>
-        </div>
-        <span class="pay-step-label">ยืนยัน</span>
+      <div class="pay-step-line" [class.filled]="transferClaimed"></div>
+      <div class="pay-step" [class.active]="transferClaimed">
+        <div class="pay-step-dot"><span>2</span></div>
+        <span class="pay-step-label">ยืนยันการโอน</span>
       </div>
-      <div class="pay-step-line" [class.filled]="paymentStatus === 'paid'"></div>
-      <div class="pay-step"
-           [class.active]="paymentStatus === 'paid'"
-           [class.done]="paymentStatus === 'paid'">
-        <div class="pay-step-dot">
-          <svg *ngIf="paymentStatus === 'paid'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          <span *ngIf="paymentStatus !== 'paid'">3</span>
-        </div>
-        <span class="pay-step-label">สำเร็จ</span>
+      <div class="pay-step-line"></div>
+      <div class="pay-step">
+        <div class="pay-step-dot"><span>3</span></div>
+        <span class="pay-step-label">รอ Manager ยืนยัน</span>
       </div>
     </div>
 
-    <!-- Loading -->
-    <div *ngIf="paymentLoading" class="modal-loading">
-      <div class="spinner"></div>
-      กำลังสร้าง QR Code...
-    </div>
-
-    <!-- QR + pending status -->
-    <ng-container *ngIf="!paymentLoading && paymentStatus === 'pending'">
-      <h3>
+    <!-- ── Step 1-2: แสดงบัญชี + ปุ่มยืนยันโอน ── -->
+    <ng-container *ngIf="!transferClaimed">
+      <h3 class="bank-modal-title">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-        ชำระด้วย PromptPay
+        โอนเงินเข้าบัญชี
       </h3>
       <p class="payment-desc">{{ paymentDescription }}</p>
       <div class="payment-amount">฿{{ paymentAmount | number:'1.2-2' }}</div>
-      <img [src]="paymentQrDataURL" alt="PromptPay QR" class="qr-image" />
 
-      <!-- Verification status bar -->
-      <div class="verify-bar" *ngIf="paymentMode === 'kbank'">
-        <div class="verify-dot pulse"></div>
-        <span>กำลังตรวจสอบการชำระเงินอัตโนมัติ...</span>
-      </div>
-      <div class="verify-bar fallback" *ngIf="paymentMode === 'promptpay_fallback'">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        <span>สแกน QR แล้วส่งสลิปให้ Manager ยืนยัน</span>
+      <!-- Bank info card -->
+      <div class="bank-card" *ngIf="bankInfo">
+        <div class="bank-row">
+          <span class="bank-label">ธนาคาร</span>
+          <span class="bank-value bank-name">{{ bankInfo.bankName }}</span>
+        </div>
+        <div class="bank-row">
+          <span class="bank-label">เลขบัญชี</span>
+          <div class="bank-value-with-action">
+            <span class="bank-value bank-account-number">{{ bankInfo.accountNumber }}</span>
+            <button class="btn-copy" (click)="copyAccountNumber()" type="button" title="คัดลอก">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              คัดลอก
+            </button>
+          </div>
+        </div>
+        <div class="bank-row">
+          <span class="bank-label">ชื่อบัญชี</span>
+          <span class="bank-value">{{ bankInfo.accountName }}</span>
+        </div>
       </div>
 
-      <!-- Expiry -->
-      <p class="expiry-note" *ngIf="paymentExpiresAt">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        QR หมดอายุ {{ paymentExpiresAt | date:'HH:mm' }} น.
-      </p>
+      <!-- Instructions -->
+      <div class="bank-instructions">
+        <div class="bank-instruction-item">
+          <span class="bank-step-num">1</span>
+          เปิดแอปธนาคารของคุณ → เลือก <strong>"โอนเงิน"</strong>
+        </div>
+        <div class="bank-instruction-item">
+          <span class="bank-step-num">2</span>
+          โอนตามจำนวน <strong>฿{{ paymentAmount | number:'1.2-2' }}</strong> ไปยังบัญชีด้านบน
+        </div>
+        <div class="bank-instruction-item">
+          <span class="bank-step-num">3</span>
+          กลับมากดปุ่ม <strong>"ยืนยันว่าโอนแล้ว"</strong> ด้านล่าง
+        </div>
+      </div>
+
+      <!-- Optional ref slip -->
+      <div class="form-group bank-ref-input">
+        <label>เลขที่อ้างอิงสลิป (ไม่บังคับ)</label>
+        <input
+          type="text"
+          [(ngModel)]="transactionRef"
+          placeholder="เช่น 2026-04-30-0001"
+          class="form-input"
+          maxlength="40"
+        />
+        <span class="field-hint">ช่วย Manager ตรวจสอบได้เร็วขึ้น</span>
+      </div>
+
+      <!-- Error -->
+      <div class="claim-error" *ngIf="claimError">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        {{ claimError }}
+      </div>
+
+      <!-- Action buttons -->
+      <div class="bank-actions">
+        <button class="btn-cancel" (click)="closePaymentModal()" [disabled]="paymentLoading">ยกเลิก</button>
+        <button class="btn-confirm-transfer" (click)="confirmTransfer()" [disabled]="paymentLoading">
+          <span *ngIf="!paymentLoading">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><polyline points="20 6 9 17 4 12"/></svg>
+            ยืนยันว่าโอนแล้ว
+          </span>
+          <span *ngIf="paymentLoading">
+            <span class="spinner-sm"></span>
+            กำลังบันทึก...
+          </span>
+        </button>
+      </div>
     </ng-container>
 
-    <!-- Paid success -->
-    <div *ngIf="paymentStatus === 'paid'" class="result-state success">
+    <!-- ── Step 3: บันทึกแล้ว รอ Manager ยืนยัน ── -->
+    <div *ngIf="transferClaimed" class="result-state success">
       <div class="result-icon">
         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
-      <h3>ชำระเงินสำเร็จ!</h3>
-      <p>ระบบได้ตรวจสอบและยืนยันการชำระเงินแล้ว</p>
+      <h3>บันทึกการแจ้งโอนแล้ว!</h3>
+      <p>สถานะปัจจุบัน: <strong style="color:#b45309">รอ Manager ยืนยันการชำระเงิน</strong></p>
+      <p style="font-size:12px;color:#6b7280;margin-top:8px">
+        Manager จะตรวจสอบและอัปเดตสถานะให้เร็วที่สุด ระหว่างรอคุณสามารถปิดหน้าต่างนี้ได้
+      </p>
       <p class="amount-confirm">฿{{ paymentAmount | number:'1.2-2' }}</p>
-    </div>
-
-    <!-- Failed -->
-    <div *ngIf="paymentStatus === 'failed'" class="result-state failed">
-      <div class="result-icon">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-      </div>
-      <h3>การชำระเงินไม่สำเร็จ</h3>
-      <p>กรุณาลองใหม่อีกครั้ง</p>
-      <button class="btn-retry" (click)="closePaymentModal()">ปิด</button>
-    </div>
-
-    <!-- Expired -->
-    <div *ngIf="paymentStatus === 'expired'" class="result-state expired">
-      <div class="result-icon">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      </div>
-      <h3>QR หมดอายุแล้ว</h3>
-      <p>กรุณาสร้าง QR ใหม่</p>
-      <button class="btn-retry" (click)="closePaymentModal()">ปิด</button>
+      <button class="btn-retry" (click)="closePaymentModal()" style="margin-top:16px">ปิด</button>
     </div>
 
   </div>

@@ -356,17 +356,26 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
       attendancesByScheduleId.get(sid).push(att);
     }
 
-    // Batch 2: ดึง confirmed payments ของทุก schedule ในครั้งเดียว
+    // Batch 2: ดึง payments ของทุก schedule ในครั้งเดียว (รวม pending ด้วย)
     const allPayments = await Payment.find({
       schedule: { $in: scheduleIds },
-      status: 'confirmed'
-    }).select('student schedule amount');
+      status: { $in: ['pending', 'confirmed'] }
+    }).select('_id student schedule amount status');
 
-    // สร้าง map: key = "studentId:scheduleId" → sum ของ amount
+    // สร้าง map: key = "studentId:scheduleId" → sum ของ amount (เฉพาะ confirmed)
     const paidAmountByKey = new Map();
+    // สร้าง map: key = "studentId:scheduleId" → payment object (สำหรับสถานะล่าสุด)
+    const paymentByKey = new Map();
     for (const p of allPayments) {
       const key = `${p.student.toString()}:${p.schedule.toString()}`;
-      paidAmountByKey.set(key, (paidAmountByKey.get(key) || 0) + p.amount);
+      if (p.status === 'confirmed') {
+        paidAmountByKey.set(key, (paidAmountByKey.get(key) || 0) + p.amount);
+      }
+      // เก็บ payment ล่าสุด (ใช้ confirmed > pending)
+      const existing = paymentByKey.get(key);
+      if (!existing || (existing.status === 'pending' && p.status === 'confirmed')) {
+        paymentByKey.set(key, { _id: p._id, status: p.status, amount: p.amount });
+      }
     }
 
     const scheduleList = [];
@@ -397,11 +406,21 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
         endTime:         s.endTime,
         courseName:      s.course?.name || '-',
         teacherName:     s.teacher ? `${s.teacher.firstName} ${s.teacher.lastName}` : '-',
-        attendedStudents: attendances.map(att => ({
-          studentId: att.student._id,
-          name:      `${att.student.firstName} ${att.student.lastName}`,
-          scannedAt: att.scannedAt
-        })),
+        attendedStudents: attendances.map(att => {
+          const sid = s._id.toString();
+          const key = `${att.student._id.toString()}:${sid}`;
+          const payment = paymentByKey.get(key);
+          // paymentStatus: 'unpaid' (ยังไม่ทำอะไร) | 'pending' (รอ Manager ยืนยัน) | 'confirmed' (ชำระสำเร็จ)
+          const paymentStatus = payment ? payment.status : 'unpaid';
+          return {
+            studentId:    att.student._id,
+            name:         `${att.student.firstName} ${att.student.lastName}`,
+            scannedAt:    att.scannedAt,
+            paymentStatus,
+            paymentId:    payment?._id || null,
+            paymentAmount: payment?.amount || (s.coursePrice || 0)
+          };
+        }),
         attendanceCount: attendances.length,
         coursePrice:     s.coursePrice || 0,
         total:           totalForSchedule,
@@ -511,6 +530,195 @@ router.put('/:id/reject', authenticateToken, roleCheck(['admin', 'manager']), as
     sendResponse(res, 200, true, payment, 'Payment rejected');
   } catch (error) {
     console.error('Reject payment error:', error);
+    sendResponse(res, 500, false, null, error.message);
+  }
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// GET /bank-info — ดึงข้อมูลบัญชีธนาคารสำหรับโอน (แสดงให้นักเรียน)
+// ────────────────────────────────────────────────────────────────────────────
+router.get('/bank-info', authenticateToken, async (req, res) => {
+  sendResponse(res, 200, true, {
+    bankName:      process.env.BANK_NAME          || 'ธนาคารกสิกรไทย (K-BANK)',
+    accountNumber: process.env.BANK_ACCOUNT_NUMBER || '140-1-28661-2',
+    accountName:   process.env.BANK_ACCOUNT_NAME   || 'น.ส. ณัฐบุษย์ เหมธนาพิพัฒน์',
+    promptpayId:   process.env.PROMPTPAY_ID        || ''
+  }, 'Bank info retrieved');
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// POST /claim-transfer — นักเรียนยืนยันว่า "โอนเงินแล้ว" รอ Manager ตรวจสอบ
+// Body: { scheduleId } หรือ { month: "YYYY-MM" }, transactionRef? (ref slip), note?
+// ────────────────────────────────────────────────────────────────────────────
+router.post('/claim-transfer', authenticateToken, roleCheck(['student']), async (req, res) => {
+  try {
+    const Schedule = require('../models/Schedule');
+    const { scheduleId, month, transactionRef, note } = req.body;
+
+    let amount = 0;
+    let description = '';
+    let paymentType = '';
+    let relatedSchedules = [];
+    let courseId = null;
+
+    if (scheduleId) {
+      // ── ชำระรายคลาส ──
+      const schedule = await Schedule.findById(scheduleId).populate('course', 'name subject _id');
+      if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
+
+      const isStudent = schedule.students.some(s => s.toString() === req.user.id);
+      if (!isStudent) return sendResponse(res, 403, false, null, 'คุณไม่ได้ลงทะเบียนในคลาสนี้');
+
+      if (!['completed', 'awaiting_confirmation'].includes(schedule.status)) {
+        return sendResponse(res, 400, false, null,
+          `ยังไม่สามารถชำระเงินได้: ต้องรอครูยืนยันเสร็จสิ้นการสอนก่อน`);
+      }
+
+      const attended = await Attendance.findOne({ schedule: scheduleId, student: req.user.id });
+      if (!attended) return sendResponse(res, 400, false, null, 'ยังไม่ได้เช็คชื่อในคลาสนี้');
+
+      // ตรวจว่ามี payment pending/confirmed อยู่แล้วหรือไม่
+      const existing = await Payment.findOne({
+        student: req.user.id, schedule: scheduleId,
+        status: { $in: ['pending', 'confirmed'] }
+      });
+      if (existing) {
+        const msg = existing.status === 'confirmed'
+          ? 'ชำระเงินสำหรับคลาสนี้เรียบร้อยแล้ว'
+          : 'คลาสนี้มีคำขอยืนยันการชำระอยู่แล้ว — รอ Manager ตรวจสอบ';
+        return sendResponse(res, 400, false, null, msg);
+      }
+
+      amount = schedule.coursePrice || 0;
+      const subjectLabel = schedule.course?.subject || schedule.course?.name || 'คลาส';
+      description = `ค่าเรียน ${subjectLabel} ${new Date(schedule.date).toLocaleDateString('th-TH')}`;
+      paymentType = 'per_class';
+      relatedSchedules = [scheduleId];
+      courseId = schedule.course?._id;
+
+    } else if (month) {
+      // ── ชำระรายเดือน ──
+      const [y, m] = month.split('-').map(Number);
+      const startDate = new Date(y, m - 1, 1);
+      const endDate   = new Date(y, m, 0, 23, 59, 59);
+
+      const schedules = await Schedule.find({
+        students: req.user.id,
+        date: { $gte: startDate, $lte: endDate },
+        status: { $in: ['completed', 'awaiting_confirmation'] },
+        coursePrice: { $gt: 0 }
+      }).populate('course', 'name subject _id');
+
+      for (const s of schedules) {
+        const attended = await Attendance.findOne({ schedule: s._id, student: req.user.id });
+        if (!attended) continue;
+        const paid = await Payment.findOne({
+          student: req.user.id, schedule: s._id,
+          status: { $in: ['pending', 'confirmed'] }
+        });
+        if (!paid) {
+          amount += s.coursePrice || 0;
+          relatedSchedules.push(s._id.toString());
+          if (!courseId && s.course?._id) courseId = s.course._id;
+        }
+      }
+
+      if (amount === 0) return sendResponse(res, 400, false, null, 'ไม่มียอดค้างชำระในเดือนนี้');
+      description = `ค่าเรียนรวมเดือน ${month} (${relatedSchedules.length} คลาส)`;
+      paymentType = 'monthly';
+
+    } else {
+      return sendResponse(res, 400, false, null, 'ต้องระบุ scheduleId หรือ month');
+    }
+
+    if (!courseId) return sendResponse(res, 400, false, null, 'ไม่พบคอร์สที่เชื่อมโยง');
+
+    // ── สร้าง Payment record ทุก schedule (ถ้าหลาย schedules) ──
+    const createdPayments = [];
+    for (const sid of relatedSchedules) {
+      const sched = await Schedule.findById(sid);
+      const p = new Payment({
+        student: req.user.id,
+        course: sched.course,
+        schedule: sid,
+        paymentMonth: paymentType === 'monthly' ? month : null,
+        paymentType,
+        amount: sched.coursePrice || 0,
+        method: 'transfer',
+        transactionRef: transactionRef || null,
+        note: note || null,
+        status: 'pending' // รอ Manager ยืนยัน
+      });
+      await p.save();
+      createdPayments.push(p);
+    }
+
+    // ── แจ้ง Manager ──
+    const managers = await User.find({ role: { $in: ['manager', 'admin'] }, isActive: true });
+    for (const mgr of managers) {
+      await Notification.create({
+        recipient: mgr._id,
+        sender: req.user.id,
+        type: 'payment',
+        title: '💰 มีการแจ้งยืนยันการชำระเงิน',
+        message: `${description} — รวม ฿${amount.toLocaleString('th-TH')} | กรุณาตรวจสอบ`,
+        relatedId: createdPayments[0]?._id
+      });
+    }
+
+    sendResponse(res, 201, true, {
+      paymentIds: createdPayments.map(p => p._id),
+      totalAmount: amount,
+      description,
+      status: 'pending',
+      message: 'แจ้งการชำระเงินสำเร็จ — รอ Manager ตรวจสอบและยืนยัน'
+    }, 'Transfer claimed — awaiting verification');
+  } catch (error) {
+    console.error('Claim transfer error:', error);
+    sendResponse(res, 500, false, null, error.message);
+  }
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// GET /pending-verification — Manager ดูรายการที่รอตรวจสอบ
+// ────────────────────────────────────────────────────────────────────────────
+router.get('/pending-verification', authenticateToken, roleCheck(['admin', 'manager']), async (req, res) => {
+  try {
+    const payments = await Payment.find({ status: 'pending' })
+      .populate('student', 'firstName lastName email phone')
+      .populate('course', 'name subject')
+      .populate({
+        path: 'schedule',
+        select: 'date startTime endTime',
+        populate: { path: 'course', select: 'name subject' }
+      })
+      .sort({ createdAt: -1 });
+
+    sendResponse(res, 200, true, payments, 'Pending payments retrieved');
+  } catch (error) {
+    console.error('Pending verification error:', error);
+    sendResponse(res, 500, false, null, error.message);
+  }
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// GET /my-status — นักเรียนดูสถานะการชำระของตัวเอง (รวม pending/confirmed)
+// ────────────────────────────────────────────────────────────────────────────
+router.get('/my-status', authenticateToken, roleCheck(['student']), async (req, res) => {
+  try {
+    const payments = await Payment.find({ student: req.user.id })
+      .populate('course', 'name subject')
+      .populate({
+        path: 'schedule',
+        select: 'date startTime endTime',
+        populate: { path: 'course', select: 'name subject' }
+      })
+      .populate('confirmedBy', 'firstName lastName')
+      .sort({ createdAt: -1 });
+
+    sendResponse(res, 200, true, payments, 'Payment statuses retrieved');
+  } catch (error) {
+    console.error('My status error:', error);
     sendResponse(res, 500, false, null, error.message);
   }
 });

@@ -44,6 +44,9 @@ export class RevenueComponent implements OnInit, OnDestroy {
 
   loading = false;
 
+  // Tracks the paymentId currently being confirmed (for button disable state)
+  confirmingPaymentId: string | null = null;
+
   constructor(
     private paymentService: PaymentService,
     private userService: UserService
@@ -193,5 +196,38 @@ export class RevenueComponent implements OnInit, OnDestroy {
 
   getStatusClass(status: string): string {
     return status === 'completed' ? 'badge-completed' : 'badge-pending';
+  }
+
+  /** Manager กดยืนยันการชำระเงินของนักเรียนรายคน */
+  confirmStudentPayment(student: { paymentId?: string | null; paymentStatus?: string; name?: string }): void {
+    if (!student?.paymentId || student.paymentStatus !== 'pending') return;
+    if (this.confirmingPaymentId) return;
+
+    if (!confirm(`ยืนยันการชำระเงินของ ${student.name || 'นักเรียน'} ?`)) return;
+
+    const paymentId = student.paymentId;
+    this.confirmingPaymentId = paymentId;
+
+    this.paymentService.confirmPayment(paymentId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.confirmingPaymentId = null;
+          // อัปเดต local state ทันที (ไม่ต้องรอ refetch)
+          for (const s of this.allSchedules) {
+            for (const st of s.attendedStudents) {
+              if (st.paymentId === paymentId) {
+                st.paymentStatus = 'confirmed';
+              }
+            }
+          }
+          // ดึงข้อมูลใหม่เพื่อ refresh KPI
+          this.loadReport();
+        },
+        error: (err) => {
+          this.confirmingPaymentId = null;
+          alert(err?.error?.message || 'ไม่สามารถยืนยันการชำระเงินได้');
+        }
+      });
   }
 }

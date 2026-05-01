@@ -429,3 +429,223 @@
   100% { transform: scale(1.8); opacity: 0; }
 }
 .result-state.success .result-icon { position: relative; }
+
+/* ═══════════════════════════════════════════════════════════════
+   Bank Transfer Modal (K-BANK)
+   ═══════════════════════════════════════════════════════════════ */
+.bank-modal {
+  max-width: 460px;
+  width: 100%;
+}
+.bank-modal-title {
+  text-align: center;
+  margin: 12px 0 6px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+/* Bank info card */
+.bank-card {
+  background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);
+  border: 2px solid #fcd34d;
+  border-radius: 14px;
+  padding: 16px;
+  margin: 14px 0;
+}
+.bank-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px dashed rgba(245, 158, 11, 0.3);
+  gap: 10px;
+}
+.bank-row:last-child { border-bottom: none; }
+.bank-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #92400e;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+.bank-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1f2937;
+  text-align: right;
+}
+.bank-name { font-size: 13px; }
+.bank-account-number {
+  font-size: 18px;
+  font-weight: 800;
+  color: #b45309;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+}
+.bank-value-with-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #1f2937;
+  color: #fff;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s ease;
+  font-family: inherit;
+}
+.btn-copy:hover { background: #111827; transform: translateY(-1px); }
+
+/* Instructions */
+.bank-instructions {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 12px 0;
+}
+.bank-instruction-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 7px 0;
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.5;
+}
+.bank-instruction-item strong { color: #1f2937; }
+.bank-step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ec4899, #be185d);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Ref input */
+.bank-ref-input {
+  margin: 12px 0;
+}
+.bank-ref-input label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5563;
+  margin-bottom: 4px;
+}
+.bank-ref-input .form-input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 9px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .18s ease, box-shadow .18s ease;
+  box-sizing: border-box;
+}
+.bank-ref-input .form-input:focus {
+  border-color: #ec4899;
+  box-shadow: 0 0 0 3px rgba(236, 72, 153, .12);
+}
+.bank-ref-input .field-hint {
+  display: block;
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 3px;
+}
+
+/* Error */
+.claim-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 9px;
+  margin: 10px 0;
+}
+
+/* Action buttons */
+.bank-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+.btn-cancel {
+  flex: 1;
+  padding: 11px;
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .15s ease;
+}
+.btn-cancel:hover:not(:disabled) { background: #e5e7eb; }
+.btn-cancel:disabled { opacity: .5; cursor: not-allowed; }
+.btn-confirm-transfer {
+  flex: 2;
+  padding: 11px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .18s ease;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, .3);
+}
+.btn-confirm-transfer:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(16, 185, 129, .4); }
+.btn-confirm-transfer:disabled { opacity: .55; cursor: not-allowed; }
+
+.spinner-sm {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255,255,255,.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  vertical-align: -1px;
+  margin-right: 5px;
+}
+
+/* Status badges (extra) */
+.badge-rejected {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}

@@ -116,4 +116,45 @@ export class PaymentService {
       map(res => res.data)
     );
   }
+
+  // ── K-BANK transfer flow (โอนตรงเข้าบัญชี + รอ Manager ยืนยัน) ──
+
+  /** ดึงข้อมูลบัญชีธนาคารสำหรับโอนเงิน */
+  getBankInfo(): Observable<{
+    bankName: string;
+    accountNumber: string;
+    accountName: string;
+    promptpayId: string;
+  }> {
+    return this.http.get<IApiResponse<any>>(`${this.apiUrl}/bank-info`).pipe(
+      map(res => res.data)
+    );
+  }
+
+  /** นักเรียนยืนยันว่าได้โอนเงินแล้ว — สร้าง Payment status='pending' รอ Manager */
+  claimTransfer(body: { scheduleId?: string; month?: string; transactionRef?: string; note?: string }): Observable<{
+    paymentIds: string[];
+    totalAmount: number;
+    description: string;
+    status: 'pending';
+    message: string;
+  }> {
+    return this.http.post<IApiResponse<any>>(`${this.apiUrl}/claim-transfer`, body).pipe(
+      map(res => res.data)
+    );
+  }
+
+  /** Manager ดูรายการที่รอตรวจสอบ */
+  getPendingVerifications(): Observable<IPayment[]> {
+    return this.http.get<IApiResponse<IPayment[]>>(`${this.apiUrl}/pending-verification`).pipe(
+      map(res => res.data)
+    );
+  }
+
+  /** นักเรียนดูสถานะการชำระทั้งหมดของตัวเอง */
+  getMyPaymentStatus(): Observable<IPayment[]> {
+    return this.http.get<IApiResponse<IPayment[]>>(`${this.apiUrl}/my-status`).pipe(
+      map(res => res.data)
+    );
+  }
 }
