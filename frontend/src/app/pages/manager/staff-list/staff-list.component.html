@@ -110,7 +110,7 @@
             <span *ngIf="canApproveTeacher(user)" class="sl-card-pulse" aria-hidden="true"></span>
           </div>
           <div class="sl-card-headline">
-            <div class="sl-card-name">{{ user.firstName }} {{ user.lastName }}</div>
+            <div class="sl-card-name">{{ user | displayName:'full' }}</div>
             <div class="sl-card-email" [title]="user.email">{{ user.email }}</div>
           </div>
         </div>
@@ -191,7 +191,7 @@
                   {{ user.firstName.charAt(0) }}{{ user.lastName.charAt(0) }}
                 </div>
                 <div class="user-info">
-                  <span class="user-full-name">{{ user.firstName }} {{ user.lastName }}</span>
+                  <span class="user-full-name">{{ user | displayName:'full' }}</span>
                   <span class="user-email">{{ user.email }}</span>
                 </div>
               </div>
@@ -271,12 +271,12 @@
             {{ selectedUserForApprove?.firstName?.charAt(0) }}{{ selectedUserForApprove?.lastName?.charAt(0) }}
           </div>
           <div>
-            <div class="approve-name">{{ selectedUserForApprove?.firstName }} {{ selectedUserForApprove?.lastName }}</div>
+            <div class="approve-name">{{ selectedUserForApprove | displayName:'full' }}</div>
             <div class="approve-email">{{ selectedUserForApprove?.email }}</div>
           </div>
         </div>
         <p class="approve-desc">
-          คุณต้องการอนุมัติให้ <strong>{{ selectedUserForApprove?.firstName }} {{ selectedUserForApprove?.lastName }}</strong>
+          คุณต้องการอนุมัติให้ <strong>{{ selectedUserForApprove | displayName:'full' }}</strong>
           เป็นครูในระบบหรือไม่? หลังจากอนุมัติแล้ว ครูจะสามารถใช้งานฟีเจอร์ครูได้ครบถ้วน
         </p>
       </div>
@@ -304,7 +304,7 @@
       </div>
       <div class="modal-body">
         <p class="modal-user-info">
-          ผู้ใช้: <strong>{{ selectedUserForRoleChange?.firstName }} {{ selectedUserForRoleChange?.lastName }}</strong>
+          ผู้ใช้: <strong>{{ selectedUserForRoleChange | displayName:'full' }}</strong>
         </p>
         <p class="modal-user-info">
           บทบาทปัจจุบัน:

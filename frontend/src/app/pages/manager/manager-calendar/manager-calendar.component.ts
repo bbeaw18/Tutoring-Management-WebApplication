@@ -8,6 +8,7 @@ import { ScheduleService } from '../../../services/schedule.service';
 import { UserService } from '../../../services/user.service';
 import { AuthService } from '../../../services/auth.service';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
+import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
 import { ISchedule } from '../../../interfaces/schedule.interface';
 
 type CalendarViewMode = 'monthly' | 'weekly';
@@ -16,7 +17,7 @@ type FilterMode = 'all' | 'teacher' | 'student';
 @Component({
   selector: 'app-manager-calendar',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LoadingComponent],
+  imports: [CommonModule, FormsModule, RouterModule, LoadingComponent, DisplayNamePipe],
   templateUrl: './manager-calendar.component.html',
   styleUrls: ['./manager-calendar.component.css']
 })
@@ -178,11 +179,19 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy {
   getFilterLabel(): string {
     if (this.filterMode === 'teacher' && this.selectedTeacherId) {
       const t = this.teachers.find(x => x._id === this.selectedTeacherId);
-      return t ? `ตารางสอน: ${t.firstName} ${t.lastName}` : 'ตารางสอนครู';
+      if (t) {
+        const nick = t.nickname || `${t.firstName} ${t.lastName}`;
+        return `ตารางสอน: ครู${nick}`;
+      }
+      return 'ตารางสอนครู';
     }
     if (this.filterMode === 'student' && this.selectedStudentId) {
       const s = this.students.find(x => x._id === this.selectedStudentId);
-      return s ? `ตารางเรียน: ${s.firstName} ${s.lastName}` : 'ตารางเรียนนักเรียน';
+      if (s) {
+        const nick = s.nickname || `${s.firstName} ${s.lastName}`;
+        return `ตารางเรียน: น้อง${nick}`;
+      }
+      return 'ตารางเรียนนักเรียน';
     }
     return 'ตารางทั้งหมด';
   }
@@ -665,14 +674,31 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy {
 
   getTeacherName(schedule: ISchedule): string {
     const t = schedule.teacher as any;
-    if (t && typeof t === 'object') return `${t.firstName} ${t.lastName}`;
+    if (t && typeof t === 'object') {
+      const nick = t.nickname || `${t.firstName} ${t.lastName}`;
+      return `ครู${nick}`;
+    }
     return '-';
   }
 
+  /**
+   * หัวข้อในปฏิทินของ Manager/Admin: "ชื่อวิชา - น้อง<ชื่อเล่นนักเรียน>(s)"
+   *  - ถ้ามีนักเรียน 1 คน → "subject - น้องnick"
+   *  - ถ้ามีหลายคน → "subject - น้องnick1, น้องnick2 (+N)"
+   */
   getCourseName(schedule: ISchedule): string {
     const c = schedule.course as any;
-    if (c && typeof c === 'object') return c.name || c.subject || '-';
-    return '-';
+    const subject = (c && typeof c === 'object') ? (c.subject || c.name || '-') : '-';
+    const students: any[] = Array.isArray(schedule.students) ? schedule.students : [];
+    const nicks = students
+      .filter(st => st && typeof st === 'object')
+      .map(st => st.nickname || `${st.firstName || ''} ${st.lastName || ''}`.trim())
+      .filter(Boolean)
+      .map(n => `น้อง${n}`);
+    if (nicks.length === 0) return subject;
+    if (nicks.length === 1) return `${subject} - ${nicks[0]}`;
+    if (nicks.length === 2) return `${subject} - ${nicks[0]}, ${nicks[1]}`;
+    return `${subject} - ${nicks[0]}, ${nicks[1]} +${nicks.length - 2}`;
   }
 
   formatDate(d: Date): string {

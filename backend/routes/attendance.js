@@ -29,7 +29,7 @@ router.post('/scan', authenticateToken, roleCheck(['student']), async (req, res)
 
     const schedule = await Schedule.findById(scheduleId)
       .populate('course', 'name')
-      .populate('teacher', 'firstName lastName');
+      .populate('teacher', 'firstName lastName nickname');
 
     if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
 
@@ -157,7 +157,7 @@ router.post('/manual-add', authenticateToken, roleCheck(['admin']), async (req, 
 // ────────────────────────────────────────────────────────────────────────────
 router.get('/schedule/:scheduleId', authenticateToken, async (req, res) => {
   try {
-    const schedule = await Schedule.findById(req.params.scheduleId).populate('teacher', 'firstName lastName');
+    const schedule = await Schedule.findById(req.params.scheduleId).populate('teacher', 'firstName lastName nickname');
     if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
 
     const isTeacher = schedule.teacher._id.toString() === req.user.id;
@@ -168,7 +168,7 @@ router.get('/schedule/:scheduleId', authenticateToken, async (req, res) => {
     }
 
     const attendances = await Attendance.find({ schedule: req.params.scheduleId })
-      .populate('student', 'firstName lastName profileImage email')
+      .populate('student', 'firstName lastName nickname profileImage email')
       .sort({ scannedAt: 1 });
 
     sendResponse(res, 200, true, attendances, 'Attendances retrieved');
@@ -273,8 +273,8 @@ router.get('/teacher-history', authenticateToken, async (req, res) => {
       status: { $nin: ['cancelled'] }
     })
       .populate('course', 'name subject')
-      .populate('teacher', 'firstName lastName email')
-      .populate('students', 'firstName lastName')
+      .populate('teacher', 'firstName lastName nickname email')
+      .populate('students', 'firstName lastName nickname')
       .sort({ date: -1 });
 
     // เพิ่มข้อมูล attendance count ในแต่ละ schedule

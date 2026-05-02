@@ -218,7 +218,7 @@
             <div class="students-list">
               <div *ngFor="let s of course.students" class="student-item">
                 <div class="student-avatar">{{ s.firstName?.charAt(0) }}{{ s.lastName?.charAt(0) }}</div>
-                <span class="student-name">{{ s.firstName }} {{ s.lastName }}</span>
+                <span class="student-name">{{ s | displayName }}</span>
                 <span class="student-email">{{ s.email }}</span>
               </div>
             </div>

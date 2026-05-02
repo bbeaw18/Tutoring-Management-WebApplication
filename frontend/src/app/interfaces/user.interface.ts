@@ -6,6 +6,7 @@ export interface IUser {
   _id?: string;          // MongoDB raw _id (available at runtime from backend)
   firstName: string;
   lastName: string;
+  nickname?: string;     // ชื่อเล่น — ใช้เป็นชื่อหลักในการแสดงผล (ยกเว้นแท็บบุคลากร)
   email: string;
   phone?: string;
   role: UserRole;

@@ -7,11 +7,12 @@ import { UserService } from '../../../services/user.service';
 import { AuthService } from '../../../services/auth.service';
 import { IUser } from '../../../interfaces/user.interface';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
+import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
 
 @Component({
   selector: 'app-teacher-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, LoadingComponent],
+  imports: [CommonModule, FormsModule, LoadingComponent, DisplayNamePipe],
   templateUrl: './teacher-profile.component.html',
   styleUrls: ['./teacher-profile.component.css']
 })

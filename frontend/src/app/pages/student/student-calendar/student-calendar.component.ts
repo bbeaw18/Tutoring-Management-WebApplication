@@ -9,13 +9,14 @@ import { AuthService } from '../../../services/auth.service';
 import { AttendanceService } from '../../../services/attendance.service';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { ISchedule } from '../../../interfaces/schedule.interface';
+import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
 
 type CalendarViewMode = 'monthly' | 'weekly';
 
 @Component({
   selector: 'app-student-calendar',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LoadingComponent],
+  imports: [CommonModule, FormsModule, RouterModule, LoadingComponent, DisplayNamePipe],
   templateUrl: './student-calendar.component.html',
   styleUrls: ['./student-calendar.component.css']
 })
@@ -307,14 +308,28 @@ export class StudentCalendarComponent implements OnInit, OnDestroy {
   }
 
   // ─── Helpers ──────────────────────────────────────────────
+  /**
+   * หัวข้อในปฏิทินของนักเรียน: "ชื่อวิชา - ครู<ชื่อเล่นครู>"
+   *  - ใช้ subject ก่อน (กระชับ) ถ้าไม่มีจึงใช้ name
+   *  - ใช้ nickname ของครูก่อน ถ้าไม่มีใช้ firstName lastName
+   *  - prefix ครู สำหรับครู/manager/admin
+   */
   getCourseName(s: ISchedule): string {
     const c = s.course as any;
-    return typeof c === 'object' ? (c.name || c.subject || '-') : '-';
+    const subject = typeof c === 'object' ? (c.subject || c.name || '-') : '-';
+    const t = s.teacher as any;
+    if (t && typeof t === 'object') {
+      const teacherDisplay = t.nickname || `${t.firstName || ''} ${t.lastName || ''}`.trim();
+      if (teacherDisplay) return `${subject} - ครู${teacherDisplay}`;
+    }
+    return subject;
   }
 
   getTeacherName(s: ISchedule): string {
     const t = s.teacher as any;
-    return typeof t === 'object' ? `${t.firstName} ${t.lastName}` : '-';
+    if (typeof t !== 'object' || !t) return '-';
+    const nick = t.nickname || `${t.firstName} ${t.lastName}`;
+    return `ครู${nick}`;
   }
 
   getStatusLabel(s: string): string {

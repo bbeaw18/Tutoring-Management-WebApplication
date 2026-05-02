@@ -10,6 +10,7 @@ import { PaymentService } from '../../../services/payment.service';
 import { NotificationService } from '../../../services/notification.service';
 import { ScheduleService } from '../../../services/schedule.service';
 import { IUser } from '../../../interfaces/user.interface';
+import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
 
 interface QuickStat {
   label: string;
@@ -30,7 +31,7 @@ interface QuickAction {
 @Component({
   selector: 'app-dashboard-home',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, DisplayNamePipe],
   templateUrl: './dashboard-home.component.html',
   styleUrls: ['./dashboard-home.component.css']
 })

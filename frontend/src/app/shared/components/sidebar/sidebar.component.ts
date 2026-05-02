@@ -6,6 +6,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../../services/auth.service';
 import { IUser, UserRole } from '../../../interfaces/user.interface';
+import { DisplayNamePipe } from '../../pipes/display-name.pipe';
 
 interface MenuItem {
   label: string;
@@ -18,7 +19,7 @@ interface MenuItem {
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, DisplayNamePipe],
   template: `
     <!-- Overlay (mobile) -->
     <div *ngIf="isOpen" class="sidebar-overlay" (click)="closeSidebar()"></div>
@@ -60,7 +61,7 @@ interface MenuItem {
           <div class="status-dot"></div>
         </div>
         <div class="user-info">
-          <div class="user-name">{{ currentUser.firstName }} {{ currentUser.lastName }}</div>
+          <div class="user-name">{{ currentUser | displayName }}</div>
           <div class="user-role-badge">{{ getRoleLabel(currentUser.role) }}</div>
         </div>
       </div>

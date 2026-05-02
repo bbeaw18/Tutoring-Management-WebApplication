@@ -35,7 +35,7 @@
               (ngModelChange)="selectedTeacherId = $event; onTeacherFilterChange()"
               class="filter-select">
         <option value="">— เลือกครู —</option>
-        <option *ngFor="let t of teachers" [value]="t._id">{{ t.firstName }} {{ t.lastName }} [{{ t._displayRole }}]</option>
+        <option *ngFor="let t of teachers" [value]="t._id">{{ t | displayName:'teacher' }} [{{ t._displayRole }}]</option>
       </select>
     </div>
     <div class="filter-select-wrap" *ngIf="filterMode === 'student'">
@@ -43,7 +43,7 @@
               (ngModelChange)="selectedStudentId = $event; onStudentFilterChange()"
               class="filter-select">
         <option value="">— เลือกนักเรียน —</option>
-        <option *ngFor="let s of students" [value]="s._id">{{ s.firstName }} {{ s.lastName }}</option>
+        <option *ngFor="let s of students" [value]="s._id">{{ s | displayName:'student' }}</option>
       </select>
     </div>
     <div class="filter-badge" *ngIf="filterMode !== 'all' && (selectedTeacherId || selectedStudentId)">
@@ -358,7 +358,7 @@
                *ngFor="let sc of selectedSchedule.studentConfirmations"
                [class.student-accepted]="sc.status === 'accepted'"
                [class.student-pending]="sc.status === 'pending'">
-            {{ sc.student?.firstName }} {{ sc.student?.lastName }}
+            {{ sc.student | displayName:'student' }}
             <span class="conf-badge"
                   [class.badge-accepted]="sc.status === 'accepted'"
                   [class.badge-pending]="sc.status === 'pending'">

@@ -85,7 +85,7 @@
             <select formControlName="teacher" class="form-input">
               <option value="">— เลือกครู/ผู้จัดการ —</option>
               <option *ngFor="let t of teachers" [value]="getId(t)">
-                {{ t.firstName }} {{ t.lastName }} [{{ $any(t)._displayRole || (t.role === 'manager' ? 'ผู้จัดการ' : 'ครู') }}]
+                {{ t | displayName:'teacher' }} [{{ $any(t)._displayRole || (t.role === 'manager' ? 'ผู้จัดการ' : 'ครู') }}]
               </option>
             </select>
             <span class="field-error" *ngIf="isFieldInvalid('teacher')">กรุณาเลือกครู</span>
@@ -216,7 +216,7 @@
               (click)="toggleStudentSelection(getId(s))">
               <div class="student-avatar">{{ s.firstName.charAt(0) }}{{ s.lastName.charAt(0) }}</div>
               <div class="student-info">
-                <span class="student-name">{{ s.firstName }} {{ s.lastName }}</span>
+                <span class="student-name">{{ s | displayName:'student' }}</span>
                 <span class="student-meta">{{ s.academicYear || s.grade || '' }}</span>
               </div>
               <div class="student-check" *ngIf="isStudentSelected(getId(s))">
@@ -489,7 +489,7 @@
             </svg>
             <span class="card-value">
               <span class="student-pill" *ngFor="let s of course.students">
-                {{ s.firstName || '' }} {{ s.lastName || '' }}
+                {{ s | displayName:'student' }}
               </span>
             </span>
           </div>
@@ -544,7 +544,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
             </svg>
-            รอครู<strong>{{ getTeacherName(course.teacher) }}</strong>ยืนยัน
+            รอ<strong>{{ getTeacherName(course.teacher) }}</strong>ยืนยัน
           </div>
           <div class="teacher-status confirmed" *ngIf="course.teacherAccepted">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -607,7 +607,7 @@
             <label class="edit-label">ครู</label>
             <select class="edit-input" [(ngModel)]="editTeacherId">
               <option value="">— เลือกครู —</option>
-              <option *ngFor="let t of teachers" [value]="t._id">{{ t.firstName }} {{ t.lastName }}</option>
+              <option *ngFor="let t of teachers" [value]="t._id">{{ t | displayName:'teacher' }}</option>
             </select>
           </div>
         </div>

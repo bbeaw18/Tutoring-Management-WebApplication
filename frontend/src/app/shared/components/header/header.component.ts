@@ -7,6 +7,7 @@ import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../../services/auth.service';
 import { NotificationService } from '../../../services/notification.service';
 import { IUser, UserRole } from '../../../interfaces/user.interface';
+import { DisplayNamePipe } from '../../pipes/display-name.pipe';
 
 interface CmdItem {
   label: string;
@@ -20,7 +21,7 @@ interface CmdItem {
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, DisplayNamePipe],
   template: `
     <header class="header" [class.sidebar-collapsed]="sidebarCollapsed">
       <div class="header-inner">
@@ -100,7 +101,7 @@ interface CmdItem {
               <div class="user-panel-top">
                 <div class="panel-avatar">{{ getInitials(currentUser?.firstName, currentUser?.lastName) }}</div>
                 <div>
-                  <div class="panel-name">{{ currentUser?.firstName }} {{ currentUser?.lastName }}</div>
+                  <div class="panel-name">{{ currentUser | displayName }}</div>
                   <div class="panel-email">{{ currentUser?.email }}</div>
                 </div>
               </div>

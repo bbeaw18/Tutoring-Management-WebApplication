@@ -13,7 +13,7 @@
           {{ greeting }}
         </p>
         <h1 class="hero-title">
-          {{ currentUser?.firstName }}<span class="hero-title-accent"> {{ currentUser?.lastName }}</span>
+          <span class="hero-title-accent">{{ currentUser | displayName }}</span>
         </h1>
         <div class="role-chip">
           <span class="role-dot"></span>

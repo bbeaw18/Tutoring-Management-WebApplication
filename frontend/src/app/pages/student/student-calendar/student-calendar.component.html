@@ -254,7 +254,7 @@
           <span class="detail-label">สมาชิกในคลาส</span>
           <div class="member-list">
             <span *ngFor="let s of selectedSchedule.students" class="member-chip">
-              {{ s.firstName }} {{ s.lastName }}
+              {{ s | displayName:'student' }}
             </span>
           </div>
         </div>

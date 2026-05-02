@@ -11,11 +11,12 @@ import { ScheduleService } from '../../../services/schedule.service';
 import { PaymentService } from '../../../services/payment.service';
 import { ISchedule } from '../../../interfaces/schedule.interface';
 import { MonthPickerComponent } from '../../../shared/components/month-picker/month-picker.component';
+import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
 
 @Component({
   selector: 'app-history',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, MonthPickerComponent],
+  imports: [CommonModule, FormsModule, RouterModule, MonthPickerComponent, DisplayNamePipe],
   templateUrl: './history.component.html',
   styleUrls: ['./history.component.css']
 })
@@ -235,7 +236,7 @@ export class HistoryComponent implements OnInit, OnDestroy {
 
   getTeacherName2(s: ISchedule): string {
     const t = s.teacher as any;
-    return typeof t === 'object' ? `${t.firstName} ${t.lastName}` : '-';
+    return typeof t === 'object' ? (t.nickname || `${t.firstName} ${t.lastName}`) : '-';
   }
 
   // KPI for student schedule view
@@ -275,7 +276,7 @@ export class HistoryComponent implements OnInit, OnDestroy {
   getTeacherName(record: any): string {
     const t = record.schedule?.teacher;
     if (!t) return '-';
-    return `${t.firstName} ${t.lastName}`;
+    return (t.nickname || `${t.firstName} ${t.lastName}`);
   }
 
   formatDuration(minutes: number): string {
@@ -319,7 +320,7 @@ export class HistoryComponent implements OnInit, OnDestroy {
   }
 
   getTeacherDisplayName(t: any): string {
-    return t ? `${t.firstName} ${t.lastName}` : '';
+    return t ? (t.nickname || `${t.firstName} ${t.lastName}`) : '';
   }
 
   // ─── Timeline view helpers ────────────────────────────────

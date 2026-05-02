@@ -39,7 +39,7 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
     });
 
     await enrollment.save();
-    await enrollment.populate('student', 'firstName lastName email');
+    await enrollment.populate('student', 'firstName lastName nickname email');
     await enrollment.populate('course', 'name subject');
 
     const notification = new Notification({
@@ -79,9 +79,9 @@ router.get('/', authenticateToken, async (req, res) => {
 
     const total = await Enrollment.countDocuments(query);
     const enrollments = await Enrollment.find(query)
-      .populate('student', 'firstName lastName email')
+      .populate('student', 'firstName lastName nickname email')
       .populate('course', 'name subject')
-      .populate('enrolledBy', 'firstName lastName')
+      .populate('enrolledBy', 'firstName lastName nickname')
       .limit(limit)
       .skip(skip)
       .sort({ createdAt: -1 });
@@ -103,9 +103,9 @@ router.get('/student/:studentId', authenticateToken, async (req, res) => {
 
     const total = await Enrollment.countDocuments({ student: req.params.studentId });
     const enrollments = await Enrollment.find({ student: req.params.studentId })
-      .populate('student', 'firstName lastName email')
+      .populate('student', 'firstName lastName nickname email')
       .populate('course', 'name subject price')
-      .populate('enrolledBy', 'firstName lastName')
+      .populate('enrolledBy', 'firstName lastName nickname')
       .limit(limit)
       .skip(skip)
       .sort({ createdAt: -1 });
@@ -129,7 +129,7 @@ router.put('/:id', authenticateToken, roleCheck(['admin', 'manager']), async (re
       req.params.id,
       { status, completedAt: status === 'completed' ? new Date() : null },
       { new: true, runValidators: true }
-    ).populate('student', 'firstName lastName email')
+    ).populate('student', 'firstName lastName nickname email')
       .populate('course', 'name subject');
 
     if (!enrollment) {
@@ -159,7 +159,7 @@ router.delete('/:id', authenticateToken, roleCheck(['admin', 'manager']), async 
       req.params.id,
       { status: 'cancelled' },
       { new: true }
-    ).populate('student', 'firstName lastName email');
+    ).populate('student', 'firstName lastName nickname email');
 
     if (!enrollment) {
       return sendResponse(res, 404, false, null, 'Enrollment not found');

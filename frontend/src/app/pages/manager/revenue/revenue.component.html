@@ -158,7 +158,7 @@
         >
           <option value="">ทั้งหมด</option>
           <option *ngFor="let t of teachers" [value]="t._id">
-            {{ t.firstName }} {{ t.lastName }}
+            {{ t | displayName }}
           </option>
         </select>
       </div>
@@ -172,7 +172,7 @@
         >
           <option value="">ทั้งหมด</option>
           <option *ngFor="let s of students" [value]="s._id">
-            {{ s.firstName }} {{ s.lastName }}
+            {{ s | displayName }}
           </option>
         </select>
       </div>

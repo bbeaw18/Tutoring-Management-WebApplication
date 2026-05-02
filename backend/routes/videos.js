@@ -36,7 +36,7 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
     });
 
     await video.save();
-    await video.populate('uploadedBy', 'firstName lastName email');
+    await video.populate('uploadedBy', 'firstName lastName nickname email');
     await video.populate('course', 'name');
 
     const enrolledStudents = await Enrollment.find({ course, status: 'active' }).select('student');
@@ -80,7 +80,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
     const total = await Video.countDocuments(query);
     const videos = await Video.find(query)
-      .populate('uploadedBy', 'firstName lastName email')
+      .populate('uploadedBy', 'firstName lastName nickname email')
       .populate('course', 'name subject')
       .limit(limit)
       .skip(skip)
@@ -96,9 +96,9 @@ router.get('/', authenticateToken, async (req, res) => {
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const video = await Video.findById(req.params.id)
-      .populate('uploadedBy', 'firstName lastName email')
+      .populate('uploadedBy', 'firstName lastName nickname email')
       .populate('course', 'name subject teacher')
-      .populate('allowedStudents', 'firstName lastName email');
+      .populate('allowedStudents', 'firstName lastName nickname email');
 
     if (!video) {
       return sendResponse(res, 404, false, null, 'Video not found');
@@ -132,7 +132,7 @@ router.put('/:id', authenticateToken, roleCheck(['admin', 'manager']), async (re
     if (isActive !== undefined) video.isActive = isActive;
 
     await video.save();
-    await video.populate('uploadedBy', 'firstName lastName email');
+    await video.populate('uploadedBy', 'firstName lastName nickname email');
 
     sendResponse(res, 200, true, video, 'Video updated');
   } catch (error) {
@@ -171,7 +171,7 @@ router.put('/:id/grant-access', authenticateToken, roleCheck(['admin', 'manager'
     }
 
     await video.save();
-    await video.populate('allowedStudents', 'firstName lastName email');
+    await video.populate('allowedStudents', 'firstName lastName nickname email');
 
     sendResponse(res, 200, true, video, 'Access granted');
   } catch (error) {
@@ -198,7 +198,7 @@ router.put('/:id/revoke-access', authenticateToken, roleCheck(['admin', 'manager
     );
 
     await video.save();
-    await video.populate('allowedStudents', 'firstName lastName email');
+    await video.populate('allowedStudents', 'firstName lastName nickname email');
 
     sendResponse(res, 200, true, video, 'Access revoked');
   } catch (error) {

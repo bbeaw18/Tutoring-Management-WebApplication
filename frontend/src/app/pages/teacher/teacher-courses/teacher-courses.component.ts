@@ -9,11 +9,12 @@ import { ICourse } from '../../../interfaces/course.interface';
 import { IEnrollment } from '../../../interfaces/enrollment.interface';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { FormsModule } from '@angular/forms';
+import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
 
 @Component({
   selector: 'app-teacher-courses',
   standalone: true,
-  imports: [CommonModule, LoadingComponent, FormsModule],
+  imports: [CommonModule, LoadingComponent, FormsModule, DisplayNamePipe],
   templateUrl: './teacher-courses.component.html',
   styleUrls: ['./teacher-courses.component.css']
 })
@@ -177,13 +178,13 @@ export class TeacherCoursesComponent implements OnInit, OnDestroy {
 
   getTeacherName(teacher: any): string {
     if (!teacher) return '-';
-    if (typeof teacher === 'object') return `${teacher.firstName} ${teacher.lastName}`;
+    if (typeof teacher === 'object') return (teacher.nickname || `${teacher.firstName} ${teacher.lastName}`);
     return teacher;
   }
 
   getStudentNames(students: any[]): string {
     if (!students || students.length === 0) return 'ยังไม่มีนักเรียน';
-    return students.map((s: any) => `${s.firstName} ${s.lastName}`).join(', ');
+    return students.map((s: any) => s.nickname || `${s.firstName} ${s.lastName}`).join(', ');
   }
 
   formatScheduledDate(course: any): string {

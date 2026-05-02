@@ -9,13 +9,14 @@ import { IRevenueSchedule } from '../../../interfaces/payment.interface';
 import { IUser } from '../../../interfaces/user.interface';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { MonthPickerComponent } from '../../../shared/components/month-picker/month-picker.component';
+import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
 
 type KpiMode = 'all' | 'paid' | 'unpaid';
 
 @Component({
   selector: 'app-revenue',
   standalone: true,
-  imports: [CommonModule, FormsModule, LoadingComponent, MonthPickerComponent],
+  imports: [CommonModule, FormsModule, LoadingComponent, MonthPickerComponent, DisplayNamePipe],
   templateUrl: './revenue.component.html',
   styleUrls: ['./revenue.component.css']
 })

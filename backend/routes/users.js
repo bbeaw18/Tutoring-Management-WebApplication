@@ -25,7 +25,7 @@ router.get('/pending-teachers', authenticateToken, roleCheck(['admin', 'manager'
 
     const total = await User.countDocuments(query);
     const teachers = await User.find(query)
-      .populate('approvedBy', 'firstName lastName email')
+      .populate('approvedBy', 'firstName lastName nickname email')
       .select('-password')
       .limit(limit)
       .skip(skip)

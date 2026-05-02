@@ -5,11 +5,12 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ScheduleService } from '../../../services/schedule.service';
 import { AuthService } from '../../../services/auth.service';
 import { ISchedule, IAttendanceRecord, IQRStatus } from '../../../interfaces/schedule.interface';
+import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
 
 @Component({
   selector: 'app-qr-display',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, DisplayNamePipe],
   templateUrl: './qr-display.component.html',
   styleUrls: ['./qr-display.component.css']
 })
@@ -155,7 +156,7 @@ export class QrDisplayComponent implements OnInit, OnDestroy {
         };
         this.attendances = [...this.attendances, newRecord];
 
-        const name = `${res.student.firstName} ${res.student.lastName}`;
+        const name = (res.student as any).nickname || `${res.student.firstName} ${res.student.lastName}`;
         this.manualSuccess = `เพิ่ม ${name} สำเร็จ`;
         this.selectedStudentId = '';
         this.manualAdding = false;
@@ -209,7 +210,7 @@ export class QrDisplayComponent implements OnInit, OnDestroy {
   getTeacherName(): string {
     if (!this.schedule) return '-';
     const t = this.schedule.teacher as any;
-    return typeof t === 'object' ? `${t.firstName} ${t.lastName}` : '-';
+    return typeof t === 'object' ? (t.nickname || `${t.firstName} ${t.lastName}`) : '-';
   }
 
   // ── Theater Mode ────────────────────────────────────────

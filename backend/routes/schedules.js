@@ -35,7 +35,7 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
       return sendResponse(res, 400, false, null, 'Missing required fields');
     }
 
-    const courseExists = await Course.findById(course).populate('teacher', 'firstName lastName email');
+    const courseExists = await Course.findById(course).populate('teacher', 'firstName lastName nickname email');
     if (!courseExists) {
       return sendResponse(res, 400, false, null, 'Course not found');
     }
@@ -45,7 +45,7 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
       return sendResponse(res, 400, false, null, 'Teacher not found');
     }
 
-    const enrolledStudents = await Enrollment.find({ course, status: 'active' }).select('student').populate('student', 'firstName lastName email');
+    const enrolledStudents = await Enrollment.find({ course, status: 'active' }).select('student').populate('student', 'firstName lastName nickname email');
     const studentIds = enrolledStudents.map(e => e.student._id);
     const studentUsers = enrolledStudents.map(e => e.student);
 
@@ -86,8 +86,8 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
 
     await schedule.save();
     await schedule.populate('course', 'name subject');
-    await schedule.populate('teacher', 'firstName lastName email');
-    await schedule.populate('students', 'firstName lastName email');
+    await schedule.populate('teacher', 'firstName lastName nickname email');
+    await schedule.populate('students', 'firstName lastName nickname email');
 
     // แจ้งเตือนในระบบ — ครูผู้สอน
     const teacherNotif = new Notification({
@@ -169,9 +169,9 @@ router.get('/', authenticateToken, async (req, res) => {
     const total = await Schedule.countDocuments(query);
     const schedules = await Schedule.find(query)
       .populate('course', 'name subject')
-      .populate('teacher', 'firstName lastName email')
-      .populate('students', 'firstName lastName email')
-      .populate('studentConfirmations.student', 'firstName lastName')
+      .populate('teacher', 'firstName lastName nickname email')
+      .populate('students', 'firstName lastName nickname email')
+      .populate('studentConfirmations.student', 'firstName lastName nickname')
       .limit(limit)
       .skip(skip)
       .sort({ date: 1 });
@@ -240,9 +240,9 @@ const calendarMonthlyHandler = async (req, res) => {
 
     const schedules = await Schedule.find(query)
       .populate('course', 'name subject type')
-      .populate('teacher', 'firstName lastName email')
-      .populate('students', 'firstName lastName email')
-      .populate('studentConfirmations.student', 'firstName lastName')
+      .populate('teacher', 'firstName lastName nickname email')
+      .populate('students', 'firstName lastName nickname email')
+      .populate('studentConfirmations.student', 'firstName lastName nickname')
       .sort({ date: 1 });
 
     // จัดกลุ่มตามวัน
@@ -278,9 +278,9 @@ const calendarWeeklyHandler = async (req, res) => {
 
     const schedules = await Schedule.find(query)
       .populate('course', 'name subject type')
-      .populate('teacher', 'firstName lastName email')
-      .populate('students', 'firstName lastName email')
-      .populate('studentConfirmations.student', 'firstName lastName')
+      .populate('teacher', 'firstName lastName nickname email')
+      .populate('students', 'firstName lastName nickname email')
+      .populate('studentConfirmations.student', 'firstName lastName nickname')
       .sort({ date: 1, startTime: 1 });
 
     // จัดกลุ่มตามวัน
@@ -309,8 +309,8 @@ router.post('/:id/confirm-teacher', authenticateToken, async (req, res) => {
   try {
     const schedule = await Schedule.findById(req.params.id)
       .populate('course', 'name subject')
-      .populate('teacher', 'firstName lastName email')
-      .populate('students', 'firstName lastName email');
+      .populate('teacher', 'firstName lastName nickname email')
+      .populate('students', 'firstName lastName nickname email');
 
     if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
 
@@ -383,7 +383,7 @@ router.post('/:id/confirm-teacher', authenticateToken, async (req, res) => {
       await notif.save();
     }
 
-    await schedule.populate('studentConfirmations.student', 'firstName lastName');
+    await schedule.populate('studentConfirmations.student', 'firstName lastName nickname');
     sendResponse(res, 200, true, schedule, 'Teacher confirmed');
   } catch (error) {
     console.error('Teacher confirm error:', error);
@@ -404,7 +404,7 @@ router.post('/:id/confirm-student', authenticateToken, roleCheck(['student']), a
 
     const schedule = await Schedule.findById(req.params.id)
       .populate('course', 'name subject')
-      .populate('teacher', 'firstName lastName email');
+      .populate('teacher', 'firstName lastName nickname email');
 
     if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
 
@@ -466,9 +466,9 @@ router.post('/:id/confirm-student', authenticateToken, roleCheck(['student']), a
     // reload schedule หลัง atomic update เพื่อให้ได้ confirmations ล่าสุด
     const updatedSchedule = await Schedule.findById(schedule._id)
       .populate('course', 'name subject')
-      .populate('teacher', 'firstName lastName email')
-      .populate('students', 'firstName lastName email')
-      .populate('studentConfirmations.student', 'firstName lastName');
+      .populate('teacher', 'firstName lastName nickname email')
+      .populate('students', 'firstName lastName nickname email')
+      .populate('studentConfirmations.student', 'firstName lastName nickname');
 
     // แจ้งครูว่านักเรียนตอบกลับ
     const student = await User.findById(req.user.id);
@@ -518,7 +518,7 @@ router.post('/:id/generate-qr', authenticateToken, async (req, res) => {
   try {
     const schedule = await Schedule.findById(req.params.id)
       .populate('course', 'name')
-      .populate('teacher', 'firstName lastName');
+      .populate('teacher', 'firstName lastName nickname');
 
     if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
 
@@ -592,7 +592,7 @@ router.post('/:id/generate-qr', authenticateToken, async (req, res) => {
 // ────────────────────────────────────────────────────────────────────────────
 router.post('/:id/close-qr', authenticateToken, async (req, res) => {
   try {
-    const schedule = await Schedule.findById(req.params.id).populate('teacher', 'firstName lastName');
+    const schedule = await Schedule.findById(req.params.id).populate('teacher', 'firstName lastName nickname');
     if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
 
     const isTeacher = schedule.teacher._id.toString() === req.user.id;
@@ -641,7 +641,7 @@ router.post('/:id/close-qr', authenticateToken, async (req, res) => {
 // ────────────────────────────────────────────────────────────────────────────
 router.get('/:id/qr-status', authenticateToken, async (req, res) => {
   try {
-    const schedule = await Schedule.findById(req.params.id).populate('teacher', 'firstName lastName');
+    const schedule = await Schedule.findById(req.params.id).populate('teacher', 'firstName lastName nickname');
     if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
 
     const isTeacher = schedule.teacher._id.toString() === req.user.id;
@@ -651,7 +651,7 @@ router.get('/:id/qr-status', authenticateToken, async (req, res) => {
     }
 
     const attendances = await Attendance.find({ schedule: schedule._id })
-      .populate('student', 'firstName lastName profileImage')
+      .populate('student', 'firstName lastName nickname profileImage')
       .sort({ scannedAt: 1 });
 
     sendResponse(res, 200, true, {
@@ -679,8 +679,8 @@ router.patch('/:id/reschedule', authenticateToken, roleCheck(['admin', 'manager'
 
     const schedule = await Schedule.findById(req.params.id)
       .populate('course', 'name subject')
-      .populate('teacher', 'firstName lastName email')
-      .populate('students', 'firstName lastName email');
+      .populate('teacher', 'firstName lastName nickname email')
+      .populate('students', 'firstName lastName nickname email');
     if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
 
     // บันทึกค่าเดิมก่อนแก้ไข
@@ -699,7 +699,7 @@ router.patch('/:id/reschedule', authenticateToken, roleCheck(['admin', 'manager'
     if (totalDurationMinutes > 0) schedule.totalDurationMinutes = totalDurationMinutes;
 
     await schedule.save();
-    await schedule.populate('studentConfirmations.student', 'firstName lastName');
+    await schedule.populate('studentConfirmations.student', 'firstName lastName nickname');
 
     // ส่ง Notification ให้ครูและนักเรียน
     const courseObj   = schedule.course;
@@ -759,9 +759,9 @@ router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const schedule = await Schedule.findById(req.params.id)
       .populate('course', 'name subject teacher')
-      .populate('teacher', 'firstName lastName email phone')
-      .populate('students', 'firstName lastName email')
-      .populate('studentConfirmations.student', 'firstName lastName');
+      .populate('teacher', 'firstName lastName nickname email phone')
+      .populate('students', 'firstName lastName nickname email')
+      .populate('studentConfirmations.student', 'firstName lastName nickname');
 
     if (!schedule) {
       return sendResponse(res, 404, false, null, 'Schedule not found');
@@ -811,7 +811,7 @@ router.put('/:id', authenticateToken, roleCheck(['admin', 'manager']), async (re
 
     await schedule.save();
     await schedule.populate('course', 'name');
-    await schedule.populate('teacher', 'firstName lastName email');
+    await schedule.populate('teacher', 'firstName lastName nickname email');
 
     if (date || startTime) {
       for (const studentId of schedule.students) {
@@ -864,8 +864,8 @@ router.patch('/:id/manager-confirm', authenticateToken, roleCheck(['admin', 'man
   try {
     // ✅ populate course เพื่อให้ดึง subject ได้
     const schedule = await Schedule.findById(req.params.id)
-      .populate('teacher', 'firstName lastName email')
-      .populate('students', 'firstName lastName email')
+      .populate('teacher', 'firstName lastName nickname email')
+      .populate('students', 'firstName lastName nickname email')
       .populate('course', 'name subject');
 
     if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
@@ -944,8 +944,8 @@ router.post('/:id/send-video-link', authenticateToken, roleCheck(['admin', 'mana
 
     const schedule = await Schedule.findById(req.params.id)
       .populate('course', 'name subject type')
-      .populate('teacher', 'firstName lastName')
-      .populate('students', 'firstName lastName email');
+      .populate('teacher', 'firstName lastName nickname')
+      .populate('students', 'firstName lastName nickname email');
 
     if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
 

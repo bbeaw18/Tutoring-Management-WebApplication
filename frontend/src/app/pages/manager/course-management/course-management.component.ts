@@ -10,11 +10,12 @@ import { IUser } from '../../../interfaces/user.interface';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { DatePickerComponent } from '../../../shared/components/date-picker/date-picker.component';
 import { TimePickerComponent } from '../../../shared/components/time-picker/time-picker.component';
+import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
 
 @Component({
   selector: 'app-course-management',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, LoadingComponent, DatePickerComponent, TimePickerComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, LoadingComponent, DatePickerComponent, TimePickerComponent, DisplayNamePipe],
   templateUrl: './course-management.component.html',
   styleUrls: ['./course-management.component.css']
 })
@@ -193,17 +194,24 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
   getSelectedStudentNames(): string {
     return this.selectedStudentIds
       .map(id => {
-        const s = this.students.find(st => (st as any)._id === id || st.id === id);
-        return s ? `${s.firstName} ${s.lastName}` : id;
+        const s: any = this.students.find(st => (st as any)._id === id || st.id === id);
+        if (!s) return id;
+        const nick = s.nickname || `${s.firstName} ${s.lastName}`;
+        return `น้อง${nick}`;
       })
       .join(', ');
   }
 
   getTeacherName(teacher: any): string {
     if (!teacher) return '-';
-    if (typeof teacher === 'object') return `${teacher.firstName} ${teacher.lastName}`;
-    const t = this.teachers.find(t => t.id === teacher || (t as any)._id === teacher);
-    return t ? `${t.firstName} ${t.lastName}` : '-';
+    if (typeof teacher === 'object') {
+      const nick = teacher.nickname || `${teacher.firstName} ${teacher.lastName}`;
+      return `ครู${nick}`;
+    }
+    const t: any = this.teachers.find(t => t.id === teacher || (t as any)._id === teacher);
+    if (!t) return '-';
+    const nick = t.nickname || `${t.firstName} ${t.lastName}`;
+    return `ครู${nick}`;
   }
 
   submitBooking(): void {

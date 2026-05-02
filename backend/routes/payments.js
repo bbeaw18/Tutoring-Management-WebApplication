@@ -160,7 +160,7 @@ router.post('/', authenticateToken, upload.single('slipImage'), async (req, res)
     });
 
     await payment.save();
-    await payment.populate('student', 'firstName lastName email');
+    await payment.populate('student', 'firstName lastName nickname email');
     await payment.populate('course', 'name price');
 
     const managers = await User.find({ role: 'manager' });
@@ -207,9 +207,9 @@ router.get('/', authenticateToken, async (req, res) => {
 
     const total = await Payment.countDocuments(query);
     const payments = await Payment.find(query)
-      .populate('student', 'firstName lastName email')
+      .populate('student', 'firstName lastName nickname email')
       .populate('course', 'name price')
-      .populate('confirmedBy', 'firstName lastName')
+      .populate('confirmedBy', 'firstName lastName nickname')
       .limit(limit)
       .skip(skip)
       .sort({ createdAt: -1 });
@@ -334,7 +334,7 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
 
     const schedules = await Schedule.find(scheduleQuery)
       .populate('course', 'name subject')
-      .populate('teacher', 'firstName lastName')
+      .populate('teacher', 'firstName lastName nickname')
       .sort({ date: -1 });
 
     // H5: เปลี่ยนจาก N+1 queries (Attendance.find + Payment.findOne per schedule)
@@ -346,7 +346,7 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
     if (studentId) attendanceQuery.student = studentId;
 
     const allAttendances = await Attendance.find(attendanceQuery)
-      .populate('student', 'firstName lastName');
+      .populate('student', 'firstName lastName nickname');
 
     // Group attendance by scheduleId
     const attendancesByScheduleId = new Map();
@@ -405,7 +405,7 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
         startTime:       s.startTime,
         endTime:         s.endTime,
         courseName:      s.course?.name || '-',
-        teacherName:     s.teacher ? `${s.teacher.firstName} ${s.teacher.lastName}` : '-',
+        teacherName:     s.teacher ? (s.teacher.nickname || `${s.teacher.firstName} ${s.teacher.lastName}`) : '-',
         attendedStudents: attendances.map(att => {
           const sid = s._id.toString();
           const key = `${att.student._id.toString()}:${sid}`;
@@ -414,7 +414,7 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
           const paymentStatus = payment ? payment.status : 'unpaid';
           return {
             studentId:    att.student._id,
-            name:         `${att.student.firstName} ${att.student.lastName}`,
+            name:         att.student.nickname || `${att.student.firstName} ${att.student.lastName}`,
             scannedAt:    att.scannedAt,
             paymentStatus,
             paymentId:    payment?._id || null,
@@ -444,9 +444,9 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const payment = await Payment.findById(req.params.id)
-      .populate('student', 'firstName lastName email phone')
+      .populate('student', 'firstName lastName nickname email phone')
       .populate('course', 'name price subject')
-      .populate('confirmedBy', 'firstName lastName');
+      .populate('confirmedBy', 'firstName lastName nickname');
 
     if (!payment) {
       return sendResponse(res, 404, false, null, 'Payment not found');
@@ -475,7 +475,7 @@ router.put('/:id/confirm', authenticateToken, roleCheck(['admin', 'manager']), a
         note: note || null
       },
       { new: true, runValidators: true }
-    ).populate('student', 'firstName lastName email')
+    ).populate('student', 'firstName lastName nickname email')
       .populate('course', 'name');
 
     if (!payment) {
@@ -510,7 +510,7 @@ router.put('/:id/reject', authenticateToken, roleCheck(['admin', 'manager']), as
         note: note || null
       },
       { new: true, runValidators: true }
-    ).populate('student', 'firstName lastName email')
+    ).populate('student', 'firstName lastName nickname email')
       .populate('course', 'name');
 
     if (!payment) {
@@ -685,7 +685,7 @@ router.post('/claim-transfer', authenticateToken, roleCheck(['student']), async 
 router.get('/pending-verification', authenticateToken, roleCheck(['admin', 'manager']), async (req, res) => {
   try {
     const payments = await Payment.find({ status: 'pending' })
-      .populate('student', 'firstName lastName email phone')
+      .populate('student', 'firstName lastName nickname email phone')
       .populate('course', 'name subject')
       .populate({
         path: 'schedule',
@@ -713,7 +713,7 @@ router.get('/my-status', authenticateToken, roleCheck(['student']), async (req, 
         select: 'date startTime endTime',
         populate: { path: 'course', select: 'name subject' }
       })
-      .populate('confirmedBy', 'firstName lastName')
+      .populate('confirmedBy', 'firstName lastName nickname')
       .sort({ createdAt: -1 });
 
     sendResponse(res, 200, true, payments, 'Payment statuses retrieved');

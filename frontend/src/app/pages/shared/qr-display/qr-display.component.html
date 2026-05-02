@@ -41,7 +41,7 @@
           <div class="student-name-list" *ngIf="schedule?.students?.length">
             <div class="student-name-item" *ngFor="let s of schedule!.students">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              {{ s.firstName }} {{ s.lastName }}
+              {{ s | displayName }}
             </div>
           </div>
         </div>
@@ -141,7 +141,7 @@
               *ngFor="let s of unenrolledStudents"
               [value]="s._id"
             >
-              {{ s.firstName }} {{ s.lastName }}
+              {{ s | displayName }}
             </option>
           </select>
 
@@ -174,7 +174,7 @@
             </div>
           </div>
           <div class="student-info">
-            <span class="student-name">{{ att.student?.firstName }} {{ att.student?.lastName }}</span>
+            <span class="student-name">{{ att.student | displayName }}</span>
             <span class="scan-time">{{ att.scannedAt | date:'HH:mm:ss' }}</span>
           </div>
           <div class="check-icon">
@@ -243,7 +243,7 @@
         <div class="qr-theater-recent-list">
           <div class="qr-theater-recent-item" *ngFor="let att of attendances.slice(-5).reverse()">
             <span class="qr-theater-recent-avatar">{{ att.student?.firstName?.[0] }}{{ att.student?.lastName?.[0] }}</span>
-            <span class="qr-theater-recent-name">{{ att.student?.firstName }} {{ att.student?.lastName }}</span>
+            <span class="qr-theater-recent-name">{{ att.student | displayName }}</span>
             <span class="qr-theater-recent-time">{{ att.scannedAt | date:'HH:mm:ss' }}</span>
           </div>
         </div>

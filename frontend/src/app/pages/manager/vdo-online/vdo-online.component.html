@@ -63,7 +63,7 @@
               จะส่งไปยัง:
             </span>
             <span class="email-chip" *ngFor="let s of sch.students">
-              {{ s.firstName }} {{ s.lastName }}
+              {{ s | displayName }}
             </span>
           </div>
         </div>

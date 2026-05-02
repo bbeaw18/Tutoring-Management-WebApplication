@@ -272,7 +272,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
 
   getTeacherName(a: any): string {
     const t = a.schedule?.teacher;
-    return t ? `${t.firstName} ${t.lastName}` : '-';
+    return t ? (t.nickname || `${t.firstName} ${t.lastName}`) : '-';
   }
 
   formatDuration(minutes: number): string {

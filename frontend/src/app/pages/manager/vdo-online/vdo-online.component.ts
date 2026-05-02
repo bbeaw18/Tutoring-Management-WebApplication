@@ -7,11 +7,12 @@ import { ScheduleService } from '../../../services/schedule.service';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { ISchedule } from '../../../interfaces/schedule.interface';
 import { MonthPickerComponent } from '../../../shared/components/month-picker/month-picker.component';
+import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
 
 @Component({
   selector: 'app-vdo-online',
   standalone: true,
-  imports: [CommonModule, FormsModule, LoadingComponent, MonthPickerComponent],
+  imports: [CommonModule, FormsModule, LoadingComponent, MonthPickerComponent, DisplayNamePipe],
   templateUrl: './vdo-online.component.html',
   styleUrls: ['./vdo-online.component.css']
 })
@@ -99,7 +100,7 @@ export class VdoOnlineComponent implements OnInit, OnDestroy {
 
   getTeacherName(s: ISchedule): string {
     const t = s.teacher as any;
-    return typeof t === 'object' ? `${t.firstName} ${t.lastName}` : '-';
+    return typeof t === 'object' ? (t.nickname || `${t.firstName} ${t.lastName}`) : '-';
   }
 
   formatMonth(ym: string): string {

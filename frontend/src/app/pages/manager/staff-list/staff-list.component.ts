@@ -7,11 +7,12 @@ import { UserService } from '../../../services/user.service';
 import { AuthService } from '../../../services/auth.service';
 import { IUser } from '../../../interfaces/user.interface';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
+import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
 
 @Component({
   selector: 'app-staff-list',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, LoadingComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, LoadingComponent, DisplayNamePipe],
   templateUrl: './staff-list.component.html',
   styleUrls: ['./staff-list.component.css']
 })

@@ -21,7 +21,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
     const total = await Notification.countDocuments(query);
     const notifications = await Notification.find(query)
-      .populate('sender', 'firstName lastName profileImage')
+      .populate('sender', 'firstName lastName nickname profileImage')
       .limit(limit)
       .skip(skip)
       .sort({ createdAt: -1 });
@@ -64,7 +64,7 @@ const markAsReadHandler = async (req, res) => {
 
     notification.isRead = true;
     await notification.save();
-    await notification.populate('sender', 'firstName lastName profileImage');
+    await notification.populate('sender', 'firstName lastName nickname profileImage');
 
     sendResponse(res, 200, true, notification, 'Notification marked as read');
   } catch (error) {

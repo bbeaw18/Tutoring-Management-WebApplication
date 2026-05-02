@@ -552,7 +552,7 @@ export class ScanComponent implements OnInit, OnDestroy {
     this.attendanceService.scanQR(scheduleId, token).subscribe({
       next: (res) => {
         this.status = 'success';
-        this.studentName = `${res.student?.firstName} ${res.student?.lastName}`;
+        this.studentName = (res.student as any)?.nickname || `${res.student?.firstName} ${res.student?.lastName}`;
         this.courseName = res.courseName || '';
         this.scannedAt = new Date();
       },

@@ -224,9 +224,24 @@ export class TeacherCalendarComponent implements OnInit, OnDestroy {
   }
 
   // ─── Helpers ──────────────────────────────────────────────
+  /**
+   * หัวข้อในปฏิทินของครู: "ชื่อวิชา - น้อง<ชื่อเล่นนักเรียน>(s)"
+   *  - ถ้ามีนักเรียน 1 คน → "subject - น้องnick"
+   *  - ถ้ามีหลายคน → "subject - น้องnick1, น้องnick2 (+N)"
+   */
   getCourseName(s: ISchedule): string {
     const c = s.course as any;
-    return typeof c === 'object' ? (c.name || c.subject || '-') : '-';
+    const subject = typeof c === 'object' ? (c.subject || c.name || '-') : '-';
+    const students: any[] = Array.isArray(s.students) ? s.students : [];
+    const nicks = students
+      .filter(st => st && typeof st === 'object')
+      .map(st => st.nickname || `${st.firstName || ''} ${st.lastName || ''}`.trim())
+      .filter(Boolean)
+      .map(n => `น้อง${n}`);
+    if (nicks.length === 0) return subject;
+    if (nicks.length === 1) return `${subject} - ${nicks[0]}`;
+    if (nicks.length === 2) return `${subject} - ${nicks[0]}, ${nicks[1]}`;
+    return `${subject} - ${nicks[0]}, ${nicks[1]} +${nicks.length - 2}`;
   }
 
   getStatusLabel(s: string): string {
