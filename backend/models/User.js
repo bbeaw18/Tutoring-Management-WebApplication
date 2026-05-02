@@ -111,6 +111,17 @@ const UserSchema = new mongoose.Schema({
   academicYear: {
     type: String
   },
+  // ── ที่อยู่ (Address) ─────────────────────────────────────────
+  addressDetail: { type: String, trim: true },   // บ้านเลขที่ / อาคาร / หมู่บ้าน
+  moo:           { type: String, trim: true },   // หมู่ที่
+  soi:           { type: String, trim: true },   // ซอย
+  road:          { type: String, trim: true },   // ถนน
+  subdistrict:   { type: String, trim: true },   // ตำบล / แขวง
+  district:      { type: String, trim: true },   // อำเภอ / เขต
+  province:      { type: String, trim: true },   // จังหวัด
+  postalCode:    { type: String, trim: true },   // รหัสไปรษณีย์
+  country:       { type: String, trim: true, default: 'ไทย' }, // ประเทศ
+  addressNote:   { type: String, trim: true },   // หมายเหตุเพิ่มเติม
   // Google Authenticator TOTP
   totpSecret: {
     type: String

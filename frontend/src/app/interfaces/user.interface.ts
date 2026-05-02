@@ -31,6 +31,17 @@ export interface IUser {
   parentContact?: string;
   nationalId?: string;
   learningHours?: number;
+  // ── ที่อยู่ (Address) ──
+  addressDetail?: string;   // บ้านเลขที่ / อาคาร / หมู่บ้าน
+  moo?: string;             // หมู่ที่
+  soi?: string;             // ซอย
+  road?: string;            // ถนน
+  subdistrict?: string;     // ตำบล / แขวง
+  district?: string;        // อำเภอ / เขต
+  province?: string;        // จังหวัด
+  postalCode?: string;      // รหัสไปรษณีย์
+  country?: string;         // ประเทศ
+  addressNote?: string;     // หมายเหตุเพิ่มเติม
   totpEnabled?: boolean;
   registrationStatus?: 'registered' | 'unregistered';
   approvedBy?: string;

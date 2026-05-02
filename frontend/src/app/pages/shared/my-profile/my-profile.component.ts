@@ -111,6 +111,9 @@ export class MyProfileComponent implements OnInit, OnDestroy {
         if (v.toLowerCase() !== expected) return `ชื่อบัญชีต้องตรงกับ "${this.profile?.firstName} ${this.profile?.lastName}"`;
         return '';
       }
+      case 'postalCode':
+        if (v && !/^\d{5}$/.test(v)) return 'รหัสไปรษณีย์ต้องเป็นตัวเลข 5 หลัก';
+        return '';
       default: return '';
     }
   }

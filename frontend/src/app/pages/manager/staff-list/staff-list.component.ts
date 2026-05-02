@@ -8,6 +8,7 @@ import { AuthService } from '../../../services/auth.service';
 import { IUser } from '../../../interfaces/user.interface';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
+import { getPaymentChannelLabel } from '../../../shared/constants/payment-channels';
 
 @Component({
   selector: 'app-staff-list',
@@ -39,6 +40,10 @@ export class StaffListComponent implements OnInit, OnDestroy {
   toastMessage = '';
   toastType: 'success' | 'error' = 'success';
   toastTimer: any;
+
+  // Detail Modal — แสดงข้อมูลทั้งหมดของผู้ใช้คนนั้น
+  showDetailModal = false;
+  selectedUser: IUser | null = null;
   private destroy$ = new Subject<void>();
   private userSub!: Subscription;
 
@@ -259,6 +264,51 @@ export class StaffListComponent implements OnInit, OnDestroy {
     const first = (u.firstName || '').charAt(0);
     const last = (u.lastName || '').charAt(0);
     return `${first}${last}`.toUpperCase() || '?';
+  }
+
+  // ── Detail Modal ─────────────────────────────────────────────
+  openDetail(user: IUser): void {
+    this.selectedUser = user;
+    this.showDetailModal = true;
+    // load fresh data from server
+    this.userService.getUserById(user.id || (user as any)._id).subscribe({
+      next: (full) => { this.selectedUser = full; },
+      error: () => {/* keep cached */}
+    });
+  }
+  closeDetail(): void {
+    this.showDetailModal = false;
+    this.selectedUser = null;
+  }
+
+  getRoleLabel2(role?: string): string { return this.getRoleLabel(role || ''); }
+  getGenderLabel(g?: string): string {
+    return ({ male: 'ชาย', female: 'หญิง', other: 'อื่นๆ' } as any)[g || ''] || 'ยังไม่ระบุ';
+  }
+  getPaymentLabel(channel?: string): string {
+    if (!channel) return 'ยังไม่ระบุ';
+    return getPaymentChannelLabel(channel) || channel;
+  }
+
+  /** ประกอบที่อยู่เป็นข้อความเดียว */
+  formatAddress(u: IUser | null): string {
+    if (!u) return 'ยังไม่ระบุ';
+    const parts: string[] = [];
+    if (u.addressDetail) parts.push(u.addressDetail);
+    if (u.moo) parts.push(`หมู่ ${u.moo}`);
+    if (u.soi) parts.push(`ซ.${u.soi}`);
+    if (u.road) parts.push(`ถ.${u.road}`);
+    if (u.subdistrict) parts.push(`ต.${u.subdistrict}`);
+    if (u.district) parts.push(`อ.${u.district}`);
+    if (u.province) parts.push(`จ.${u.province}`);
+    if (u.postalCode) parts.push(u.postalCode);
+    if (u.country && u.country !== 'ไทย') parts.push(u.country);
+    return parts.length ? parts.join(' ') : 'ยังไม่ระบุ';
+  }
+
+  formatDate(d: any): string {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
   }
 
   /** Stable color hash for avatar background (8 distinct hues) */

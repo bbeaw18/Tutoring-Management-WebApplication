@@ -100,7 +100,8 @@
     <!-- Cards Grid View -->
     <div *ngIf="filteredUsers.length > 0 && viewMode === 'cards'" class="sl-cards-grid">
       <div *ngFor="let user of filteredUsers"
-           class="sl-card"
+           class="sl-card sl-card-clickable"
+           (click)="openDetail(user)"
            [class.sl-card-pending]="canApproveTeacher(user)"
            [class.sl-card-inactive]="!user.isActive">
         <div class="sl-card-top">
@@ -142,13 +143,13 @@
         <div class="sl-card-actions" *ngIf="canApproveTeacher(user) || canChangeRole(user) || (currentUser?.role === 'admin' && user.id !== currentUser?.id)">
           <button *ngIf="canApproveTeacher(user)"
                   class="btn btn-sm btn-approve"
-                  (click)="openApproveModal(user)">
+                  (click)="$event.stopPropagation(); openApproveModal(user)">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
             อนุมัติ
           </button>
           <button *ngIf="canChangeRole(user)"
                   class="btn btn-sm btn-role-change"
-                  (click)="openRoleChangeModal(user)"
+                  (click)="$event.stopPropagation(); openRoleChangeModal(user)"
                   [disabled]="changeRoleLoading[user.id]">
             <ng-container *ngIf="!changeRoleLoading[user.id]">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -163,7 +164,7 @@
           </button>
           <button *ngIf="currentUser?.role === 'admin' && user.id !== currentUser?.id"
                   class="btn btn-sm btn-danger"
-                  (click)="deleteUser(user.id)">
+                  (click)="$event.stopPropagation(); deleteUser(user.id)">
             ปิดใช้งาน
           </button>
         </div>
@@ -184,7 +185,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let user of filteredUsers" [class.row-pending]="canApproveTeacher(user)">
+          <tr *ngFor="let user of filteredUsers" class="sl-row-clickable" (click)="openDetail(user)" [class.row-pending]="canApproveTeacher(user)">
             <td>
               <div class="user-name">
                 <div class="user-avatar" [class.avatar-pending]="canApproveTeacher(user)">
@@ -219,7 +220,7 @@
               <button
                 *ngIf="canApproveTeacher(user)"
                 class="btn btn-sm btn-approve"
-                (click)="openApproveModal(user)">
+                (click)="$event.stopPropagation(); openApproveModal(user)">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
@@ -229,7 +230,7 @@
               <button
                 *ngIf="canChangeRole(user)"
                 class="btn btn-sm btn-role-change"
-                (click)="openRoleChangeModal(user)"
+                (click)="$event.stopPropagation(); openRoleChangeModal(user)"
                 [disabled]="changeRoleLoading[user.id]">
                 <ng-container *ngIf="!changeRoleLoading[user.id]">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -246,7 +247,7 @@
               <button
                 *ngIf="currentUser?.role === 'admin' && user.id !== currentUser?.id"
                 class="btn btn-sm btn-danger"
-                (click)="deleteUser(user.id)">
+                (click)="$event.stopPropagation(); deleteUser(user.id)">
                 ปิดใช้งาน
               </button>
             </td>
@@ -334,6 +335,168 @@
                       (newRole === 'manager' && selectedUserForRoleChange?.registrationStatus === 'unregistered')">
           ยืนยันเปลี่ยน
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       Detail Modal — แสดงข้อมูลทั้งหมดของผู้ใช้ (admin/manager เท่านั้น)
+       ═══════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="showDetailModal && selectedUser" class="sl-detail-overlay" (click)="closeDetail()">
+    <div class="sl-detail-modal" (click)="$event.stopPropagation()">
+
+      <!-- Cover -->
+      <div class="sl-detail-cover"
+           [style.background]="'linear-gradient(135deg, hsl(' + getAvatarHue(selectedUser) + ', 75%, 56%) 0%, hsl(' + ((getAvatarHue(selectedUser) + 40) % 360) + ', 78%, 42%) 100%)'">
+        <button class="sl-detail-close" (click)="closeDetail()" aria-label="ปิด">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Hero -->
+      <div class="sl-detail-hero">
+        <div class="sl-detail-avatar"
+             [style.background]="'linear-gradient(135deg, hsl(' + getAvatarHue(selectedUser) + ', 80%, 62%), hsl(' + ((getAvatarHue(selectedUser) + 40) % 360) + ', 80%, 45%))'">
+          {{ getInitials(selectedUser) }}
+        </div>
+        <div class="sl-detail-headline">
+          <div class="sl-detail-name">{{ selectedUser | displayName:'full' }}</div>
+          <div class="sl-detail-role-row">
+            <span class="badge badge-primary">{{ getRoleLabel(selectedUser.role) }}</span>
+            <span *ngIf="selectedUser.role === 'teacher'" class="badge"
+                  [ngClass]="getRegistrationClass(selectedUser)">
+              {{ getRegistrationLabel(selectedUser) }}
+            </span>
+            <span class="badge"
+                  [class.badge-success]="selectedUser.isActive"
+                  [class.badge-error]="!selectedUser.isActive">
+              {{ selectedUser.isActive ? 'ใช้งาน' : 'ปิดการใช้งาน' }}
+            </span>
+            <span class="badge badge-success" *ngIf="selectedUser.totpEnabled">2FA</span>
+          </div>
+          <div class="sl-detail-email">{{ selectedUser.email }}</div>
+        </div>
+      </div>
+
+      <div class="sl-detail-body">
+
+        <!-- ข้อมูลส่วนตัว -->
+        <section class="sl-section">
+          <h3 class="sl-section-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            ข้อมูลส่วนตัว
+          </h3>
+          <div class="sl-grid">
+            <div class="sl-field"><span class="sl-label">ชื่อจริง</span><span class="sl-value">{{ selectedUser.firstName || '—' }}</span></div>
+            <div class="sl-field"><span class="sl-label">นามสกุล</span><span class="sl-value">{{ selectedUser.lastName || '—' }}</span></div>
+            <div class="sl-field"><span class="sl-label">ชื่อเล่น</span><span class="sl-value">{{ selectedUser.nickname || '—' }}</span></div>
+            <div class="sl-field"><span class="sl-label">อายุ</span><span class="sl-value">{{ selectedUser.age ? (selectedUser.age + ' ปี') : '—' }}</span></div>
+            <div class="sl-field"><span class="sl-label">เพศ</span><span class="sl-value">{{ getGenderLabel(selectedUser.gender) }}</span></div>
+            <div class="sl-field"><span class="sl-label">เลขบัตรประชาชน</span><span class="sl-value">{{ selectedUser.nationalId || '—' }}</span></div>
+          </div>
+        </section>
+
+        <!-- ข้อมูลติดต่อ -->
+        <section class="sl-section">
+          <h3 class="sl-section-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13 19.79 19.79 0 0 1 1.61 4.35 2 2 0 0 1 3.6 2.18h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.15 6.15l.97-1.04a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 21.93 17z"/></svg>
+            ข้อมูลติดต่อ
+          </h3>
+          <div class="sl-grid">
+            <div class="sl-field"><span class="sl-label">อีเมล</span><span class="sl-value">{{ selectedUser.email || '—' }}</span></div>
+            <div class="sl-field"><span class="sl-label">เบอร์โทร</span><span class="sl-value">{{ selectedUser.phone || '—' }}</span></div>
+            <div class="sl-field"><span class="sl-label">Line ID</span><span class="sl-value">{{ selectedUser.lineId || '—' }}</span></div>
+          </div>
+        </section>
+
+        <!-- ข้อมูลการเรียน (student) -->
+        <section class="sl-section" *ngIf="selectedUser.role === 'student'">
+          <h3 class="sl-section-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+            ข้อมูลการเรียน
+          </h3>
+          <div class="sl-grid">
+            <div class="sl-field"><span class="sl-label">ชั้นปี</span><span class="sl-value">{{ selectedUser.academicYear || '—' }}</span></div>
+            <div class="sl-field"><span class="sl-label">เกรดเฉลี่ย</span><span class="sl-value">{{ selectedUser.grade || '—' }}</span></div>
+            <div class="sl-field"><span class="sl-label">ผู้ปกครอง</span><span class="sl-value">{{ selectedUser.parentContact || '—' }}</span></div>
+            <div class="sl-field"><span class="sl-label">ชั่วโมงเรียนสะสม</span><span class="sl-value">{{ (selectedUser.learningHours || 0) + ' ชม.' }}</span></div>
+          </div>
+        </section>
+
+        <!-- ข้อมูลการสอน (teacher) -->
+        <section class="sl-section" *ngIf="selectedUser.role === 'teacher' || selectedUser.role === 'manager' || selectedUser.role === 'admin'">
+          <h3 class="sl-section-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+            ข้อมูลการสอน
+          </h3>
+          <div class="sl-grid">
+            <div class="sl-field"><span class="sl-label">มหาวิทยาลัย</span><span class="sl-value">{{ selectedUser.university || '—' }}</span></div>
+            <div class="sl-field"><span class="sl-label">ชั่วโมงสอนสะสม</span><span class="sl-value">{{ (selectedUser.teachingHours || 0) + ' ชม.' }}</span></div>
+            <div class="sl-field sl-field-wide" *ngIf="selectedUser.subjects?.length">
+              <span class="sl-label">วิชาที่สอน</span>
+              <div class="sl-subjects">
+                <span class="sl-subject-chip" *ngFor="let s of selectedUser.subjects">{{ s }}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ช่องทางรับเงิน (teacher) -->
+        <section class="sl-section" *ngIf="selectedUser.role === 'teacher' || selectedUser.role === 'manager'">
+          <h3 class="sl-section-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            ช่องทางรับเงิน
+          </h3>
+          <div class="sl-grid">
+            <div class="sl-field"><span class="sl-label">ช่องทาง</span><span class="sl-value">{{ getPaymentLabel(selectedUser.paymentChannel) }}</span></div>
+            <div class="sl-field"><span class="sl-label">เลขบัญชี</span><span class="sl-value">{{ selectedUser.bankAccountNumber || '—' }}</span></div>
+            <div class="sl-field"><span class="sl-label">ชื่อบัญชี</span><span class="sl-value">{{ selectedUser.bankAccountName || '—' }}</span></div>
+          </div>
+        </section>
+
+        <!-- ที่อยู่ -->
+        <section class="sl-section">
+          <h3 class="sl-section-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            ที่อยู่
+          </h3>
+          <div class="sl-grid">
+            <div class="sl-field sl-field-wide"><span class="sl-label">ที่อยู่</span><span class="sl-value">{{ formatAddress(selectedUser) }}</span></div>
+            <div class="sl-field" *ngIf="selectedUser.addressDetail"><span class="sl-label">บ้านเลขที่ / อาคาร</span><span class="sl-value">{{ selectedUser.addressDetail }}</span></div>
+            <div class="sl-field" *ngIf="selectedUser.moo"><span class="sl-label">หมู่ที่</span><span class="sl-value">{{ selectedUser.moo }}</span></div>
+            <div class="sl-field" *ngIf="selectedUser.soi"><span class="sl-label">ซอย</span><span class="sl-value">{{ selectedUser.soi }}</span></div>
+            <div class="sl-field" *ngIf="selectedUser.road"><span class="sl-label">ถนน</span><span class="sl-value">{{ selectedUser.road }}</span></div>
+            <div class="sl-field" *ngIf="selectedUser.subdistrict"><span class="sl-label">ตำบล / แขวง</span><span class="sl-value">{{ selectedUser.subdistrict }}</span></div>
+            <div class="sl-field" *ngIf="selectedUser.district"><span class="sl-label">อำเภอ / เขต</span><span class="sl-value">{{ selectedUser.district }}</span></div>
+            <div class="sl-field" *ngIf="selectedUser.province"><span class="sl-label">จังหวัด</span><span class="sl-value">{{ selectedUser.province }}</span></div>
+            <div class="sl-field" *ngIf="selectedUser.postalCode"><span class="sl-label">รหัสไปรษณีย์</span><span class="sl-value">{{ selectedUser.postalCode }}</span></div>
+            <div class="sl-field" *ngIf="selectedUser.country"><span class="sl-label">ประเทศ</span><span class="sl-value">{{ selectedUser.country }}</span></div>
+            <div class="sl-field sl-field-wide" *ngIf="selectedUser.addressNote"><span class="sl-label">หมายเหตุ</span><span class="sl-value">{{ selectedUser.addressNote }}</span></div>
+          </div>
+        </section>
+
+        <!-- ประวัติย่อ / Bio -->
+        <section class="sl-section" *ngIf="selectedUser.bio">
+          <h3 class="sl-section-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            ประวัติย่อ
+          </h3>
+          <p class="sl-bio">{{ selectedUser.bio }}</p>
+        </section>
+
+        <!-- ข้อมูลระบบ -->
+        <section class="sl-section sl-system">
+          <h3 class="sl-section-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            ข้อมูลระบบ
+          </h3>
+          <div class="sl-grid">
+            <div class="sl-field"><span class="sl-label">วันเริ่มต้นใช้งาน</span><span class="sl-value">{{ formatDate(selectedUser.createdAt) }}</span></div>
+            <div class="sl-field"><span class="sl-label">อัปเดตล่าสุด</span><span class="sl-value">{{ formatDate(selectedUser.updatedAt) }}</span></div>
+            <div class="sl-field" *ngIf="selectedUser.approvedAt"><span class="sl-label">วันอนุมัติ</span><span class="sl-value">{{ formatDate(selectedUser.approvedAt) }}</span></div>
+          </div>
+        </section>
+
       </div>
     </div>
   </div>

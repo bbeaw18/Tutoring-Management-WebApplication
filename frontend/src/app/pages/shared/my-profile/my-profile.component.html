@@ -215,6 +215,26 @@
 
     </div>
 
+    <!-- ═══ ที่อยู่ ═══ -->
+    <section class="mp-panel mp-address-panel">
+      <div class="mp-panel-head">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        ที่อยู่
+      </div>
+      <div class="mp-rows mp-address-grid">
+        <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'addressDetail', label: 'บ้านเลขที่ / อาคาร / หมู่บ้าน', value: profile.addressDetail, placeholder: 'เช่น 99/1 หมู่บ้านสุขใจ' } }"></ng-container>
+        <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'moo', label: 'หมู่ที่', value: profile.moo, placeholder: 'เช่น 5' } }"></ng-container>
+        <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'soi', label: 'ซอย', value: profile.soi, placeholder: 'เช่น สุขุมวิท 21' } }"></ng-container>
+        <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'road', label: 'ถนน', value: profile.road, placeholder: 'เช่น สุขุมวิท' } }"></ng-container>
+        <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'subdistrict', label: 'ตำบล / แขวง', value: profile.subdistrict, placeholder: '' } }"></ng-container>
+        <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'district', label: 'อำเภอ / เขต', value: profile.district, placeholder: '' } }"></ng-container>
+        <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'province', label: 'จังหวัด', value: profile.province, placeholder: '' } }"></ng-container>
+        <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'postalCode', label: 'รหัสไปรษณีย์', value: profile.postalCode, placeholder: '5 หลัก' } }"></ng-container>
+        <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'country', label: 'ประเทศ', value: profile.country, placeholder: 'ไทย' } }"></ng-container>
+        <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'addressNote', label: 'หมายเหตุเพิ่มเติม', value: profile.addressNote, placeholder: 'จุดสังเกต / รายละเอียดเพิ่มเติม' } }"></ng-container>
+      </div>
+    </section>
+
     <!-- ═══ Bio ═══ -->
     <section class="mp-bio">
       <div class="mp-panel-head">

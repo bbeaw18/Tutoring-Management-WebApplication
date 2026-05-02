@@ -205,7 +205,11 @@ router.put('/:id', authenticateToken, async (req, res) => {
       'subjects', 'bio', 'grade', 'parentContact',
       'profileImage',
       'university', 'paymentChannel', 'bankAccountNumber', 'bankAccountName',
-      'academicYear'
+      'academicYear',
+      // ── ที่อยู่ ──
+      'addressDetail', 'moo', 'soi', 'road',
+      'subdistrict', 'district', 'province',
+      'postalCode', 'country', 'addressNote'
     ];
 
     const updateData = {};
