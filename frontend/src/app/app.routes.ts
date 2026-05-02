@@ -25,6 +25,7 @@ import { HistoryComponent } from './pages/shared/history/history.component';
 import { ScanComponent } from './pages/shared/scan/scan.component';
 import { HomeRedirectComponent } from './pages/shared/home-redirect/home-redirect.component';
 import { DashboardHomeComponent } from './pages/shared/dashboard-home/dashboard-home.component';
+import { MyProfileComponent } from './pages/shared/my-profile/my-profile.component';
 
 export const appRoutes: Routes = [
   { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
@@ -89,6 +90,12 @@ export const appRoutes: Routes = [
         component: TeacherProfileComponent,
         canActivate: [roleGuard],
         data: { roles: ['teacher'] }
+      },
+      // ─── ประวัติส่วนตัว (ทุก role) ─────────────────────────────
+      {
+        path: 'profile',
+        component: MyProfileComponent,
+        data: { roles: ['admin', 'manager', 'teacher', 'student'] }
       },
 
       // ─── Manager ──────────────────────────────────────────────

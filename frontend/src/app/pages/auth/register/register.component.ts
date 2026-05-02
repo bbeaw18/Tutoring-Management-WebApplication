@@ -4,6 +4,7 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractContro
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
 import { IAuthResponse } from '../../../interfaces/user.interface';
+import { getPaymentChannelGroups } from '../../../shared/constants/payment-channels';
 
 @Component({
   selector: 'app-register',
@@ -23,6 +24,9 @@ export class RegisterComponent implements OnInit {
   totpSubmitted = false;
   totpForm!: FormGroup;
   showPassword = false;
+
+  /** ตัวเลือกช่องทางรับเงิน (จัดกลุ่ม) */
+  readonly paymentGroups = getPaymentChannelGroups();
 
   // Form sub-steps (multi-step wizard within the form step)
   formSubStep = 1;

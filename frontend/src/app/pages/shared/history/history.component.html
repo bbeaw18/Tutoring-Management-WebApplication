@@ -256,7 +256,8 @@
           <div class="h-tl-date-count">{{ g.items.length }} นัด</div>
         </div>
         <div class="h-tl-items">
-          <div *ngFor="let sch of g.items" class="h-tl-item h-tl-student"
+          <div *ngFor="let sch of g.items" class="h-tl-item h-tl-student h-tl-clickable"
+               (click)="openDetail(sch)"
                [class.tl-cancelled]="sch.status === 'cancelled'"
                [class.tl-completed]="sch.status === 'completed'"
                [class.tl-pending]="sch.status === 'pending' || sch.status === 'confirmed' || sch.status === 'scheduled'">
@@ -311,7 +312,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let sch of studentSchedules; let i = index">
+          <tr *ngFor="let sch of studentSchedules; let i = index" class="row-clickable" (click)="openDetail(sch)">
             <td>{{ i + 1 }}</td>
             <td>{{ sch.date | date:'d MMM y' }}</td>
             <td>
@@ -357,7 +358,8 @@
           <div class="h-tl-date-count">{{ g.items.length }} คลาส</div>
         </div>
         <div class="h-tl-items">
-          <div *ngFor="let s of g.items" class="h-tl-item"
+          <div *ngFor="let s of g.items" class="h-tl-item h-tl-clickable"
+               (click)="openDetail(s)"
                [class.tl-cancelled]="s.status === 'cancelled'"
                [class.tl-completed]="s.status === 'completed'"
                [class.tl-awaiting]="s.status === 'awaiting_confirmation'"
@@ -395,7 +397,7 @@
               <div class="h-tl-actions" *ngIf="(role === 'manager' || role === 'admin') && s.status === 'awaiting_confirmation'">
                 <button class="btn-confirm"
                         [disabled]="confirmingId === s._id"
-                        (click)="confirmClass(s._id)">
+                        (click)="$event.stopPropagation(); confirmClass(s._id)">
                   <ng-container *ngIf="confirmingId !== s._id">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                     ยืนยันสำเร็จการสอน
@@ -443,6 +445,8 @@
         </thead>
         <tbody>
           <tr *ngFor="let s of filteredTeachingHistory; let i = index"
+              class="row-clickable"
+              (click)="openDetail(s)"
               [class.row-awaiting]="s.status === 'awaiting_confirmation'"
               [class.row-pending]="s.status === 'pending'">
             <td>{{ i + 1 }}</td>
@@ -498,7 +502,7 @@
                 <button *ngIf="s.status === 'awaiting_confirmation'"
                         class="btn-confirm"
                         [disabled]="confirmingId === s._id"
-                        (click)="confirmClass(s._id)">
+                        (click)="$event.stopPropagation(); confirmClass(s._id)">
                   <ng-container *ngIf="confirmingId !== s._id">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                       <polyline points="20 6 9 17 4 12"/>
@@ -514,6 +518,258 @@
           </tr>
         </tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       Detail Modal — แสดงข้อมูลและสถานะของคลาส (คลิกที่รายการเพื่อดู)
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="hd-modal-overlay" *ngIf="showDetailModal && selectedSchedule" (click)="closeDetail()">
+    <div class="hd-modal" (click)="$event.stopPropagation()">
+
+      <!-- ── Header ── -->
+      <div class="hd-header">
+        <div class="hd-header-left">
+          <div class="hd-title-row">
+            <h2 class="hd-title">
+              {{ selectedSchedule.course?.name || selectedSchedule.course?.subject || '-' }}
+            </h2>
+            <span [class]="'hd-status-badge ' + getStatusClass(selectedSchedule.status)">
+              {{ getStatusLabel(selectedSchedule.status) }}
+            </span>
+          </div>
+          <div class="hd-subtitle" *ngIf="selectedSchedule.course?.subject && selectedSchedule.course?.name">
+            {{ selectedSchedule.course?.subject }}
+            <span *ngIf="selectedSchedule.course?.gradeLevel"> · {{ selectedSchedule.course?.gradeLevel }}</span>
+            <span *ngIf="selectedSchedule.course?.teachingType"> · {{ selectedSchedule.course?.teachingType }}</span>
+          </div>
+        </div>
+        <button class="hd-close" (click)="closeDetail()" aria-label="ปิด">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="hd-body">
+
+        <!-- ── ข้อมูลคลาส ── -->
+        <section class="hd-section">
+          <h3 class="hd-section-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            ข้อมูลคลาส
+          </h3>
+          <div class="hd-grid">
+            <div class="hd-field">
+              <span class="hd-label">วันที่</span>
+              <span class="hd-value">{{ selectedSchedule.date | date:'EEEE d MMMM y' }}</span>
+            </div>
+            <div class="hd-field">
+              <span class="hd-label">เวลา</span>
+              <span class="hd-value">{{ selectedSchedule.startTime }} – {{ selectedSchedule.endTime }} น.</span>
+            </div>
+            <div class="hd-field">
+              <span class="hd-label">ระยะเวลา</span>
+              <span class="hd-value">{{ formatDuration(selectedSchedule.totalDurationMinutes || 0) }}</span>
+            </div>
+            <div class="hd-field" *ngIf="selectedSchedule.room">
+              <span class="hd-label">ห้องเรียน</span>
+              <span class="hd-value">{{ selectedSchedule.room }}</span>
+            </div>
+            <div class="hd-field" *ngIf="selectedSchedule.zoomLink">
+              <span class="hd-label">ลิงก์ออนไลน์</span>
+              <span class="hd-value">
+                <a [href]="selectedSchedule.zoomLink" target="_blank" rel="noopener" class="hd-link">เข้าสู่คลาส</a>
+              </span>
+            </div>
+            <div class="hd-field" *ngIf="selectedSchedule.course?.description">
+              <span class="hd-label">รายละเอียดวิชา</span>
+              <span class="hd-value">{{ selectedSchedule.course?.description }}</span>
+            </div>
+            <div class="hd-field" *ngIf="selectedSchedule.note">
+              <span class="hd-label">หมายเหตุ</span>
+              <span class="hd-value">{{ selectedSchedule.note }}</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── ครูผู้สอน ── -->
+        <section class="hd-section">
+          <h3 class="hd-section-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+            ครูผู้สอน
+          </h3>
+          <div class="hd-teacher-row">
+            <div class="hd-avatar">
+              {{ (selectedSchedule.teacher?.nickname || selectedSchedule.teacher?.firstName || '?').charAt(0) }}
+            </div>
+            <div class="hd-teacher-info">
+              <div class="hd-teacher-name">{{ selectedSchedule.teacher | displayName:'teacher' }}</div>
+              <div class="hd-teacher-email" *ngIf="selectedSchedule.teacher?.email">{{ selectedSchedule.teacher?.email }}</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── นักเรียน + สถานะการยืนยันการนัด ── -->
+        <section class="hd-section">
+          <h3 class="hd-section-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            นักเรียน ({{ selectedSchedule.students?.length || 0 }} คน)
+            <span class="hd-section-meta" *ngIf="selectedSchedule.studentConfirmations?.length">
+              ยืนยันแล้ว {{ getAcceptedStudentCount(selectedSchedule) }}/{{ selectedSchedule.studentConfirmations?.length }}
+            </span>
+          </h3>
+          <div class="hd-students">
+            <div class="hd-student" *ngFor="let sc of selectedSchedule.studentConfirmations">
+              <div class="hd-student-avatar">
+                {{ (sc.student?.nickname || sc.student?.firstName || '?').charAt(0) }}
+              </div>
+              <div class="hd-student-info">
+                <div class="hd-student-name">{{ sc.student | displayName:'student' }}</div>
+                <div class="hd-student-status">
+                  <span [class]="'conf-badge ' + getConfirmClass(sc.status)">
+                    {{ getConfirmLabel(sc.status) }}
+                  </span>
+                  <!-- Payment status (แสดงเฉพาะ manager/admin หรือเมื่อเป็นนักเรียนคนนั้น) -->
+                  <span *ngIf="role === 'manager' || role === 'admin' || (role === 'student' && (sc.student?._id === currentUser?._id || sc.student?._id === currentUser?.id))"
+                        [class]="'pay-badge ' + getPaymentStatusClass(getStudentPaymentStatus(sc.student?._id))">
+                    {{ getPaymentStatusLabel(getStudentPaymentStatus(sc.student?._id)) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── สถานะการดำเนินการ ── -->
+        <section class="hd-section">
+          <h3 class="hd-section-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            สถานะการดำเนินการ
+          </h3>
+          <div class="hd-timeline">
+            <!-- Step 1: ครูยืนยันการนัดสอน -->
+            <div class="hd-step" [class.done]="selectedSchedule.teacherConfirmed">
+              <div class="hd-step-dot">
+                <svg *ngIf="selectedSchedule.teacherConfirmed" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span *ngIf="!selectedSchedule.teacherConfirmed">1</span>
+              </div>
+              <div class="hd-step-body">
+                <div class="hd-step-title">
+                  {{ selectedSchedule.teacherConfirmed ? 'ครูยืนยันการนัดสอนแล้ว' : 'รอครูยืนยันการนัดสอน' }}
+                </div>
+                <div class="hd-step-meta" *ngIf="selectedSchedule.teacherConfirmedAt">
+                  {{ formatDateTime(selectedSchedule.teacherConfirmedAt) }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 2: นักเรียนยืนยันการนัดเรียน -->
+            <div class="hd-step" [class.done]="selectedSchedule.isFullyConfirmed">
+              <div class="hd-step-dot">
+                <svg *ngIf="selectedSchedule.isFullyConfirmed" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span *ngIf="!selectedSchedule.isFullyConfirmed">2</span>
+              </div>
+              <div class="hd-step-body">
+                <div class="hd-step-title">
+                  {{ selectedSchedule.isFullyConfirmed
+                     ? 'นักเรียนทุกคนยืนยันการนัดเรียนแล้ว'
+                     : 'รอนักเรียนยืนยันการนัดเรียน (' + getAcceptedStudentCount(selectedSchedule) + '/' + (selectedSchedule.studentConfirmations?.length || 0) + ')' }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 3: สำเร็จการสอน (ครูปิด QR) -->
+            <div class="hd-step" [class.done]="isClassFinished(selectedSchedule)">
+              <div class="hd-step-dot">
+                <svg *ngIf="isClassFinished(selectedSchedule)" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span *ngIf="!isClassFinished(selectedSchedule)">3</span>
+              </div>
+              <div class="hd-step-body">
+                <div class="hd-step-title">
+                  {{ isClassFinished(selectedSchedule) ? 'สำเร็จการสอน' : 'ยังไม่ปิดคลาส' }}
+                </div>
+                <div class="hd-step-meta" *ngIf="selectedSchedule.attendanceCount !== undefined">
+                  เข้าเรียน {{ selectedSchedule.attendanceCount }} คน
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 4: Manager ยืนยันสำเร็จการสอน -->
+            <div class="hd-step" [class.done]="isManagerConfirmed(selectedSchedule)">
+              <div class="hd-step-dot">
+                <svg *ngIf="isManagerConfirmed(selectedSchedule)" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span *ngIf="!isManagerConfirmed(selectedSchedule)">4</span>
+              </div>
+              <div class="hd-step-body">
+                <div class="hd-step-title">
+                  {{ isManagerConfirmed(selectedSchedule)
+                     ? 'Manager ยืนยันการเสร็จสิ้นการสอน'
+                     : (selectedSchedule.status === 'awaiting_confirmation'
+                          ? 'รอ Manager ยืนยันการเสร็จสิ้นการสอน'
+                          : 'ยังไม่ถึงขั้นตอน Manager ยืนยัน') }}
+                </div>
+                <div class="hd-step-meta" *ngIf="selectedSchedule.managerConfirmedAt">
+                  โดย {{ selectedSchedule.managerConfirmedBy | displayName }} · {{ formatDateTime(selectedSchedule.managerConfirmedAt) }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── ราคา / รายได้ — Role-aware ── -->
+        <!-- Manager/Admin: เห็นทั้งราคาคอร์สและรายได้ครู -->
+        <section class="hd-section" *ngIf="role === 'manager' || role === 'admin'">
+          <h3 class="hd-section-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            ราคาและรายได้
+          </h3>
+          <div class="hd-grid">
+            <div class="hd-field">
+              <span class="hd-label">ราคาคอร์ส (ต่อคน)</span>
+              <span class="hd-value hd-amount">฿{{ selectedSchedule.coursePrice || 0 | number }}</span>
+            </div>
+            <div class="hd-field">
+              <span class="hd-label">รายได้ครู (เดี่ยว)</span>
+              <span class="hd-value">฿{{ selectedSchedule.teacherIncomeIndividual || 0 | number }}</span>
+            </div>
+            <div class="hd-field">
+              <span class="hd-label">รายได้ครู (กลุ่ม)</span>
+              <span class="hd-value">฿{{ selectedSchedule.teacherIncomeGroup || 0 | number }}</span>
+            </div>
+            <div class="hd-field" *ngIf="isClassFinished(selectedSchedule)">
+              <span class="hd-label">รายได้จริง (หลังเช็คชื่อ)</span>
+              <span class="hd-value hd-income">
+                ฿{{ selectedSchedule.actualTeacherIncome || 0 | number }}
+                <span *ngIf="selectedSchedule.status === 'awaiting_confirmation'" class="hd-pending-tag">รอยืนยัน</span>
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Student: เห็นเฉพาะราคาคอร์ส (ไม่มีรายได้) -->
+        <section class="hd-section" *ngIf="role === 'student'">
+          <h3 class="hd-section-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            ค่าเรียน
+          </h3>
+          <div class="hd-grid">
+            <div class="hd-field">
+              <span class="hd-label">ราคาคอร์ส</span>
+              <span class="hd-value hd-amount">฿{{ selectedSchedule.coursePrice || 0 | number }}</span>
+            </div>
+            <div class="hd-field">
+              <span class="hd-label">สถานะการชำระเงินของฉัน</span>
+              <span class="hd-value">
+                <span [class]="'pay-badge ' + getPaymentStatusClass(getMyPaymentStatus())">
+                  {{ getPaymentStatusLabel(getMyPaymentStatus()) }}
+                </span>
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <div *ngIf="paymentsLoading" class="hd-loading">กำลังโหลดข้อมูลการชำระเงิน...</div>
+
+      </div>
     </div>
   </div>
 

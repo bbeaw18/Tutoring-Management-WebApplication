@@ -313,10 +313,9 @@
               <select id="paymentChannel" formControlName="paymentChannel"
                 [class.error]="submitted && f['paymentChannel'].invalid">
                 <option value="">-- เลือกช่องทาง --</option>
-                <option value="bank">บัญชีธนาคาร</option>
-                <option value="promptpay">PromptPay</option>
-                <option value="paypal">PayPal</option>
-                <option value="other">อื่นๆ</option>
+                <optgroup *ngFor="let g of paymentGroups" [label]="g.group">
+                  <option *ngFor="let opt of g.items" [value]="opt.value">{{ opt.label }}</option>
+                </optgroup>
               </select>
               <div *ngIf="submitted && f['paymentChannel'].invalid" class="error-text">กรุณาเลือกช่องทางรับเงิน</div>
             </div>

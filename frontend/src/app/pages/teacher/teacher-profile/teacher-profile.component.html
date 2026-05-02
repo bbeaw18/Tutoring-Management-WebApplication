@@ -188,10 +188,9 @@
             <div class="tp-inline-edit" *ngIf="editingField === 'paymentChannel'">
               <select [(ngModel)]="editValue" class="tp-edit-input">
                 <option value="">— เลือก —</option>
-                <option value="bank">บัญชีธนาคาร</option>
-                <option value="promptpay">PromptPay</option>
-                <option value="paypal">PayPal</option>
-                <option value="other">อื่นๆ</option>
+                <optgroup *ngFor="let g of paymentGroups" [label]="g.group">
+                  <option *ngFor="let opt of g.items" [value]="opt.value">{{ opt.label }}</option>
+                </optgroup>
               </select>
               <button class="tp-save-btn" (click)="saveEdit()" [disabled]="saving"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>
               <button class="tp-cancel-btn" (click)="cancelEdit()" [disabled]="saving"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>

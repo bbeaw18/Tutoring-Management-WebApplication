@@ -196,17 +196,26 @@ router.put('/:id', authenticateToken, async (req, res) => {
       return sendResponse(res, 403, false, null, 'Access denied');
     }
 
-    const { firstName, lastName, phone, subjects, bio, grade, parentContact, profileImage } = req.body;
+    // ── ฟิลด์ที่อนุญาตให้แก้ไข ──
+    // อนุญาต: ข้อมูลพื้นฐาน + ข้อมูลที่กรอกตอนสมัคร (ยกเว้น email, password, role, registrationStatus, nationalId)
+    const allowedFields = [
+      'firstName', 'lastName', 'nickname',
+      'phone', 'lineId',
+      'age', 'gender',
+      'subjects', 'bio', 'grade', 'parentContact',
+      'profileImage',
+      'university', 'paymentChannel', 'bankAccountNumber', 'bankAccountName',
+      'academicYear'
+    ];
 
     const updateData = {};
-    if (firstName) updateData.firstName = firstName;
-    if (lastName) updateData.lastName = lastName;
-    if (phone) updateData.phone = phone;
-    if (subjects) updateData.subjects = subjects;
-    if (bio) updateData.bio = bio;
-    if (grade) updateData.grade = grade;
-    if (parentContact) updateData.parentContact = parentContact;
-    if (profileImage) updateData.profileImage = profileImage;
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        // อนุญาตให้ตั้งค่าเป็น string ว่างได้ (เพื่อล้างค่า) ยกเว้น firstName/lastName ที่ต้องไม่ว่าง
+        if ((field === 'firstName' || field === 'lastName') && !req.body[field]) continue;
+        updateData[field] = req.body[field];
+      }
+    }
 
     const user = await User.findByIdAndUpdate(
       req.params.id,

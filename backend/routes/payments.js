@@ -191,7 +191,7 @@ router.post('/', authenticateToken, upload.single('slipImage'), async (req, res)
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const { page, limit, skip } = getPaginationParams(req.query);
-    const { student, course, status } = req.query;
+    const { student, course, status, schedule } = req.query;
 
     let query = {};
 
@@ -202,8 +202,9 @@ router.get('/', authenticateToken, async (req, res) => {
     if (student && ['admin', 'manager'].includes(req.user.role)) {
       query.student = student;
     }
-    if (course) query.course = course;
-    if (status) query.status = status;
+    if (course)   query.course   = course;
+    if (status)   query.status   = status;
+    if (schedule) query.schedule = schedule;
 
     const total = await Payment.countDocuments(query);
     const payments = await Payment.find(query)

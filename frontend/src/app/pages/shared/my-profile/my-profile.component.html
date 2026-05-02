@@ -1,0 +1,295 @@
+<div class="mp-container">
+  <app-loading *ngIf="loading"></app-loading>
+
+  <div *ngIf="!loading && profile" class="mp-content">
+
+    <!-- ═══ Cover + Hero ═══ -->
+    <section class="mp-cover-card">
+      <div class="mp-cover"
+           [style.background]="'linear-gradient(135deg, hsl(' + coverHue + ', 75%, 56%) 0%, hsl(' + ((coverHue + 40) % 360) + ', 78%, 42%) 100%)'">
+        <div class="mp-cover-pattern"></div>
+        <div class="mp-cover-actions">
+          <span class="mp-cover-tag" *ngIf="profile.totpEnabled">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+            2FA เปิดใช้งาน
+          </span>
+          <span class="mp-cover-tag mp-tag-ok" *ngIf="profile.registrationStatus === 'registered'">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            อนุมัติแล้ว
+          </span>
+        </div>
+      </div>
+
+      <div class="mp-hero-row">
+        <div class="mp-avatar-wrap">
+          <div class="mp-avatar"
+               [style.background]="'linear-gradient(135deg, hsl(' + coverHue + ', 80%, 62%), hsl(' + ((coverHue + 40) % 360) + ', 80%, 45%))'">
+            {{ (profile.nickname || profile.firstName || '?').charAt(0) }}
+          </div>
+        </div>
+        <div class="mp-hero-info">
+          <div class="mp-name">{{ profile | displayName:'full' }}</div>
+          <div class="mp-role">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="4"/><path d="M5.5 21v-2a4.5 4.5 0 0 1 4.5-4.5h4a4.5 4.5 0 0 1 4.5 4.5v2"/></svg>
+            {{ getRoleLabel(profile.role) }}
+          </div>
+          <div class="mp-email">{{ profile.email }}</div>
+        </div>
+        <div class="mp-hero-stats">
+          <div class="mp-hero-stat" *ngIf="isTeacher">
+            <div class="mp-hero-num">{{ profile.teachingHours || 0 }}</div>
+            <div class="mp-hero-lbl">ชม. สอน</div>
+          </div>
+          <div class="mp-hero-stat" *ngIf="isStudent">
+            <div class="mp-hero-num">{{ profile.learningHours || 0 }}</div>
+            <div class="mp-hero-lbl">ชม. เรียน</div>
+          </div>
+          <div class="mp-hero-stat" *ngIf="isTeacher">
+            <div class="mp-hero-num">{{ profile.subjects?.length || 0 }}</div>
+            <div class="mp-hero-lbl">วิชา</div>
+          </div>
+          <div class="mp-hero-stat">
+            <div class="mp-hero-num">{{ profile.createdAt | date:'yyyy' }}</div>
+            <div class="mp-hero-lbl">เริ่มเข้าใช้</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profile completeness -->
+      <div class="mp-completeness">
+        <div class="mp-comp-row">
+          <span class="mp-comp-label">โปรไฟล์ของคุณ <span class="mp-comp-num">{{ completeness }}%</span></span>
+          <span *ngIf="!isComplete" class="mp-comp-hint">เพิ่มข้อมูลเพื่อให้ครบถ้วน</span>
+          <span *ngIf="isComplete" class="mp-comp-hint mp-comp-ok">ข้อมูลครบถ้วนแล้ว</span>
+        </div>
+        <div class="mp-comp-bar">
+          <div class="mp-comp-fill" [style.width.%]="completeness" [class.mp-comp-fill-ok]="isComplete"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ Info Grid ═══ -->
+    <div class="mp-grid">
+
+      <!-- ── ข้อมูลส่วนตัว ── -->
+      <section class="mp-panel">
+        <div class="mp-panel-head">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          ข้อมูลส่วนตัว
+        </div>
+        <div class="mp-rows">
+
+          <!-- ชื่อจริง -->
+          <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'firstName', label: 'ชื่อจริง', value: profile.firstName, placeholder: 'ชื่อจริง' } }"></ng-container>
+          <!-- นามสกุล -->
+          <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'lastName', label: 'นามสกุล', value: profile.lastName, placeholder: 'นามสกุล' } }"></ng-container>
+          <!-- ชื่อเล่น -->
+          <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'nickname', label: 'ชื่อเล่น', value: profile.nickname, placeholder: 'ชื่อเล่น' } }"></ng-container>
+          <!-- อายุ -->
+          <ng-container *ngTemplateOutlet="numberField; context: { $implicit: { field: 'age', label: 'อายุ', value: profile.age, suffix: 'ปี', min: 1, max: 120 } }"></ng-container>
+          <!-- เพศ -->
+          <div class="mp-row" [class.mp-row-editing]="editingField === 'gender'">
+            <span class="mp-label">เพศ</span>
+            <ng-container *ngIf="editingField !== 'gender'">
+              <span class="mp-value" [class.mp-empty]="!profile.gender">{{ getGenderLabel(profile.gender) }}</span>
+              <button class="mp-edit-btn" (click)="startEdit('gender', profile.gender)" title="แก้ไข">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+            </ng-container>
+            <div class="mp-inline-edit" *ngIf="editingField === 'gender'">
+              <select [(ngModel)]="editValue" class="mp-edit-input">
+                <option value="">— เลือก —</option>
+                <option value="male">ชาย</option>
+                <option value="female">หญิง</option>
+                <option value="other">อื่นๆ</option>
+              </select>
+              <ng-container *ngTemplateOutlet="saveButtons"></ng-container>
+            </div>
+          </div>
+          <!-- เลขบัตรประชาชน (อ่านอย่างเดียว) -->
+          <div class="mp-row mp-row-locked">
+            <span class="mp-label">เลขบัตรประชาชน</span>
+            <span class="mp-value" [class.mp-empty]="!profile.nationalId">{{ profile.nationalId || 'ยังไม่ระบุ' }}</span>
+            <span class="mp-locked" title="ไม่สามารถแก้ไขได้">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── ข้อมูลติดต่อ ── -->
+      <section class="mp-panel">
+        <div class="mp-panel-head">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13 19.79 19.79 0 0 1 1.61 4.35 2 2 0 0 1 3.6 2.18h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.15 6.15l.97-1.04a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 21.93 17z"/></svg>
+          ข้อมูลติดต่อ
+        </div>
+        <div class="mp-rows">
+          <!-- อีเมล (อ่านอย่างเดียว) -->
+          <div class="mp-row mp-row-locked">
+            <span class="mp-label">อีเมล</span>
+            <span class="mp-value">{{ profile.email }}</span>
+            <span class="mp-locked" title="ไม่สามารถแก้ไขได้">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </span>
+          </div>
+          <!-- เบอร์โทร -->
+          <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'phone', label: 'เบอร์โทร', value: profile.phone, placeholder: '0xx-xxx-xxxx', type: 'tel' } }"></ng-container>
+          <!-- Line ID -->
+          <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'lineId', label: 'Line ID', value: profile.lineId, placeholder: '@yourname' } }"></ng-container>
+        </div>
+      </section>
+
+      <!-- ── ข้อมูลการเรียน (Student) ── -->
+      <section class="mp-panel" *ngIf="isStudent">
+        <div class="mp-panel-head">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+          ข้อมูลการเรียน
+        </div>
+        <div class="mp-rows">
+          <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'academicYear', label: 'ชั้นปี / ระดับชั้น', value: profile.academicYear, placeholder: 'เช่น ม.5, ปวช.2, ปริญญาตรี ปี 1' } }"></ng-container>
+          <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'grade', label: 'เกรดเฉลี่ย / ระดับ', value: profile.grade, placeholder: 'เช่น 3.50 หรือ A' } }"></ng-container>
+          <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'parentContact', label: 'ผู้ปกครอง (เบอร์/Line)', value: profile.parentContact, placeholder: 'เบอร์โทรหรือ Line ผู้ปกครอง' } }"></ng-container>
+        </div>
+      </section>
+
+      <!-- ── ข้อมูลการสอน (Teacher) ── -->
+      <section class="mp-panel" *ngIf="isTeacher">
+        <div class="mp-panel-head">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+          ข้อมูลการสอน
+        </div>
+        <div class="mp-rows">
+          <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'university', label: 'มหาวิทยาลัย', value: profile.university, placeholder: 'ชื่อมหาวิทยาลัย' } }"></ng-container>
+          <!-- Subjects (chip list) -->
+          <div class="mp-row mp-row-vertical">
+            <span class="mp-label">วิชาที่สอน</span>
+            <div class="mp-subjects">
+              <span *ngFor="let s of profile.subjects; let i = index" class="mp-subject-chip">
+                {{ s }}
+                <button class="mp-subject-remove" [disabled]="saving" (click)="removeSubject(i)" title="ลบ">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </span>
+              <span *ngIf="!profile.subjects?.length" class="mp-empty mp-subjects-empty">ยังไม่มีวิชาที่สอน</span>
+            </div>
+            <div class="mp-subject-add">
+              <input type="text" [(ngModel)]="newSubjectInput" placeholder="เพิ่มวิชา..." class="mp-edit-input" (keyup.enter)="addSubject()"/>
+              <button class="mp-save-btn" [disabled]="saving || !newSubjectInput.trim()" (click)="addSubject()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── ช่องทางรับเงิน (Teacher) ── -->
+      <section class="mp-panel" *ngIf="isTeacher">
+        <div class="mp-panel-head">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          ช่องทางรับเงิน
+        </div>
+        <div class="mp-rows">
+          <!-- payment channel -->
+          <div class="mp-row" [class.mp-row-editing]="editingField === 'paymentChannel'">
+            <span class="mp-label">ช่องทาง</span>
+            <ng-container *ngIf="editingField !== 'paymentChannel'">
+              <span class="mp-value" [class.mp-empty]="!profile.paymentChannel">{{ getPaymentLabel(profile.paymentChannel) }}</span>
+              <button class="mp-edit-btn" (click)="startEdit('paymentChannel', profile.paymentChannel)" title="แก้ไข">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+            </ng-container>
+            <div class="mp-inline-edit" *ngIf="editingField === 'paymentChannel'">
+              <select [(ngModel)]="editValue" class="mp-edit-input">
+                <option value="">— เลือก —</option>
+                <optgroup *ngFor="let g of paymentGroups" [label]="g.group">
+                  <option *ngFor="let opt of g.items" [value]="opt.value">{{ opt.label }}</option>
+                </optgroup>
+              </select>
+              <ng-container *ngTemplateOutlet="saveButtons"></ng-container>
+            </div>
+          </div>
+          <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'bankAccountNumber', label: 'เลขบัญชีธนาคาร', value: profile.bankAccountNumber, placeholder: 'เลขบัญชี 10-15 หลัก' } }"></ng-container>
+          <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'bankAccountName', label: 'ชื่อบัญชีธนาคาร', value: profile.bankAccountName, placeholder: 'ตามชื่อ-นามสกุลในระบบ' } }"></ng-container>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ═══ Bio ═══ -->
+    <section class="mp-bio">
+      <div class="mp-panel-head">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        ประวัติย่อ / แนะนำตัว
+        <button *ngIf="editingField !== 'bio'" class="mp-edit-btn mp-edit-btn-bio" (click)="startEdit('bio', profile.bio || '')" title="แก้ไข">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+      </div>
+      <p class="mp-bio-text" *ngIf="editingField !== 'bio' && profile.bio">{{ profile.bio }}</p>
+      <p class="mp-bio-text mp-empty" *ngIf="editingField !== 'bio' && !profile.bio">ยังไม่ได้กรอกประวัติย่อ</p>
+      <div class="mp-bio-edit" *ngIf="editingField === 'bio'">
+        <textarea [(ngModel)]="editValue" rows="4" placeholder="แนะนำตัว ประสบการณ์..." class="mp-edit-textarea"></textarea>
+        <div class="mp-edit-error" *ngIf="editError">{{ editError }}</div>
+        <div class="mp-bio-actions">
+          <button class="mp-cancel-lg" (click)="cancelEdit()" [disabled]="saving">ยกเลิก</button>
+          <button class="mp-save-lg" (click)="saveEdit()" [disabled]="saving">
+            {{ saving ? 'กำลังบันทึก...' : 'บันทึก' }}
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Toast -->
+  <div *ngIf="toastMessage" class="mp-toast" [class.mp-toast-success]="toastType === 'success'" [class.mp-toast-error]="toastType === 'error'">
+    <svg *ngIf="toastType === 'success'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    <svg *ngIf="toastType === 'error'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+    {{ toastMessage }}
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     Reusable templates: textField, numberField, saveButtons
+     ═══════════════════════════════════════════════════════════════════ -->
+<ng-template #textField let-cfg>
+  <div class="mp-row" [class.mp-row-editing]="editingField === cfg.field">
+    <span class="mp-label">{{ cfg.label }}</span>
+    <ng-container *ngIf="editingField !== cfg.field">
+      <span class="mp-value" [class.mp-empty]="!cfg.value">{{ cfg.value || 'ยังไม่ระบุ' }}</span>
+      <button class="mp-edit-btn" (click)="startEdit(cfg.field, cfg.value)" title="แก้ไข">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+    </ng-container>
+    <div class="mp-inline-edit" *ngIf="editingField === cfg.field">
+      <input [type]="cfg.type || 'text'" [(ngModel)]="editValue" [placeholder]="cfg.placeholder || ''" class="mp-edit-input" />
+      <ng-container *ngTemplateOutlet="saveButtons"></ng-container>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #numberField let-cfg>
+  <div class="mp-row" [class.mp-row-editing]="editingField === cfg.field">
+    <span class="mp-label">{{ cfg.label }}</span>
+    <ng-container *ngIf="editingField !== cfg.field">
+      <span class="mp-value" [class.mp-empty]="!cfg.value">{{ cfg.value ? (cfg.value + (cfg.suffix ? ' ' + cfg.suffix : '')) : 'ยังไม่ระบุ' }}</span>
+      <button class="mp-edit-btn" (click)="startEdit(cfg.field, cfg.value)" title="แก้ไข">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+    </ng-container>
+    <div class="mp-inline-edit" *ngIf="editingField === cfg.field">
+      <input type="number" [(ngModel)]="editValue" [min]="cfg.min" [max]="cfg.max" class="mp-edit-input" />
+      <ng-container *ngTemplateOutlet="saveButtons"></ng-container>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #saveButtons>
+  <button class="mp-save-btn" (click)="saveEdit()" [disabled]="saving" title="บันทึก">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+  </button>
+  <button class="mp-cancel-btn" (click)="cancelEdit()" [disabled]="saving" title="ยกเลิก">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <span class="mp-edit-error" *ngIf="editError">{{ editError }}</span>
+</ng-template>

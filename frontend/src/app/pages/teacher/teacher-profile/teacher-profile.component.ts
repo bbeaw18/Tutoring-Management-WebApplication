@@ -8,6 +8,7 @@ import { AuthService } from '../../../services/auth.service';
 import { IUser } from '../../../interfaces/user.interface';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
+import { getPaymentChannelGroups, getPaymentChannelLabel } from '../../../shared/constants/payment-channels';
 
 @Component({
   selector: 'app-teacher-profile',
@@ -31,6 +32,9 @@ export class TeacherProfileComponent implements OnInit, OnDestroy {
   toastType: 'success' | 'error' = 'success';
   toastTimer: any;
 
+  /** ตัวเลือกช่องทางรับเงิน (จัดกลุ่ม) */
+  readonly paymentGroups = getPaymentChannelGroups();
+
   constructor(
     private userService: UserService,
     private authService: AuthService
@@ -47,13 +51,8 @@ export class TeacherProfileComponent implements OnInit, OnDestroy {
   }
 
   getPaymentLabel(channel?: string): string {
-    const map: Record<string, string> = {
-      bank: 'บัญชีธนาคาร',
-      promptpay: 'PromptPay',
-      paypal: 'PayPal',
-      other: 'อื่นๆ'
-    };
-    return map[channel || ''] || channel || '—';
+    if (!channel) return '—';
+    return getPaymentChannelLabel(channel) || channel;
   }
 
   loadProfile(): void {

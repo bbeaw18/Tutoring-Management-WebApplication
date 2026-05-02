@@ -44,6 +44,12 @@ export class HistoryComponent implements OnInit, OnDestroy {
   // ─── Confirm state ─────────────────────────────────────────
   confirmingId = '';
 
+  // ─── Detail Modal ───────────────────────────────────────────
+  showDetailModal = false;
+  selectedSchedule: any = null;
+  schedulePayments: any[] = [];
+  paymentsLoading = false;
+
   constructor(
     private authService: AuthService,
     private attendanceService: AttendanceService,
@@ -374,6 +380,93 @@ export class HistoryComponent implements OnInit, OnDestroy {
       };
     });
     return groups.sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+  }
+
+  // ─── Detail Modal ───────────────────────────────────────────
+  openDetail(schedule: any): void {
+    this.selectedSchedule = schedule;
+    this.showDetailModal = true;
+    this.schedulePayments = [];
+    this.loadSchedulePayments(schedule._id);
+  }
+
+  closeDetail(): void {
+    this.showDetailModal = false;
+    this.selectedSchedule = null;
+    this.schedulePayments = [];
+  }
+
+  /** ดึงข้อมูลการชำระเงินที่เกี่ยวข้องกับ schedule นี้ */
+  loadSchedulePayments(scheduleId: string): void {
+    this.paymentsLoading = true;
+    this.paymentService.getPayments({ schedule: scheduleId, limit: 1000 } as any)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (res: any) => {
+          this.schedulePayments = res?.data || [];
+          this.paymentsLoading = false;
+        },
+        error: () => { this.paymentsLoading = false; }
+      });
+  }
+
+  /** Map paymentStatus ของนักเรียนคนหนึ่งใน schedule นี้ */
+  getStudentPaymentStatus(studentId: string): 'unpaid' | 'pending' | 'confirmed' | 'rejected' {
+    const sid = String(studentId);
+    const matching = this.schedulePayments.filter(p => {
+      const pid = String((p.student?._id || p.student) || '');
+      return pid === sid;
+    });
+    if (matching.some(p => p.status === 'confirmed')) return 'confirmed';
+    if (matching.some(p => p.status === 'pending'))   return 'pending';
+    if (matching.some(p => p.status === 'rejected'))  return 'rejected';
+    return 'unpaid';
+  }
+
+  getPaymentStatusLabel(s: string): string {
+    return {
+      confirmed: 'ชำระเงินสำเร็จ',
+      pending:   'รอ Manager ยืนยัน',
+      rejected:  'ปฏิเสธการชำระ',
+      unpaid:    'ยังไม่ชำระ'
+    }[s] || s;
+  }
+
+  getPaymentStatusClass(s: string): string {
+    return {
+      confirmed: 'pay-confirmed',
+      pending:   'pay-pending',
+      rejected:  'pay-rejected',
+      unpaid:    'pay-unpaid'
+    }[s] || '';
+  }
+
+  /** ดึง payment ของฉัน (สำหรับ student) ใน schedule นี้ */
+  getMyPaymentStatus(): 'unpaid' | 'pending' | 'confirmed' | 'rejected' {
+    const myId = String(this.currentUser?._id || this.currentUser?.id || '');
+    return this.getStudentPaymentStatus(myId);
+  }
+
+  /** ผลลัพธ์ของ event timeline (manager confirm completion) */
+  isClassFinished(s: any): boolean {
+    return s?.status === 'completed' || s?.status === 'awaiting_confirmation';
+  }
+  isManagerConfirmed(s: any): boolean {
+    return s?.status === 'completed' || !!s?.managerConfirmedAt;
+  }
+
+  /** จำนวนนักเรียนที่ยืนยันแล้ว */
+  getAcceptedStudentCount(s: any): number {
+    return (s?.studentConfirmations || []).filter((sc: any) => sc.status === 'accepted').length;
+  }
+
+  formatDateTime(d: any): string {
+    if (!d) return '-';
+    const date = new Date(d);
+    return date.toLocaleString('th-TH', {
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
   }
 
   /** For student timeline */

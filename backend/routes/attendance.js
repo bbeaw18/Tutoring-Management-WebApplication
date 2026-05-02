@@ -272,9 +272,11 @@ router.get('/teacher-history', authenticateToken, async (req, res) => {
       ...query,
       status: { $nin: ['cancelled'] }
     })
-      .populate('course', 'name subject')
+      .populate('course', 'name subject type description gradeLevel teachingType')
       .populate('teacher', 'firstName lastName nickname email')
-      .populate('students', 'firstName lastName nickname')
+      .populate('students', 'firstName lastName nickname email')
+      .populate('studentConfirmations.student', 'firstName lastName nickname')
+      .populate('managerConfirmedBy', 'firstName lastName nickname')
       .sort({ date: -1 });
 
     // เพิ่มข้อมูล attendance count ในแต่ละ schedule

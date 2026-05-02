@@ -25,7 +25,12 @@ export interface IUser {
   gender?: Gender;
   university?: string;
   paymentChannel?: string;
+  bankAccountNumber?: string;
+  bankAccountName?: string;
   academicYear?: string;
+  parentContact?: string;
+  nationalId?: string;
+  learningHours?: number;
   totpEnabled?: boolean;
   registrationStatus?: 'registered' | 'unregistered';
   approvedBy?: string;

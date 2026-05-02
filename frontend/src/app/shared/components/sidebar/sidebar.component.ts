@@ -582,7 +582,8 @@ export class SidebarComponent implements OnInit, OnDestroy {
     { label: 'ปฏิทินตารางสอน',  path: '/dashboard/teacher-calendar', icon: this.ICON_CALENDAR,  roles: ['teacher'] },
     { label: 'คลาสวิชาของฉัน',   path: '/dashboard/teacher-courses',  icon: this.ICON_BOOK,      roles: ['teacher'] },
     { label: 'ประวัติการสอน',     path: '/dashboard/history',          icon: this.ICON_HISTORY,   roles: ['teacher'] },
-    { label: 'ประวัติส่วนตัว',    path: '/dashboard/teacher-profile',  icon: this.ICON_CLOCK,     roles: ['teacher'] },
+    // ประวัติส่วนตัว — student/teacher (อยู่ในตำแหน่งปัจจุบันของแต่ละ role)
+    { label: 'ประวัติส่วนตัว',    path: '/dashboard/profile',          icon: this.ICON_CLOCK,     roles: ['student', 'teacher'] },
     // Manager & Admin
     { label: 'ปฏิทินมาสเตอร์',  path: '/dashboard/manager-calendar', icon: this.ICON_CALENDAR,  roles: ['manager', 'admin'] },
     { label: 'ประวัติการสอน',     path: '/dashboard/history',          icon: this.ICON_HISTORY,   roles: ['manager', 'admin'] },
@@ -592,6 +593,8 @@ export class SidebarComponent implements OnInit, OnDestroy {
     { label: 'VDO Online',        path: '/dashboard/vdo-online',       icon: this.ICON_PLAY,      roles: ['manager', 'admin'] },
     { label: 'บุคลากร',           path: '/dashboard/staff',            icon: this.ICON_USERS,     roles: ['manager', 'admin'] },
     { label: 'อนุมัติครู',        path: '/dashboard/teacher-approval', icon: this.ICON_CHECK,     roles: ['admin', 'manager'] },
+    // ประวัติส่วนตัว — manager/admin (วางล่างสุด)
+    { label: 'ประวัติส่วนตัว',    path: '/dashboard/profile',          icon: this.ICON_CLOCK,     roles: ['manager', 'admin'] },
   ];
 
   constructor(
