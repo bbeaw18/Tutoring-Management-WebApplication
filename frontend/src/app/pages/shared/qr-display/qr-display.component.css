@@ -59,7 +59,47 @@
 
 .qr-error { background: rgba(239,68,68,0.15); color: #fca5a5; padding: 12px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; }
 
-.qr-actions { margin-top: 20px; }
+.qr-actions { margin-top: 20px; display: flex; flex-direction: column; gap: 12px; }
+
+/* Admin-only finish button (สีเขียว เด่น อยู่ใต้ปุ่มเปิด QR) */
+.btn-admin-finish {
+  background: linear-gradient(135deg, #059669, #047857) !important;
+  color: white !important;
+  box-shadow: 0 4px 18px rgba(5,150,105,0.4) !important;
+  position: relative;
+}
+.btn-admin-finish::before {
+  content: 'ADMIN';
+  position: absolute;
+  top: -8px;
+  right: 12px;
+  background: linear-gradient(135deg, #d97706, #b45309);
+  color: white;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(217,119,6,0.45);
+}
+.btn-admin-finish:hover:not(:disabled) {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 22px rgba(5,150,105,0.5) !important;
+}
+.btn-admin-finish:disabled { opacity: 0.6; cursor: not-allowed; }
+.admin-finish-note {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: rgba(255,255,255,0.55);
+  font-style: italic;
+  text-align: center;
+}
+.admin-finish-note svg { color: #d97706; flex-shrink: 0; }
 .btn { padding: 12px 24px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; font-size: 15px; transition: all .2s; }
 .btn-lg { padding: 16px 32px; font-size: 16px; width: 100%; }
 .btn-primary { background: linear-gradient(135deg, #1e3f80, #0d2050); color: white; box-shadow: 0 4px 20px rgba(30,63,128,0.4); }
@@ -154,6 +194,18 @@
 }
 .confirm-hint-warn svg { color: #f59e0b; }
 
+.confirm-hint-admin {
+  background: rgba(245,158,11,0.08);
+  color: #d97706 !important;
+  border: 1px dashed rgba(245,158,11,0.5);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.confirm-hint-admin svg { color: #d97706; }
+.confirm-hint-admin strong { color: #b45309; }
+
 /* ─── Attendance Panel ─────────────────────────── */
 .attendance-panel {
   background: rgba(255,255,255,0.05);
@@ -211,6 +263,32 @@
   font-size: 11px;
 }
 
+.manual-search-wrap {
+  position: relative;
+  margin-bottom: 8px;
+}
+.manual-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255,255,255,0.55);
+  pointer-events: none;
+}
+.manual-search {
+  width: 100%;
+  padding: 8px 10px 8px 30px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  color: white;
+  font-size: 13px;
+  font-family: var(--font-th, inherit);
+  box-sizing: border-box;
+}
+.manual-search::placeholder { color: rgba(255,255,255,0.45); }
+.manual-search:focus { outline: none; border-color: rgba(245,158,11,0.5); background: rgba(255,255,255,0.1); }
+
 .manual-add-row {
   display: flex;
   gap: 8px;
@@ -257,6 +335,62 @@
   font-size: 12px;
   color: #fca5a5;
   font-weight: 500;
+}
+
+.manual-finish-wrap {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed rgba(245,158,11,0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.btn-manual-finish {
+  width: 100%;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #059669, #047857);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-shadow: 0 4px 14px rgba(5,150,105,0.35);
+  transition: transform .15s, filter .15s, box-shadow .15s;
+}
+.btn-manual-finish:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+  box-shadow: 0 6px 18px rgba(5,150,105,0.45);
+}
+.btn-manual-finish:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.manual-finish-note {
+  font-size: 11.5px;
+  color: rgba(255,255,255,0.55);
+  text-align: center;
+  font-style: italic;
+}
+.manual-finish-done {
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: rgba(5,150,105,0.12);
+  border: 1px solid rgba(5,150,105,0.35);
+  border-radius: 10px;
+  color: #6ee7b7;
+  font-size: 12.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
 }
 
 .student-item {

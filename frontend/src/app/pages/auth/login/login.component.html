@@ -244,4 +244,27 @@
 
     </div>
   </div>
+
+  <!-- Pending Approval Modal — teacher waiting for manager confirmation -->
+  <div *ngIf="showPendingModal" class="pending-modal-overlay" (click)="closePendingModal()">
+    <div class="pending-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="pendingModalTitle">
+      <div class="pending-modal-icon">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+      </div>
+      <h3 id="pendingModalTitle" class="pending-modal-title">รอการยืนยันจาก Manager</h3>
+      <p class="pending-modal-desc">{{ pendingModalMessage }}</p>
+      <div class="pending-modal-tip">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="16" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        <span>โปรดติดต่อ Manager เพื่อขออนุมัติการลงทะเบียน หลังจากได้รับการยืนยันจึงจะสามารถเข้าสู่ระบบได้</span>
+      </div>
+      <button type="button" class="btn btn-primary btn-block" (click)="closePendingModal()">รับทราบ</button>
+    </div>
+  </div>
 </div>

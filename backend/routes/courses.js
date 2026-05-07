@@ -182,7 +182,7 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
     }
 
     await course.populate('teacher', 'firstName lastName nickname email');
-    await course.populate('students', 'firstName lastName nickname email');
+    await course.populate('students', 'firstName lastName nickname email grade academicYear');
     await course.populate('createdBy', 'firstName lastName nickname');
 
     sendResponse(res, 201, true, course, 'สร้างนัดสอนสำเร็จ — รอการยืนยันจากครู');
@@ -219,7 +219,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const total = await Course.countDocuments(query);
     const courses = await Course.find(query)
       .populate('teacher', 'firstName lastName nickname email')
-      .populate('students', 'firstName lastName nickname email')
+      .populate('students', 'firstName lastName nickname email grade academicYear')
       .populate('createdBy', 'firstName lastName nickname')
       .limit(limit)
       .skip(skip)
@@ -242,7 +242,7 @@ router.get('/teacher/:teacherId', authenticateToken, async (req, res) => {
     const total = await Course.countDocuments({ teacher: req.params.teacherId });
     const courses = await Course.find({ teacher: req.params.teacherId })
       .populate('teacher', 'firstName lastName nickname email')
-      .populate('students', 'firstName lastName nickname email')
+      .populate('students', 'firstName lastName nickname email grade academicYear')
       .populate('createdBy', 'firstName lastName nickname')
       .limit(limit)
       .skip(skip)
@@ -286,7 +286,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const course = await Course.findById(req.params.id)
       .populate('teacher', 'firstName lastName nickname email phone bio subjects teachingHours')
-      .populate('students', 'firstName lastName nickname email')
+      .populate('students', 'firstName lastName nickname email grade academicYear')
       .populate('createdBy', 'firstName lastName nickname');
 
     if (!course) {
@@ -332,7 +332,7 @@ router.put('/:id', authenticateToken, roleCheck(['admin', 'manager']), async (re
 
     await course.save();
     await course.populate('teacher', 'firstName lastName nickname email');
-    await course.populate('students', 'firstName lastName nickname email');
+    await course.populate('students', 'firstName lastName nickname email grade academicYear');
 
     sendResponse(res, 200, true, course, 'Course updated');
   } catch (error) {
@@ -348,7 +348,7 @@ router.put('/:id/accept', authenticateToken, roleCheck(['teacher', 'manager', 'a
   try {
     const course = await Course.findById(req.params.id)
       .populate('teacher', 'firstName lastName nickname email')
-      .populate('students', 'firstName lastName nickname email')
+      .populate('students', 'firstName lastName nickname email grade academicYear')
       .populate('createdBy', 'firstName lastName nickname email');
 
     if (!course) {
@@ -515,7 +515,7 @@ router.patch('/:id/edit-booking', authenticateToken, roleCheck(['admin', 'manage
 
     const course = await Course.findById(req.params.id)
       .populate('teacher', 'firstName lastName nickname email')
-      .populate('students', 'firstName lastName nickname email');
+      .populate('students', 'firstName lastName nickname email grade academicYear');
 
     if (!course) return sendResponse(res, 404, false, null, 'Course not found');
     if (course.status === 'cancelled') {
@@ -579,7 +579,7 @@ router.patch('/:id/edit-booking', authenticateToken, roleCheck(['admin', 'manage
 
     // โหลดข้อมูลใหม่หลัง save
     await course.populate('teacher', 'firstName lastName nickname email');
-    await course.populate('students', 'firstName lastName nickname email');
+    await course.populate('students', 'firstName lastName nickname email grade academicYear');
 
     // ส่ง Notification
     const teacherObj  = course.teacher;

@@ -91,6 +91,13 @@ router.post('/register', async (req, res) => {
       return sendResponse(res, 400, false, null, 'อีเมลนี้ถูกใช้งานแล้ว');
     }
 
+    // ตรวจสอบเบอร์โทรซ้ำ — 1 เบอร์ ต่อ 1 บัญชี
+    const normalizedPhone = phone.replace(/[-\s]/g, '');
+    const existingPhone = await User.findOne({ phone: normalizedPhone });
+    if (existingPhone) {
+      return sendResponse(res, 400, false, null, 'เบอร์โทรนี้ถูกใช้งานในระบบแล้ว');
+    }
+
     // Generate TOTP secret
     const secret = speakeasy.generateSecret({
       name: `KMS (${email})`,
@@ -102,7 +109,7 @@ router.post('/register', async (req, res) => {
       lastName,
       email,
       password,
-      phone,
+      phone: normalizedPhone,
       role,
       lineId,
       age,
@@ -177,17 +184,24 @@ router.post('/login', async (req, res) => {
       return sendResponse(res, 403, false, null, 'Account is inactive');
     }
 
-    // Step 2: Check TOTP — if enabled, require OTP first (includes unregistered teachers)
+    // Block unconfirmed teachers — must be approved by manager/admin before login
+    if (user.role === 'teacher' && user.registrationStatus === 'unregistered') {
+      return sendResponse(res, 403, false, {
+        pendingApproval: true,
+        registrationStatus: 'unregistered'
+      }, 'บัญชีของคุณอยู่ในสถานะรอการยืนยันจาก Manager โปรดติดต่อ Manager เพื่อขออนุมัติการลงทะเบียน');
+    }
+
+    // Step 2: Check TOTP — if enabled, require OTP first
     if (user.totpEnabled) {
-      // Store registrationStatus in session so we can inform client after OTP
       return sendResponse(res, 200, true, {
         requireOtp: true,
         userId: user._id,
-        registrationStatus: user.registrationStatus  // pass status so frontend knows
+        registrationStatus: user.registrationStatus
       }, 'OTP required');
     }
 
-    // Step 3: Generate JWT (teacher unregistered can still login — frontend shows banner)
+    // Step 3: Generate JWT
     const token = generateToken(user._id, user.role);
 
     sendResponse(res, 200, true, {
@@ -303,6 +317,14 @@ router.post('/verify-totp', async (req, res) => {
 
     if (!verified) {
       return sendResponse(res, 401, false, null, 'Invalid OTP token');
+    }
+
+    // Block unconfirmed teachers — must be approved before getting a JWT
+    if (user.role === 'teacher' && user.registrationStatus === 'unregistered') {
+      return sendResponse(res, 403, false, {
+        pendingApproval: true,
+        registrationStatus: 'unregistered'
+      }, 'บัญชีของคุณอยู่ในสถานะรอการยืนยันจาก Manager โปรดติดต่อ Manager เพื่อขออนุมัติการลงทะเบียน');
     }
 
     // Generate JWT token

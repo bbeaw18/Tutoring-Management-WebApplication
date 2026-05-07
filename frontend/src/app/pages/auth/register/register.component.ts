@@ -264,6 +264,8 @@ export class RegisterComponent implements OnInit {
     if (!msg) return 'สมัครสมาชิกล้มเหลว โปรดลองอีกครั้ง';
     if (msg.includes('Email already registered') || msg.includes('อีเมลนี้ถูกใช้งานแล้ว'))
       return 'อีเมลนี้ถูกใช้งานแล้ว กรุณาใช้อีเมลอื่น หรือเข้าสู่ระบบด้วยอีเมลนี้';
+    if (msg.includes('เบอร์โทรนี้ถูกใช้งาน') || msg.includes('phone already'))
+      return 'เบอร์โทรนี้ถูกใช้งานในระบบแล้ว กรุณาใช้เบอร์อื่น (1 เบอร์ ต่อ 1 บัญชี)';
     if (msg.includes('รูปแบบอีเมลไม่ถูกต้อง'))
       return 'รูปแบบอีเมลไม่ถูกต้อง (ตัวอย่าง: name@gmail.com)';
     if (msg.includes('รูปแบบเบอร์โทรไม่ถูกต้อง'))

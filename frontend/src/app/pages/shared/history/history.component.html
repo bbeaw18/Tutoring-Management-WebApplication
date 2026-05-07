@@ -376,7 +376,10 @@
                 </div>
                 <span [class]="'status-badge ' + getStatusClass(s.status)">{{ getStatusLabel(s.status) }}</span>
               </div>
-              <div class="h-tl-title">{{ s.course?.name || '-' }}<span *ngIf="s.course?.subject" class="h-tl-sub"> · {{ s.course?.subject }}</span></div>
+              <div class="h-tl-title">
+                {{ getCourseWithTeacher(s) }}
+                <span *ngIf="getStudentsWithGrade(s)" class="h-tl-sub"> · {{ getStudentsWithGrade(s) }}</span>
+              </div>
               <div class="h-tl-meta">
                 <span class="h-tl-meta-item" *ngIf="role === 'manager' || role === 'admin'">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -452,8 +455,8 @@
             <td>{{ i + 1 }}</td>
             <td>{{ s.date | date:'d MMM y' }}</td>
             <td>
-              <div class="cell-primary">{{ s.course?.name || '-' }}</div>
-              <div class="cell-secondary">{{ s.course?.subject }}</div>
+              <div class="cell-primary">{{ getCourseWithTeacher(s) }}</div>
+              <div class="cell-secondary" *ngIf="getStudentsWithGrade(s)">{{ getStudentsWithGrade(s) }}</div>
             </td>
             <ng-container *ngIf="role === 'manager' || role === 'admin'">
               <td>{{ s.teacher | displayName }}</td>

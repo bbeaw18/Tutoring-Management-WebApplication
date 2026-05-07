@@ -87,7 +87,7 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
     await schedule.save();
     await schedule.populate('course', 'name subject');
     await schedule.populate('teacher', 'firstName lastName nickname email');
-    await schedule.populate('students', 'firstName lastName nickname email');
+    await schedule.populate('students', 'firstName lastName nickname email grade academicYear');
 
     // แจ้งเตือนในระบบ — ครูผู้สอน
     const teacherNotif = new Notification({
@@ -170,7 +170,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const schedules = await Schedule.find(query)
       .populate('course', 'name subject')
       .populate('teacher', 'firstName lastName nickname email')
-      .populate('students', 'firstName lastName nickname email')
+      .populate('students', 'firstName lastName nickname email grade academicYear')
       .populate('studentConfirmations.student', 'firstName lastName nickname')
       .limit(limit)
       .skip(skip)
@@ -241,7 +241,7 @@ const calendarMonthlyHandler = async (req, res) => {
     const schedules = await Schedule.find(query)
       .populate('course', 'name subject type')
       .populate('teacher', 'firstName lastName nickname email')
-      .populate('students', 'firstName lastName nickname email')
+      .populate('students', 'firstName lastName nickname email grade academicYear')
       .populate('studentConfirmations.student', 'firstName lastName nickname')
       .sort({ date: 1 });
 
@@ -279,7 +279,7 @@ const calendarWeeklyHandler = async (req, res) => {
     const schedules = await Schedule.find(query)
       .populate('course', 'name subject type')
       .populate('teacher', 'firstName lastName nickname email')
-      .populate('students', 'firstName lastName nickname email')
+      .populate('students', 'firstName lastName nickname email grade academicYear')
       .populate('studentConfirmations.student', 'firstName lastName nickname')
       .sort({ date: 1, startTime: 1 });
 
@@ -310,7 +310,7 @@ router.post('/:id/confirm-teacher', authenticateToken, async (req, res) => {
     const schedule = await Schedule.findById(req.params.id)
       .populate('course', 'name subject')
       .populate('teacher', 'firstName lastName nickname email')
-      .populate('students', 'firstName lastName nickname email');
+      .populate('students', 'firstName lastName nickname email grade academicYear');
 
     if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
 
@@ -467,7 +467,7 @@ router.post('/:id/confirm-student', authenticateToken, roleCheck(['student']), a
     const updatedSchedule = await Schedule.findById(schedule._id)
       .populate('course', 'name subject')
       .populate('teacher', 'firstName lastName nickname email')
-      .populate('students', 'firstName lastName nickname email')
+      .populate('students', 'firstName lastName nickname email grade academicYear')
       .populate('studentConfirmations.student', 'firstName lastName nickname');
 
     // แจ้งครูว่านักเรียนตอบกลับ
@@ -608,9 +608,10 @@ router.post('/:id/close-qr', authenticateToken, async (req, res) => {
         `ไม่สามารถยืนยันเสร็จสิ้นได้: คลาสนี้มีสถานะ "${schedule.status}" แล้ว`);
     }
 
-    // ── Bug D Fix: ต้องมีนักเรียนเช็คชื่ออย่างน้อย 1 คนก่อนปิด ──
+    // ── ต้องมีนักเรียนเช็คชื่ออย่างน้อย 1 คน — ยกเว้น admin (ปิดได้แม้ยังไม่มีคนเช็คชื่อ) ──
     const attendanceCount = await Attendance.countDocuments({ schedule: schedule._id });
-    if (attendanceCount === 0) {
+    const isAdmin = req.user.role === 'admin';
+    if (attendanceCount === 0 && !isAdmin) {
       return sendResponse(res, 400, false, null,
         'ยังไม่มีนักเรียนเช็คชื่อ — กรุณารอนักเรียนสแกน QR ก่อนยืนยันเสร็จสิ้นการสอน');
     }
@@ -618,7 +619,9 @@ router.post('/:id/close-qr', authenticateToken, async (req, res) => {
     schedule.qrActive = false;
 
     // คำนวณรายได้จริงตามจำนวนผู้เช็คชื่อ
-    if (attendanceCount === 1) {
+    if (attendanceCount === 0) {
+      schedule.actualTeacherIncome = 0;
+    } else if (attendanceCount === 1) {
       schedule.actualTeacherIncome = schedule.teacherIncomeIndividual || 0;
     } else {
       schedule.actualTeacherIncome = schedule.teacherIncomeGroup || 0;
@@ -680,7 +683,7 @@ router.patch('/:id/reschedule', authenticateToken, roleCheck(['admin', 'manager'
     const schedule = await Schedule.findById(req.params.id)
       .populate('course', 'name subject')
       .populate('teacher', 'firstName lastName nickname email')
-      .populate('students', 'firstName lastName nickname email');
+      .populate('students', 'firstName lastName nickname email grade academicYear');
     if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
 
     // บันทึกค่าเดิมก่อนแก้ไข
@@ -760,7 +763,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const schedule = await Schedule.findById(req.params.id)
       .populate('course', 'name subject teacher')
       .populate('teacher', 'firstName lastName nickname email phone')
-      .populate('students', 'firstName lastName nickname email')
+      .populate('students', 'firstName lastName nickname email grade academicYear')
       .populate('studentConfirmations.student', 'firstName lastName nickname');
 
     if (!schedule) {
@@ -865,7 +868,7 @@ router.patch('/:id/manager-confirm', authenticateToken, roleCheck(['admin', 'man
     // ✅ populate course เพื่อให้ดึง subject ได้
     const schedule = await Schedule.findById(req.params.id)
       .populate('teacher', 'firstName lastName nickname email')
-      .populate('students', 'firstName lastName nickname email')
+      .populate('students', 'firstName lastName nickname email grade academicYear')
       .populate('course', 'name subject');
 
     if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
@@ -945,7 +948,7 @@ router.post('/:id/send-video-link', authenticateToken, roleCheck(['admin', 'mana
     const schedule = await Schedule.findById(req.params.id)
       .populate('course', 'name subject type')
       .populate('teacher', 'firstName lastName nickname')
-      .populate('students', 'firstName lastName nickname email');
+      .populate('students', 'firstName lastName nickname email grade academicYear');
 
     if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
 

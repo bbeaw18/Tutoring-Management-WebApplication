@@ -682,23 +682,34 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * หัวข้อในปฏิทินของ Manager/Admin: "ชื่อวิชา - น้อง<ชื่อเล่นนักเรียน>(s)"
-   *  - ถ้ามีนักเรียน 1 คน → "subject - น้องnick"
-   *  - ถ้ามีหลายคน → "subject - น้องnick1, น้องnick2 (+N)"
+   * หัวข้อในปฏิทินของ Manager/Admin: "ชื่อวิชา - น้อง<ชื่อเล่น> - <ระดับชั้น>"
+   *  - 1 คน → "subject - น้องnick - ม.6"
+   *  - หลายคน → "subject - น้องnick1 ม.6, น้องnick2 ม.5"
    */
   getCourseName(schedule: ISchedule): string {
     const c = schedule.course as any;
     const subject = (c && typeof c === 'object') ? (c.subject || c.name || '-') : '-';
     const students: any[] = Array.isArray(schedule.students) ? schedule.students : [];
-    const nicks = students
+    const items = students
       .filter(st => st && typeof st === 'object')
-      .map(st => st.nickname || `${st.firstName || ''} ${st.lastName || ''}`.trim())
-      .filter(Boolean)
-      .map(n => `น้อง${n}`);
-    if (nicks.length === 0) return subject;
-    if (nicks.length === 1) return `${subject} - ${nicks[0]}`;
-    if (nicks.length === 2) return `${subject} - ${nicks[0]}, ${nicks[1]}`;
-    return `${subject} - ${nicks[0]}, ${nicks[1]} +${nicks.length - 2}`;
+      .map(st => {
+        const nick = st.nickname || `${st.firstName || ''} ${st.lastName || ''}`.trim();
+        if (!nick) return null;
+        // ลองทุกฟิลด์ที่อาจเก็บระดับชั้น
+        const grade = (st.grade || st.academicYear || '').toString().trim();
+        return { nick: `น้อง${nick}`, grade };
+      })
+      .filter((x): x is { nick: string; grade: string } => x !== null);
+
+    if (items.length === 0) return subject;
+    if (items.length === 1) {
+      const { nick, grade } = items[0];
+      return grade ? `${subject} - ${nick} - ${grade}` : `${subject} - ${nick}`;
+    }
+    // หลายคน → "น้องnick ม.6" คั่นด้วย ", "
+    const join = items.map(({ nick, grade }) => grade ? `${nick} ${grade}` : nick);
+    if (items.length === 2) return `${subject} - ${join[0]}, ${join[1]}`;
+    return `${subject} - ${join[0]}, ${join[1]} +${items.length - 2}`;
   }
 
   formatDate(d: Date): string {

@@ -4,7 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ScheduleService } from '../../../services/schedule.service';
 import { AuthService } from '../../../services/auth.service';
+import { UserService } from '../../../services/user.service';
 import { ISchedule, IAttendanceRecord, IQRStatus } from '../../../interfaces/schedule.interface';
+import { IUser } from '../../../interfaces/user.interface';
 import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
 
 @Component({
@@ -39,13 +41,17 @@ export class QrDisplayComponent implements OnInit, OnDestroy {
   manualAdding = false;
   manualError = '';
   manualSuccess = '';
+  /** รายชื่อนักเรียนทั้งหมดในระบบ (สำหรับ admin เพิ่มเข้าเรียน) */
+  allStudents: IUser[] = [];
+  studentSearch = '';
 
   private pollInterval: any = null;
 
   constructor(
     private route: ActivatedRoute,
     private scheduleService: ScheduleService,
-    private authService: AuthService
+    private authService: AuthService,
+    private userService: UserService
   ) {}
 
   ngOnInit(): void {
@@ -55,6 +61,18 @@ export class QrDisplayComponent implements OnInit, OnDestroy {
       this.loadSchedule();
       this.checkQRStatus();
     }
+    if (this.isAdmin) {
+      this.loadAllStudents();
+    }
+  }
+
+  loadAllStudents(): void {
+    this.userService.getStudents().subscribe({
+      next: (list) => {
+        this.allStudents = (list || []).filter(u => u.isActive !== false);
+      },
+      error: (err) => console.warn('[QR] load students failed:', err?.status || err)
+    });
   }
 
   ngOnDestroy(): void {
@@ -171,11 +189,32 @@ export class QrDisplayComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** นักเรียนที่ลงทะเบียนไว้ แต่ยังไม่ได้เช็คชื่อ */
-  get unenrolledStudents(): Array<{ _id: string; firstName: string; lastName: string }> {
+  /**
+   * รายชื่อนักเรียนที่ admin สามารถเพิ่มเข้าเรียนได้
+   * — เฉพาะนักเรียนที่ลงทะเบียนในคลาสนี้ (schedule.students) ที่ยังไม่ได้เช็คชื่อ
+   * — รองรับการค้นหาด้วยชื่อ/ชื่อเล่น
+   */
+  get unenrolledStudents(): Array<{ _id: string; firstName: string; lastName: string; nickname?: string }> {
     if (!this.schedule) return [];
-    const checkedIds = new Set(this.attendances.map(a => a.student._id));
-    return (this.schedule.students as any[]).filter(s => !checkedIds.has(s._id?.toString() || s.toString()));
+    const checkedIds = new Set(this.attendances.map(a => a.student._id?.toString()));
+    const q = this.studentSearch.trim().toLowerCase();
+    const enrolled = (this.schedule.students as any[]) || [];
+    return enrolled
+      .filter((s: any) => {
+        const sid = (s._id || s.id || s || '').toString();
+        if (checkedIds.has(sid)) return false;
+        if (!q) return true;
+        const haystack = [
+          s.firstName, s.lastName, s.nickname, s.email
+        ].filter(Boolean).join(' ').toLowerCase();
+        return haystack.includes(q);
+      })
+      .map(s => ({
+        _id: (s._id || s.id || '').toString(),
+        firstName: s.firstName,
+        lastName: s.lastName,
+        nickname: s.nickname
+      }));
   }
 
   startPolling(): void {

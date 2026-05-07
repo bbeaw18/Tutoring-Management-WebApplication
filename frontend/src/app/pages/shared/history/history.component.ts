@@ -245,6 +245,34 @@ export class HistoryComponent implements OnInit, OnDestroy {
     return typeof t === 'object' ? (t.nickname || `${t.firstName} ${t.lastName}`) : '-';
   }
 
+  /** "ชื่อวิชา - ครู<ชื่อเล่นครู>" — ใช้ subject (สั้น) ก่อน ค่อย name */
+  getCourseWithTeacher(s: ISchedule): string {
+    const c = s.course as any;
+    const courseName = (c && typeof c === 'object') ? (c.subject || c.name || '-') : '-';
+    const t = s.teacher as any;
+    if (!t || typeof t !== 'object') return courseName;
+    const nick = (t.nickname || t.firstName || '').trim();
+    return nick ? `${courseName} - ครู${nick}` : courseName;
+  }
+
+  /** "น้อง<ชื่อเล่น> ม.6, น้อง<ชื่อเล่น2> ม.5" — ใช้ใน subline สีเทา */
+  getStudentsWithGrade(s: ISchedule): string {
+    const students: any[] = Array.isArray(s.students) ? s.students : [];
+    const items = students
+      .filter(st => st && typeof st === 'object')
+      .map(st => {
+        const nick = (st.nickname || st.firstName || '').trim();
+        if (!nick) return '';
+        // ลองทุกฟิลด์ที่อาจเก็บระดับชั้น
+        const grade = (st.grade || st.academicYear || '').toString().trim();
+        return grade ? `น้อง${nick} ${grade}` : `น้อง${nick}`;
+      })
+      .filter(Boolean);
+    if (items.length === 0) return '';
+    if (items.length <= 2) return items.join(', ');
+    return `${items[0]}, ${items[1]} +${items.length - 2}`;
+  }
+
   // KPI for student schedule view
   get acceptedCount(): number {
     return this.studentSchedules.filter(s => this.getMyConfirmStatus(s) === 'accepted').length;

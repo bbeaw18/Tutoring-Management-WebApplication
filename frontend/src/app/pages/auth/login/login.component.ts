@@ -33,6 +33,10 @@ export class LoginComponent implements OnInit, OnDestroy {
   otpCountdown = 0;
   private otpCountdownInterval: any;
 
+  // Pending-approval modal (teachers awaiting manager confirmation)
+  showPendingModal = false;
+  pendingModalMessage = '';
+
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -175,10 +179,23 @@ export class LoginComponent implements OnInit, OnDestroy {
         }
       },
       error: (error: any) => {
-        this.errorMessage = error.error?.message || 'เข้าสู่ระบบล้มเหลว โปรดลองอีกครั้ง';
+        const data = error.error?.data;
+        if (error.status === 403 && data?.pendingApproval) {
+          this.pendingModalMessage = error.error?.message
+            || 'บัญชีของคุณอยู่ในสถานะรอการยืนยันจาก Manager โปรดติดต่อ Manager เพื่อขออนุมัติการลงทะเบียน';
+          this.showPendingModal = true;
+          this.errorMessage = '';
+        } else {
+          this.errorMessage = error.error?.message || 'เข้าสู่ระบบล้มเหลว โปรดลองอีกครั้ง';
+        }
         this.loading = false;
       }
     });
+  }
+
+  closePendingModal(): void {
+    this.showPendingModal = false;
+    this.pendingModalMessage = '';
   }
 
   verifyOtp(): void {
@@ -207,7 +224,16 @@ export class LoginComponent implements OnInit, OnDestroy {
         });
       },
       error: (error: any) => {
-        this.errorMessage = error.error?.message || 'รหัส OTP ไม่ถูกต้อง โปรดลองอีกครั้ง';
+        const data = error.error?.data;
+        if (error.status === 403 && data?.pendingApproval) {
+          this.pendingModalMessage = error.error?.message
+            || 'บัญชีของคุณอยู่ในสถานะรอการยืนยันจาก Manager โปรดติดต่อ Manager เพื่อขออนุมัติการลงทะเบียน';
+          this.showPendingModal = true;
+          this.errorMessage = '';
+          this.currentStep = 'login';
+        } else {
+          this.errorMessage = error.error?.message || 'รหัส OTP ไม่ถูกต้อง โปรดลองอีกครั้ง';
+        }
         this.loading = false;
       }
     });

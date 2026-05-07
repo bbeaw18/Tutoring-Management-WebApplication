@@ -280,7 +280,7 @@
             <div class="form-group">
               <label for="academicYear">ชั้นปี / ระดับชั้น</label>
               <input type="text" id="academicYear" formControlName="academicYear"
-                placeholder="เช่น ปีที่ 1, ม.4, มัธยมศึกษาปีที่ 6"
+                placeholder="เช่น ปีที่ 1✅, ม.4✅, มัธยมศึกษาปีที่ 6❌"
                 [class.error]="submitted && f['academicYear'].invalid"/>
               <div *ngIf="submitted && f['academicYear'].invalid" class="error-text">กรุณากรอกชั้นปี</div>
             </div>

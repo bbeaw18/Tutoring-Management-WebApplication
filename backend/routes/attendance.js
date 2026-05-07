@@ -112,16 +112,16 @@ router.post('/manual-add', authenticateToken, roleCheck(['admin']), async (req, 
     const schedule = await Schedule.findById(scheduleId).populate('course', 'name');
     if (!schedule) return sendResponse(res, 404, false, null, 'ไม่พบคลาส');
 
-    const student = await User.findById(studentId).select('firstName lastName profileImage role');
+    const student = await User.findById(studentId).select('firstName lastName nickname profileImage role');
     if (!student) return sendResponse(res, 404, false, null, 'ไม่พบนักเรียน');
     if (student.role !== 'student') {
       return sendResponse(res, 400, false, null, 'ผู้ใช้ที่เลือกไม่ใช่นักเรียน');
     }
 
-    // ตรวจสอบว่านักเรียนอยู่ใน schedule
+    // ตรวจสอบว่านักเรียนถูกการนัดสอนในคลาสนี้
     const isEnrolled = schedule.students.some(s => s.toString() === studentId);
     if (!isEnrolled) {
-      return sendResponse(res, 400, false, null, 'นักเรียนคนนี้ไม่ได้ลงทะเบียนในคลาสนี้');
+      return sendResponse(res, 400, false, null, 'นักเรียนคนนี้ไม่ได้ถูกการนัดสอนในคลาสนี้');
     }
 
     // บันทึก attendance (unique index ป้องกันซ้ำ)
@@ -138,6 +138,7 @@ router.post('/manual-add', authenticateToken, roleCheck(['admin']), async (req, 
         _id:          student._id,
         firstName:    student.firstName,
         lastName:     student.lastName,
+        nickname:     student.nickname,
         profileImage: student.profileImage
       },
       scannedAt:  attendance.scannedAt,
@@ -274,7 +275,7 @@ router.get('/teacher-history', authenticateToken, async (req, res) => {
     })
       .populate('course', 'name subject type description gradeLevel teachingType')
       .populate('teacher', 'firstName lastName nickname email')
-      .populate('students', 'firstName lastName nickname email')
+      .populate('students', 'firstName lastName nickname email grade academicYear')
       .populate('studentConfirmations.student', 'firstName lastName nickname')
       .populate('managerConfirmedBy', 'firstName lastName nickname')
       .sort({ date: -1 });

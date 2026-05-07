@@ -625,6 +625,13 @@
   font-weight: 600;
   margin: 2px 2px 2px 0;
 }
+.student-pill-grade {
+  margin-left: 4px;
+  padding-left: 4px;
+  border-left: 1px solid currentColor;
+  opacity: 0.65;
+  font-weight: 500;
+}
 
 /* Card Tags */
 .card-tags {

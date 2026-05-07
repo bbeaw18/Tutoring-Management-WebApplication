@@ -489,7 +489,7 @@
             </svg>
             <span class="card-value">
               <span class="student-pill" *ngFor="let s of course.students">
-                {{ s | displayName:'student' }}
+                {{ s | displayName:'student' }}<span *ngIf="$any(s).grade || $any(s).academicYear" class="student-pill-grade"> {{ $any(s).grade || $any(s).academicYear }}</span>
               </span>
             </span>
           </div>

@@ -221,6 +221,16 @@ router.put('/:id', authenticateToken, async (req, res) => {
       }
     }
 
+    // ตรวจสอบเบอร์โทรซ้ำเมื่อมีการแก้ไข — 1 เบอร์ ต่อ 1 บัญชี
+    if (updateData.phone) {
+      const normalizedPhone = String(updateData.phone).replace(/[-\s]/g, '');
+      updateData.phone = normalizedPhone;
+      const phoneOwner = await User.findOne({ phone: normalizedPhone, _id: { $ne: req.params.id } });
+      if (phoneOwner) {
+        return sendResponse(res, 400, false, null, 'เบอร์โทรนี้ถูกใช้งานในระบบแล้ว');
+      }
+    }
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
       updateData,

@@ -91,20 +91,36 @@
           {{ generating ? 'กำลังสร้าง QR...' : 'เปิด QR เช็คชื่อ' }}
         </button>
 
-        <!-- เมื่อ QR เปิดอยู่: แสดงปุ่มยืนยันเสร็จสิ้น -->
+        <!-- ── Admin-only: ปุ่มยืนยันเสร็จสิ้นการสอน (อยู่ใต้ปุ่มเปิด QR เสมอ ไม่ขึ้นกับเงื่อนไข) ── -->
+        <button
+          *ngIf="isAdmin && !qrActive"
+          type="button"
+          class="btn btn-success btn-lg btn-admin-finish"
+          (click)="confirmClass()"
+          [disabled]="confirming"
+        >
+          <svg *ngIf="!confirming" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          {{ confirming ? 'กำลังยืนยัน...' : 'ยืนยันเสร็จสิ้นการสอน (Admin)' }}
+        </button>
+        <p *ngIf="isAdmin && !qrActive" class="admin-finish-note">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          โหมดผู้ดูแลระบบ — กดได้เลยแม้ไม่ได้เปิด QR / ไม่มีคนเช็คชื่อ
+        </p>
+
+        <!-- ปุ่มยืนยันเสร็จสิ้น (เดิม) — แสดงเมื่อ QR เปิดอยู่ -->
         <div *ngIf="qrActive" class="confirm-group">
           <p class="confirm-hint" *ngIf="attendances.length > 0">
             มีนักเรียนเช็คชื่อแล้ว <strong>{{ attendances.length }}</strong> คน — เมื่อพร้อมแล้วกดปุ่มด้านล่างเพื่อยืนยันเสร็จสิ้น
           </p>
-          <p class="confirm-hint confirm-hint-warn" *ngIf="attendances.length === 0">
+          <p class="confirm-hint confirm-hint-warn" *ngIf="attendances.length === 0 && !isAdmin">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             ยังไม่มีนักเรียนเช็คชื่อ — รอให้นักเรียนสแกน QR ก่อนกดยืนยันเสร็จสิ้น
           </p>
           <button
             class="btn btn-success btn-lg"
             (click)="confirmClass()"
-            [disabled]="confirming || attendances.length === 0"
-            [title]="attendances.length === 0 ? 'ต้องมีนักเรียนเช็คชื่ออย่างน้อย 1 คน' : ''"
+            [disabled]="confirming || (attendances.length === 0 && !isAdmin)"
+            [title]="(attendances.length === 0 && !isAdmin) ? 'ต้องมีนักเรียนเช็คชื่ออย่างน้อย 1 คน' : ''"
           >
             <svg *ngIf="!confirming" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             {{ confirming ? 'กำลังยืนยัน...' : 'ยืนยันเสร็จสิ้นการสอน' }}
@@ -130,13 +146,24 @@
           เพิ่มการเข้าเรียนเพื่อทดสอบ
         </div>
 
+        <div class="manual-search-wrap">
+          <svg class="manual-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input
+            type="text"
+            class="manual-search"
+            [(ngModel)]="studentSearch"
+            placeholder="ค้นหานักเรียน (ชื่อ / ชื่อเล่น / อีเมล)"
+            [disabled]="manualAdding"
+          />
+        </div>
+
         <div class="manual-add-row">
           <select
             class="manual-select"
             [(ngModel)]="selectedStudentId"
             [disabled]="manualAdding"
           >
-            <option value="">— เลือกนักเรียน —</option>
+            <option value="">— เลือกนักเรียน ({{ unenrolledStudents.length }} คน) —</option>
             <option
               *ngFor="let s of unenrolledStudents"
               [value]="s._id"
