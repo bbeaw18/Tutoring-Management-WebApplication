@@ -80,6 +80,8 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
       teacherIncomeGroup:      finalIncomeGroup,
       teacherIncomeIndividual: finalIncomeIndividual,
       coursePrice:             finalCoursePrice,
+      // สืบทอด incomeHourly จาก Course (ถ้าเป็นโค้ดใหม่ → true)
+      incomeHourly:            !!courseExists.incomeHourly,
       totalDurationMinutes: totalDurationMinutes > 0 ? totalDurationMinutes : 0,
       studentConfirmations
     });
@@ -619,12 +621,21 @@ router.post('/:id/close-qr', authenticateToken, async (req, res) => {
     schedule.qrActive = false;
 
     // คำนวณรายได้จริงตามจำนวนผู้เช็คชื่อ
+    // โหมดใหม่ (incomeHourly=true): rate × duration ในหน่วยชั่วโมง
+    // โหมดเดิม (incomeHourly=false): rate เป็นยอดต่อคลาส (flat) — ไม่กระทบข้อมูลเก่า
+    let baseRate = 0;
+    if (attendanceCount === 1) {
+      baseRate = schedule.teacherIncomeIndividual || 0;
+    } else if (attendanceCount > 1) {
+      baseRate = schedule.teacherIncomeGroup || 0;
+    }
     if (attendanceCount === 0) {
       schedule.actualTeacherIncome = 0;
-    } else if (attendanceCount === 1) {
-      schedule.actualTeacherIncome = schedule.teacherIncomeIndividual || 0;
+    } else if (schedule.incomeHourly) {
+      const hours = (schedule.totalDurationMinutes || 0) / 60;
+      schedule.actualTeacherIncome = Math.round(baseRate * hours);
     } else {
-      schedule.actualTeacherIncome = schedule.teacherIncomeGroup || 0;
+      schedule.actualTeacherIncome = baseRate;
     }
 
     // เปลี่ยนสถานะเป็น awaiting_confirmation เพื่อรอผู้จัดการยืนยัน

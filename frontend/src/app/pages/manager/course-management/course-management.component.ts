@@ -93,8 +93,64 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
       // Default null → input ว่างเปล่า (ไม่มี 0 ให้ลบครั้งแรก)
       teacherIncomeIndividual:[null, [Validators.min(0)]],
       teacherIncomeGroup:     [null, [Validators.min(0)]],
-      coursePrice:            [null, [Validators.min(0)]]
+      coursePrice:            [null, [Validators.min(0)]],
+      // ── ทำซ้ำรายสัปดาห์จนถึงสิ้นเดือน ──
+      repeatWeeklyUntilEndOfMonth: [false]
     });
+  }
+
+  /** วันที่ทั้งหมดที่จะนัดสอน (รวมวันแรก) เมื่อติ๊ก "ทำซ้ำรายสัปดาห์จนถึงสิ้นเดือน" */
+  get repeatPreviewDates(): Date[] {
+    const v = this.bookingForm?.get('scheduledDate')?.value;
+    if (!v) return [];
+    const base = new Date(v);
+    if (isNaN(base.getTime())) return [];
+    const dates: Date[] = [new Date(base)];
+    if (!this.bookingForm.get('repeatWeeklyUntilEndOfMonth')?.value) return dates;
+    const month = base.getMonth();
+    const year  = base.getFullYear();
+    const lastDay = new Date(year, month + 1, 0);  // last day of current month
+    const next = new Date(base);
+    next.setDate(next.getDate() + 7);
+    while (next.getMonth() === month && next <= lastDay) {
+      dates.push(new Date(next));
+      next.setDate(next.getDate() + 7);
+    }
+    return dates;
+  }
+
+  /** "7, 14, 21, 28 พ.ค." */
+  get repeatPreviewLabel(): string {
+    const dates = this.repeatPreviewDates;
+    if (dates.length === 0) return '';
+    const monthShort = dates[0].toLocaleDateString('th-TH', { month: 'short' });
+    return dates.map(d => d.getDate()).join(', ') + ' ' + monthShort;
+  }
+
+  /** ระยะเวลาคลาสในหน่วยชั่วโมง (จาก startTime - endTime) */
+  get classDurationHours(): number {
+    const s = this.bookingForm?.get('startTime')?.value;
+    const e = this.bookingForm?.get('endTime')?.value;
+    if (!s || !e) return 0;
+    const [sh, sm] = String(s).split(':').map(Number);
+    const [eh, em] = String(e).split(':').map(Number);
+    if ([sh, sm, eh, em].some(n => isNaN(n))) return 0;
+    const minutes = (eh * 60 + em) - (sh * 60 + sm);
+    return minutes > 0 ? minutes / 60 : 0;
+  }
+
+  /** อัตรา/ชม. ที่เลือก (เดี่ยว vs กลุ่ม) */
+  get teacherIncomeRate(): number {
+    const t = this.bookingForm?.get('type')?.value;
+    if (t === 'individual') {
+      return Number(this.bookingForm?.get('teacherIncomeIndividual')?.value) || 0;
+    }
+    return Number(this.bookingForm?.get('teacherIncomeGroup')?.value) || 0;
+  }
+
+  /** รายได้ครูทั้งหมด = อัตรา/ชม. × duration (ชั่วโมง) — ปัดเป็นจำนวนเต็ม */
+  get teacherIncomeTotal(): number {
+    return Math.round(this.teacherIncomeRate * this.classDurationHours);
   }
 
   loadAll(): void {
@@ -256,7 +312,8 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
       description:            v.description || '',
       teacherIncomeIndividual: Number(v.teacherIncomeIndividual) || 0,
       teacherIncomeGroup:      Number(v.teacherIncomeGroup) || 0,
-      coursePrice:             Number(v.coursePrice) || 0
+      coursePrice:             Number(v.coursePrice) || 0,
+      repeatWeeklyUntilEndOfMonth: !!v.repeatWeeklyUntilEndOfMonth
     };
 
     this.submitting = true;
@@ -266,7 +323,7 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
       next: () => {
         this.submitting = false;
         this.showForm = false;
-        this.bookingForm.reset({ type: 'group', teacherIncomeIndividual: null, teacherIncomeGroup: null, coursePrice: null });
+        this.bookingForm.reset({ type: 'group', teacherIncomeIndividual: null, teacherIncomeGroup: null, coursePrice: null, repeatWeeklyUntilEndOfMonth: false });
         this.selectedStudentIds = [];
         // โหลด autocomplete ใหม่หลังสร้าง (เผื่อมีวิชาหรือประเภทการสอนใหม่)
         // H3: ใช้ takeUntil(destroy$) ป้องกัน memory leak

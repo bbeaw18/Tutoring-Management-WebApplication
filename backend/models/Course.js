@@ -83,6 +83,8 @@ const CourseSchema = new mongoose.Schema({
   teacherIncomeIndividual: { type: Number, default: 0 },
   teacherIncomeGroup:      { type: Number, default: 0 },
   coursePrice:             { type: Number, default: 0 },
+  // โหมดคิดรายได้: false = flat (เดิม), true = ต่อชั่วโมง × duration
+  incomeHourly:            { type: Boolean, default: false },
   // ── ประเภทการสอน (free-text, บันทึกลง DB แล้วดึงเป็น dropdown) ──
   teachingType: { type: String, default: '' },
   status: {

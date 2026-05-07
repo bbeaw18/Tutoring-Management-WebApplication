@@ -649,3 +649,34 @@
   font-size: 11px;
   font-weight: 700;
 }
+
+/* ── Deadline Warning Banners (overdue / grace period) ─── */
+.deadline-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: var(--r-xl, 14px);
+  margin-bottom: var(--sp-4, 16px);
+  font-size: 13.5px;
+  line-height: 1.5;
+  animation: deadlineBannerEnter .25s cubic-bezier(.32,.72,.26,1.02);
+}
+.deadline-banner svg { flex-shrink: 0; }
+.deadline-banner strong { font-weight: 800; }
+.deadline-banner-overdue {
+  background: linear-gradient(135deg, #fff1f2, #ffe4e6);
+  border: 1.5px solid #fca5a5;
+  color: #9f1239;
+}
+.deadline-banner-overdue svg { color: #e11d48; }
+.deadline-banner-grace {
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  border: 1.5px solid #fcd34d;
+  color: #92400e;
+}
+.deadline-banner-grace svg { color: #d97706; }
+@keyframes deadlineBannerEnter {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

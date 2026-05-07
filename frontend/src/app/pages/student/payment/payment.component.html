@@ -53,15 +53,39 @@
           <div class="kpi-sub">&nbsp;</div>
         </div>
       </div>
-      <div class="kpi-card blue" *ngIf="deadlineText">
+      <div class="kpi-card"
+           *ngIf="deadlineText"
+           [class.blue]="deadlineStatus === 'upcoming'"
+           [class.amber]="deadlineStatus === 'graceLast'"
+           [class.red]="deadlineStatus === 'overdue'">
         <div class="kpi-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         </div>
         <div class="kpi-body">
           <div class="kpi-value">{{ deadlineText }}</div>
-          <div class="kpi-label">กำหนดชำระเงิน</div>
+          <div class="kpi-label">
+            <ng-container [ngSwitch]="deadlineStatus">
+              <span *ngSwitchCase="'overdue'">⚠ เกินกำหนดชำระ</span>
+              <span *ngSwitchCase="'graceLast'">⏰ ใกล้ครบกำหนด — เหลือ {{ daysRemainingToDeadline }} วัน</span>
+              <span *ngSwitchDefault>กำหนดชำระเงิน</span>
+            </ng-container>
+          </div>
           <div class="kpi-sub">เดือน {{ formatMonth(selectedMonth) }}</div>
         </div>
+      </div>
+    </div>
+
+    <!-- ─── Overdue / Grace period warning banner ─────────────── -->
+    <div *ngIf="unpaidCount > 0 && deadlineStatus === 'overdue'" class="deadline-banner deadline-banner-overdue">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div>
+        <strong>เกินกำหนดชำระเงินแล้ว</strong> — ยอดค้างของเดือน {{ formatMonth(selectedMonth) }} ครบกำหนดเมื่อ {{ deadlineText }} กรุณารีบติดต่อชำระโดยเร็ว
+      </div>
+    </div>
+    <div *ngIf="unpaidCount > 0 && deadlineStatus === 'graceLast'" class="deadline-banner deadline-banner-grace">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <div>
+        <strong>อยู่ในช่วงผ่อนผัน</strong> — บิลเดือน {{ formatMonth(selectedMonth) }} ต้องชำระภายใน {{ deadlineText }} (เหลืออีก {{ daysRemainingToDeadline }} วัน)
       </div>
     </div>
 

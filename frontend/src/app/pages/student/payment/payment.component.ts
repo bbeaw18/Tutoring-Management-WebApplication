@@ -183,6 +183,41 @@ export class PaymentComponent implements OnInit, OnDestroy {
     return `3 ${months[nextMonth - 1]} ${nextYear + 543}`;
   }
 
+  /** วันที่ครบกำหนดของเดือนที่เลือก (Date object) — วันที่ 3 ของเดือนถัดไป เวลา 23:59 */
+  get deadlineDate(): Date | null {
+    if (!this.selectedMonth) return null;
+    const [y, m] = this.selectedMonth.split('-').map(Number);
+    const nextMonth = m === 12 ? 1 : m + 1;
+    const nextYear = m === 12 ? y + 1 : y;
+    return new Date(nextYear, nextMonth - 1, 3, 23, 59, 59);
+  }
+
+  /**
+   * สถานะกำหนดชำระ:
+   * - 'upcoming'   = ยังอยู่ในเดือนของบิล หรือก่อนหน้านั้น (ปกติ)
+   * - 'graceLast'  = อยู่ในช่วงผ่อนผัน (วันที่ 1-3 ของเดือนถัดไป)
+   * - 'overdue'    = เลยวันที่ 3 ของเดือนถัดไปแล้ว (เกินกำหนด)
+   */
+  get deadlineStatus(): 'upcoming' | 'graceLast' | 'overdue' {
+    if (!this.selectedMonth) return 'upcoming';
+    const [y, m] = this.selectedMonth.split('-').map(Number);
+    const now = new Date();
+    const startOfNextMonth = new Date(y, m, 1, 0, 0, 0);   // m=5 → Jun 1
+    const endOfGrace = new Date(y, m, 3, 23, 59, 59);       // Jun 3 23:59
+    if (now < startOfNextMonth) return 'upcoming';
+    if (now <= endOfGrace) return 'graceLast';
+    return 'overdue';
+  }
+
+  /** จำนวนวันที่เหลือก่อนครบกำหนด — แสดงใน UI ช่วงผ่อนผัน */
+  get daysRemainingToDeadline(): number {
+    const d = this.deadlineDate;
+    if (!d) return 0;
+    const now = new Date();
+    const diff = d.getTime() - now.getTime();
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  }
+
   // ─── Payment Actions (K-BANK Transfer Flow) ─────────────────
 
   /** เปิดโมดอลแสดงเลขบัญชี K-BANK ให้นักเรียนโอน */

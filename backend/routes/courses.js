@@ -24,7 +24,8 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
       type, difficulty, gradeLevel,
       maxStudents, price,
       teacherIncomeIndividual, teacherIncomeGroup, coursePrice,
-      teachingType
+      teachingType,
+      repeatWeeklyUntilEndOfMonth
     } = req.body;
 
     // Validate required fields
@@ -48,71 +49,101 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
       }
     }
 
-    // สร้าง Course
-    const course = new Course({
-      name: name || `${subject} — ${teacherUser.firstName} ${teacherUser.lastName}`,
-      description: description || '',
-      subject,
-      teacher,
-      students: studentIds,
-      scheduledDate: new Date(scheduledDate),
-      startTime,
-      endTime,
-      type: type || 'group',
-      difficulty: difficulty || '',
-      teachingType: teachingType || '',
-      gradeLevel: gradeLevel || '',
-      maxStudents: maxStudents || studentIds.length || 1,
-      price: price || 0,
-      teacherIncomeIndividual: Number(teacherIncomeIndividual) || 0,
-      teacherIncomeGroup:      Number(teacherIncomeGroup) || 0,
-      coursePrice:             Number(coursePrice) || 0,
-      status: 'pending',
-      createdBy: req.user.id
-    });
-
-    await course.save();
-
-    // สร้าง Schedule (รอ teacher confirm) — บันทึก income/price ด้วย
-    // status: 'pending' = รอครูยืนยัน (ไม่ใช่ 'scheduled' เพราะครูยังไม่ยืนยัน)
-    const schedule = new Schedule({
-      course: course._id,
-      teacher,
-      students: studentIds,
-      date: new Date(scheduledDate),
-      startTime,
-      endTime,
-      status: 'pending',
-      teacherConfirmed: false,
-      teacherIncomeIndividual: Number(teacherIncomeIndividual) || 0,
-      teacherIncomeGroup:      Number(teacherIncomeGroup) || 0,
-      coursePrice:             Number(coursePrice) || 0,
-      // Auto-add นักเรียนเป็น pending confirmations
-      studentConfirmations: studentIds.map(sid => ({
-        student: sid, status: 'pending', confirmedAt: null
-      }))
-    });
-    await schedule.save();
-
-    // สร้าง Enrollment สำหรับนักเรียนแต่ละคน
-    for (const studentId of studentIds) {
-      const existingEnrollment = await Enrollment.findOne({ student: studentId, course: course._id });
-      if (!existingEnrollment) {
-        const enrollment = new Enrollment({
-          student: studentId,
-          course: course._id,
-          enrolledBy: req.user.id,
-          status: 'pending'
-        });
-        await enrollment.save();
+    // ── คำนวณวันที่ทั้งหมด: ถ้าติ๊ก repeatWeeklyUntilEndOfMonth → ทำซ้ำทุก 7 วันจนถึงสิ้นเดือนเดียวกัน ──
+    const baseDate = new Date(scheduledDate);
+    const scheduleDates = [new Date(baseDate)];
+    if (repeatWeeklyUntilEndOfMonth) {
+      const baseMonth = baseDate.getMonth();
+      const baseYear  = baseDate.getFullYear();
+      const lastDay   = new Date(baseYear, baseMonth + 1, 0);
+      const next = new Date(baseDate);
+      next.setDate(next.getDate() + 7);
+      while (next.getMonth() === baseMonth && next <= lastDay) {
+        scheduleDates.push(new Date(next));
+        next.setDate(next.getDate() + 7);
       }
     }
+
+    // สร้าง Course + Schedule + Enrollment 1 ชุด ต่อ 1 วันนัด
+    // ทำให้ทั้ง "การจัดการรายวิชา" และ "ประวัติการสอน" มีจำนวนตรงกัน
+    const createdCourses = [];
+    const createdSchedules = [];
+
+    for (const dt of scheduleDates) {
+      // Course หนึ่งตัวต่อหนึ่งวันนัด
+      const c = new Course({
+        name: name || `${subject} — ${teacherUser.firstName} ${teacherUser.lastName}`,
+        description: description || '',
+        subject,
+        teacher,
+        students: studentIds,
+        scheduledDate: dt,
+        startTime,
+        endTime,
+        type: type || 'group',
+        difficulty: difficulty || '',
+        teachingType: teachingType || '',
+        gradeLevel: gradeLevel || '',
+        maxStudents: maxStudents || studentIds.length || 1,
+        price: price || 0,
+        teacherIncomeIndividual: Number(teacherIncomeIndividual) || 0,
+        teacherIncomeGroup:      Number(teacherIncomeGroup) || 0,
+        coursePrice:             Number(coursePrice) || 0,
+        incomeHourly:            true,   // โค้ดใหม่: คิดรายได้ต่อชั่วโมง × duration
+        status: 'pending',
+        createdBy: req.user.id
+      });
+      await c.save();
+      createdCourses.push(c);
+
+      // Schedule หนึ่งตัวต่อหนึ่งวันนัด (อ้างอิง Course เดียวกันต่อวัน)
+      const sch = new Schedule({
+        course: c._id,
+        teacher,
+        students: studentIds,
+        date: dt,
+        startTime,
+        endTime,
+        status: 'pending',
+        teacherConfirmed: false,
+        teacherIncomeIndividual: Number(teacherIncomeIndividual) || 0,
+        teacherIncomeGroup:      Number(teacherIncomeGroup) || 0,
+        coursePrice:             Number(coursePrice) || 0,
+        incomeHourly:            true,   // โค้ดใหม่: คิดรายได้ต่อชั่วโมง × duration
+        studentConfirmations: studentIds.map(sid => ({
+          student: sid, status: 'pending', confirmedAt: null
+        }))
+      });
+      await sch.save();
+      createdSchedules.push(sch);
+
+      // Enrollment สำหรับนักเรียนแต่ละคนของ Course นี้
+      for (const studentId of studentIds) {
+        const existingEnrollment = await Enrollment.findOne({ student: studentId, course: c._id });
+        if (!existingEnrollment) {
+          const enrollment = new Enrollment({
+            student: studentId,
+            course: c._id,
+            enrolledBy: req.user.id,
+            status: 'pending'
+          });
+          await enrollment.save();
+        }
+      }
+    }
+
+    // เก็บ Course แรกสำหรับ response/notification (compatible กับโค้ดเดิม)
+    const course = createdCourses[0];
+    const schedule = createdSchedules[0];
 
     // ── ส่ง Notification ในเว็บ ──
     const dateFormatted = new Date(scheduledDate).toLocaleDateString('th-TH', {
       weekday: 'short', year: 'numeric', month: 'short', day: 'numeric'
     });
     const studentNameList = studentUsers.map(s => `${s.firstName} ${s.lastName}`).join(', ');
+    const recurrenceNote = createdSchedules.length > 1
+      ? ` (ทำซ้ำรายสัปดาห์ ${createdSchedules.length} ครั้ง จนถึงสิ้นเดือน)`
+      : '';
 
     // Notification → Teacher
     await new Notification({
@@ -120,7 +151,7 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
       sender: req.user.id,
       type: 'course',
       title: 'นัดสอนใหม่รอการยืนยัน',
-      message: `วิชา: ${subject} | วันที่: ${dateFormatted} ${startTime}–${endTime} | นักเรียน: ${studentNameList || 'ยังไม่ระบุ'}`,
+      message: `วิชา: ${subject} | วันที่: ${dateFormatted} ${startTime}–${endTime}${recurrenceNote} | นักเรียน: ${studentNameList || 'ยังไม่ระบุ'}`,
       relatedId: course._id
     }).save();
 
@@ -131,7 +162,7 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
         sender: req.user.id,
         type: 'course',
         title: 'มีการนัดสอนใหม่',
-        message: `วิชา: ${subject} | ครู: ${teacherUser.firstName} ${teacherUser.lastName} | วันที่: ${dateFormatted} ${startTime}–${endTime}`,
+        message: `วิชา: ${subject} | ครู: ${teacherUser.firstName} ${teacherUser.lastName} | วันที่: ${dateFormatted} ${startTime}–${endTime}${recurrenceNote}`,
         relatedId: course._id
       }).save();
     }
@@ -143,7 +174,7 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
         sender: req.user.id,
         type: 'course',
         title: 'สร้างนัดสอนสำเร็จ',
-        message: `วิชา: ${subject} | ครู: ${teacherUser.firstName} ${teacherUser.lastName} | วันที่: ${dateFormatted} (รอการยืนยันจากครู)`,
+        message: `วิชา: ${subject} | ครู: ${teacherUser.firstName} ${teacherUser.lastName} | วันที่: ${dateFormatted}${recurrenceNote} (รอการยืนยันจากครู)`,
         relatedId: course._id
       }).save();
     }
@@ -185,7 +216,10 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
     await course.populate('students', 'firstName lastName nickname email grade academicYear');
     await course.populate('createdBy', 'firstName lastName nickname');
 
-    sendResponse(res, 201, true, course, 'สร้างนัดสอนสำเร็จ — รอการยืนยันจากครู');
+    const successMsg = createdCourses.length > 1
+      ? `สร้างนัดสอนสำเร็จ ${createdCourses.length} รายวิชา (ทำซ้ำรายสัปดาห์จนถึงสิ้นเดือน) — รอการยืนยันจากครู`
+      : 'สร้างนัดสอนสำเร็จ — รอการยืนยันจากครู';
+    sendResponse(res, 201, true, course, successMsg);
   } catch (error) {
     console.error('Create course error:', error);
     sendResponse(res, 500, false, null, error.message);

@@ -240,10 +240,15 @@ async function autoCompleteExpiredSchedules() {
       console.log(`[AutoComplete] กำลังเปลี่ยนเป็น awaiting_confirmation: ${schedule._id}`);
 
       // คำนวณรายได้เบื้องต้น (ยังไม่บันทึก hours)
-      if (attendanceCount === 1) {
-        schedule.actualTeacherIncome = schedule.teacherIncomeIndividual || 0;
+      // โหมดใหม่ (incomeHourly=true): rate × hours; โหมดเดิม: flat
+      const baseRate = (attendanceCount === 1)
+        ? (schedule.teacherIncomeIndividual || 0)
+        : (schedule.teacherIncomeGroup || 0);
+      if (schedule.incomeHourly) {
+        const hours = (schedule.totalDurationMinutes || 0) / 60;
+        schedule.actualTeacherIncome = Math.round(baseRate * hours);
       } else {
-        schedule.actualTeacherIncome = schedule.teacherIncomeGroup || 0;
+        schedule.actualTeacherIncome = baseRate;
       }
 
       // รอ manager ยืนยัน — ยังไม่บันทึก hours
