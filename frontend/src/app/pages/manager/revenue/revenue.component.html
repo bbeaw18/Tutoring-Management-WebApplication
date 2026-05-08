@@ -21,7 +21,7 @@
         <select
           class="filter-select"
           [(ngModel)]="filterTeacher"
-          (change)="onFilterChange()"
+          (change)="onPersonFilterChange()"
         >
           <option value="">ทั้งหมด</option>
           <option *ngFor="let t of teachers" [value]="t._id">
@@ -35,7 +35,7 @@
         <select
           class="filter-select"
           [(ngModel)]="filterStudent"
-          (change)="onFilterChange()"
+          (change)="onPersonFilterChange()"
         >
           <option value="">ทั้งหมด</option>
           <option *ngFor="let s of students" [value]="s._id">

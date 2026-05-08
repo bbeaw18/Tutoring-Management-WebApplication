@@ -98,13 +98,13 @@ export class RevenueComponent implements OnInit, OnDestroy {
     this.filterMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
     // Track current user — default filterTeacher to themselves so KPI shows "รายได้ของคุณ"
+    // (filter is frontend-only — does NOT trigger backend reload, KPIs stay institute-wide)
     this.authService.currentUser$
       .pipe(takeUntil(this.destroy$))
       .subscribe(user => {
         this.currentUser = user;
         if (user?._id && !this.filterTeacher) {
           this.filterTeacher = user._id;
-          this.loadReport();
         }
       });
 
@@ -133,10 +133,11 @@ export class RevenueComponent implements OnInit, OnDestroy {
 
   loadReport(): void {
     this.loading = true;
+    // KPIs are always institute-wide for the selected month.
+    // teacher/student filters are applied on the frontend (in filteredSchedules
+    // and the per-person "รายได้ของ X" KPI) so they never change the totals.
     const params: any = {};
-    if (this.filterMonth)   params.month     = this.filterMonth;
-    if (this.filterTeacher) params.teacherId = this.filterTeacher;
-    if (this.filterStudent) params.studentId = this.filterStudent;
+    if (this.filterMonth) params.month = this.filterMonth;
 
     this.paymentService.getRevenueReport(params)
       .pipe(takeUntil(this.destroy$))
@@ -169,8 +170,14 @@ export class RevenueComponent implements OnInit, OnDestroy {
   }
 
   onFilterChange(): void {
+    // teacher/student filters are frontend-only — only month change refetches data
     this.loadReport();
     this.loadExpenses();
+  }
+
+  /** Called when teacher or student dropdown changes — frontend filter only, no reload */
+  onPersonFilterChange(): void {
+    // intentionally no reload; bindings react to filterTeacher/filterStudent changes
   }
 
   selectKpi(mode: KpiMode): void {
@@ -178,38 +185,46 @@ export class RevenueComponent implements OnInit, OnDestroy {
   }
 
   get filteredSchedules(): IRevenueSchedule[] {
+    let list = this.allSchedules;
+
+    // KPI mode filter
     if (this.activeKpi === 'paid') {
-      return this.allSchedules.filter(s => s.paid > 0);
-    }
-    if (this.activeKpi === 'unpaid') {
-      return this.allSchedules.filter(s => s.unpaid > 0);
-    }
-    if (this.activeKpi === 'teacherExpense') {
-      // เฉพาะคลาสที่ Manager ยืนยันแล้ว + ครูเป็น role='teacher'
-      return this.allSchedules.filter(s =>
+      list = list.filter(s => s.paid > 0);
+    } else if (this.activeKpi === 'unpaid') {
+      list = list.filter(s => s.unpaid > 0);
+    } else if (this.activeKpi === 'teacherExpense') {
+      list = list.filter(s =>
         s.status === 'completed' &&
         s.teacherRole === 'teacher' &&
         (s.actualTeacherIncome || 0) > 0
       );
-    }
-    if (this.activeKpi === 'managerIncome') {
-      // เฉพาะคลาสที่ Manager ยืนยันแล้ว + ครูเป็น role='manager'
-      return this.allSchedules.filter(s =>
+    } else if (this.activeKpi === 'managerIncome') {
+      list = list.filter(s =>
         s.status === 'completed' &&
         s.teacherRole === 'manager' &&
         (s.actualTeacherIncome || 0) > 0
       );
-    }
-    if (this.activeKpi === 'myIncome') {
+    } else if (this.activeKpi === 'myIncome') {
       const targetId = this.filterTeacher || this.currentUser?._id || '';
       if (!targetId) return [];
-      return this.allSchedules.filter(s =>
+      list = list.filter(s =>
         s.teacherId === targetId &&
         s.status === 'completed' &&
         (s.actualTeacherIncome || 0) > 0
       );
     }
-    return this.allSchedules;
+
+    // Person filter (frontend-only — never affects KPIs)
+    if (this.filterTeacher && this.activeKpi !== 'myIncome') {
+      list = list.filter(s => s.teacherId === this.filterTeacher);
+    }
+    if (this.filterStudent) {
+      list = list.filter(s =>
+        s.attendedStudents?.some(st => st.studentId === this.filterStudent)
+      );
+    }
+
+    return list;
   }
 
   /** ป้ายหัวข้อตาราง — เปลี่ยนตาม activeKpi */
