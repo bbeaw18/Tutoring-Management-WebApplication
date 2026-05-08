@@ -56,6 +56,15 @@
   user-select: none;
 }
 
+/* net-institute is read-only — no click handler */
+.revenue-card.net-institute {
+  cursor: default;
+}
+
+.revenue-card.net-institute:hover {
+  transform: none;
+}
+
 .revenue-card:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-lg);
@@ -1404,6 +1413,234 @@ tbody tr:hover { background: rgba(30,63,128,0.03); }
 .filter-bar.filter-bar-top {
   margin-top: 0;
   margin-bottom: var(--sp-2);
+}
+
+/* ═══════════════════════════════════════════════════════
+   New Layout — Toolbar + KPI Sections (per filter scope)
+   ═══════════════════════════════════════════════════════ */
+
+.rev-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  background: linear-gradient(135deg, #fff, #fafbff);
+  border: 1px solid var(--gray-100);
+  border-radius: var(--r-xl);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+  flex-wrap: wrap;
+}
+
+.rev-toolbar-left {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.rev-toolbar-right {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.btn-primary-action {
+  padding: 9px 18px;
+  border: none;
+  border-radius: var(--r-md);
+  background: linear-gradient(135deg, var(--brand-500, #ec4899), var(--brand-600, #db2777));
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 10px rgba(236, 72, 153, .3);
+  transition: all .15s var(--ease-out);
+}
+
+.btn-primary-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(236, 72, 153, .42);
+}
+
+/* ── KPI Section — group of cards with a label/filter row ── */
+.kpi-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4) var(--sp-4);
+  background: rgba(255, 255, 255, .55);
+  border: 1px solid var(--gray-100);
+  border-radius: var(--r-xl);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.kpi-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.kpi-section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.kpi-section-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+
+.kpi-section-pill.kpi-pill-institute {
+  background: linear-gradient(135deg, #fee2e2, #fef3c7);
+  color: #b45309;
+}
+
+.kpi-section-pill.kpi-pill-student {
+  background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+  color: #15803d;
+}
+
+.kpi-section-pill.kpi-pill-teacher {
+  background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+  color: #6d28d9;
+}
+
+.kpi-section-title {
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--gray-900);
+  letter-spacing: -0.01em;
+}
+
+.kpi-section-hint {
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+  font-style: italic;
+}
+
+.kpi-section-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 4px 10px 4px 12px;
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .04);
+}
+
+.filter-label-inline {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-600);
+  white-space: nowrap;
+}
+
+.kpi-section-filter .filter-select {
+  border: none;
+  background: transparent;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--brand-700, #be185d);
+  padding: 4px 6px;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+}
+
+.kpi-section-filter .filter-select:hover {
+  color: var(--brand-600, #db2777);
+}
+
+/* ── KPI Row layouts ───────────────────────────────── */
+.revenue-cards.kpi-row-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-4);
+}
+
+.revenue-cards.kpi-row-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-4);
+}
+
+.revenue-cards.kpi-row-1 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-4);
+}
+
+@media (max-width: 900px) {
+  .revenue-cards.kpi-row-3,
+  .revenue-cards.kpi-row-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Expense card count badge ─────────────────────── */
+.rev-expense-count {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  background: var(--gray-100);
+  color: var(--gray-600);
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+}
+
+/* ── Pie chart polish — hover, drop shadow, smoother slice transition ── */
+.rev-pie-slice {
+  transition: stroke-width .25s var(--ease-out),
+              filter .25s var(--ease-out),
+              stroke-dasharray .8s var(--ease-emphasized),
+              stroke-dashoffset .8s var(--ease-emphasized);
+}
+
+.rev-pie-svg:hover .rev-pie-slice {
+  opacity: .55;
+}
+
+.rev-pie-svg .rev-pie-slice:hover {
+  opacity: 1;
+  stroke-width: 18;
+  filter: drop-shadow(0 3px 8px rgba(15, 23, 42, .25));
+  cursor: pointer;
+}
+
+/* ── Pie legend row hover ─────────────────────────── */
+.pie-row {
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background .15s var(--ease-out);
+}
+
+.pie-row:hover {
+  background: var(--gray-50);
+}
+
+/* ── Make chart cards visually consistent ─────────── */
+.rev-chart-card {
+  transition: transform .2s var(--ease-out), box-shadow .2s var(--ease-out);
+}
+
+.rev-chart-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, .07);
 }
 
 /* ── KPI ใหม่ (รายจ่ายครู / รายได้ Manager / กำไรสุทธิ) ─── */

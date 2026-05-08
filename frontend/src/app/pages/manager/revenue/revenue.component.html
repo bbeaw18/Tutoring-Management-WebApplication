@@ -8,120 +8,139 @@
 
   <div *ngIf="!loading" class="content">
 
-    <!-- ── Filter Bar (top) ── -->
-    <div class="filter-bar filter-bar-top">
-
-      <div class="filter-group">
+    <!-- ── Top toolbar: เดือน + ปุ่มเพิ่มรายการ ── -->
+    <div class="rev-toolbar">
+      <div class="rev-toolbar-left">
         <span class="filter-label">เดือน</span>
         <kms-month-picker [(ngModel)]="filterMonth" (valueChange)="onFilterChange()" placeholder="ทั้งหมด"></kms-month-picker>
       </div>
-
-      <div class="filter-group">
-        <span class="filter-label">ครูผู้สอน</span>
-        <select
-          class="filter-select"
-          [(ngModel)]="filterTeacher"
-          (change)="onPersonFilterChange()"
-        >
-          <option value="">ทั้งหมด</option>
-          <option *ngFor="let t of teachers" [value]="t._id">
-            {{ t | displayName }}
-          </option>
-        </select>
+      <div class="rev-toolbar-right">
+        <button class="btn-add-expense btn-primary-action" type="button" (click)="openExpenseModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          เพิ่มรายรับ/รายจ่าย
+        </button>
       </div>
-
-      <div class="filter-group">
-        <span class="filter-label">นักเรียน</span>
-        <select
-          class="filter-select"
-          [(ngModel)]="filterStudent"
-          (change)="onPersonFilterChange()"
-        >
-          <option value="">ทั้งหมด</option>
-          <option *ngFor="let s of students" [value]="s._id">
-            {{ s | displayName }}
-          </option>
-        </select>
-      </div>
-
     </div>
 
-    <!-- ── KPI Cards ── -->
-    <div class="revenue-cards">
-
-      <div
-        class="revenue-card total"
-        [class.active]="activeKpi === 'all'"
-        (click)="selectKpi('all')"
-      >
-        <h3>รายได้รวม</h3>
-        <div class="amount">{{ kpiTotal | number: '1.0-0' }} <span class="unit">บาท</span></div>
-        <div class="amount-change">ยอดชำระนักเรียนทั้งหมด</div>
+    <!-- ── Section A: ภาพรวมสถาบัน (ไม่กรอง) ── -->
+    <section class="kpi-section">
+      <div class="kpi-section-head">
+        <div class="kpi-section-label">
+          <span class="kpi-section-pill kpi-pill-institute">สถาบัน</span>
+          <span class="kpi-section-title">ภาพรวมสถาบัน</span>
+        </div>
+        <span class="kpi-section-hint">ภาพรวมรายเดือน · ไม่ขึ้นกับฟิลเตอร์</span>
       </div>
+      <div class="revenue-cards kpi-row-3">
+        <div class="revenue-card total"
+             [class.active]="activeKpi === 'all'"
+             (click)="selectKpi('all')"
+             role="button" tabindex="0">
+          <h3>รายได้รวม</h3>
+          <div class="amount">{{ kpiTotal | number: '1.0-0' }} <span class="unit">บาท</span></div>
+          <div class="amount-change">ยอดชำระนักเรียนทั้งหมด</div>
+        </div>
 
-      <div
-        class="revenue-card confirmed"
-        [class.active]="activeKpi === 'paid'"
-        (click)="selectKpi('paid')"
-      >
-        <h3>ยืนยันแล้ว</h3>
-        <div class="amount">{{ kpiPaid | number: '1.0-0' }} <span class="unit">บาท</span></div>
-        <div class="amount-change positive">ยอดที่นักเรียนชำระแล้ว</div>
+        <div class="revenue-card teacher-expense"
+             [class.active]="activeKpi === 'teacherExpense'"
+             (click)="selectKpi('teacherExpense')"
+             role="button" tabindex="0">
+          <h3>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            รายจ่ายครู
+          </h3>
+          <div class="amount">{{ kpiTeacherExpense | number: '1.0-0' }} <span class="unit">บาท</span></div>
+          <div class="amount-change">เฉพาะคลาสที่ Manager ยืนยันแล้ว</div>
+        </div>
+
+        <div class="revenue-card net-institute">
+          <h3>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            กำไรสุทธิสถาบัน
+          </h3>
+          <div class="amount" [class.negative-amt]="kpiNetInstitute < 0">{{ kpiNetInstitute | number: '1.0-0' }} <span class="unit">บาท</span></div>
+          <div class="amount-change">ยอดชำระแล้ว − รายจ่ายครู</div>
+        </div>
       </div>
+    </section>
 
-      <div
-        class="revenue-card pending"
-        [class.active]="activeKpi === 'unpaid'"
-        (click)="selectKpi('unpaid')"
-      >
-        <h3>รอการชำระ</h3>
-        <div class="amount">{{ kpiUnpaid | number: '1.0-0' }} <span class="unit">บาท</span></div>
-        <div class="amount-change negative">ยอดค้างชำระ</div>
+    <!-- ── Section B: สถานะการชำระ (กรองตามนักเรียน) ── -->
+    <section class="kpi-section">
+      <div class="kpi-section-head">
+        <div class="kpi-section-label">
+          <span class="kpi-section-pill kpi-pill-student">นักเรียน</span>
+          <span class="kpi-section-title">สถานะการชำระ</span>
+        </div>
+        <div class="kpi-section-filter">
+          <label class="filter-label-inline">กรองตามนักเรียน</label>
+          <select class="filter-select"
+                  [(ngModel)]="filterStudent"
+                  (change)="onPersonFilterChange()">
+            <option value="">ทั้งหมด</option>
+            <option *ngFor="let s of students" [value]="s._id">{{ s | displayName }}</option>
+          </select>
+        </div>
       </div>
+      <div class="revenue-cards kpi-row-2">
+        <div class="revenue-card confirmed"
+             [class.active]="activeKpi === 'paid'"
+             (click)="selectKpi('paid')"
+             role="button" tabindex="0">
+          <h3>ยืนยันแล้ว</h3>
+          <div class="amount">{{ paidFiltered | number: '1.0-0' }} <span class="unit">บาท</span></div>
+          <div class="amount-change positive">
+            <ng-container *ngIf="!filterStudent">ยอดที่นักเรียนชำระแล้ว</ng-container>
+            <ng-container *ngIf="filterStudent">ยอดที่ {{ studentFilterLabel }} ชำระแล้ว</ng-container>
+          </div>
+        </div>
 
-    </div>
-
-    <!-- ── KPI ใหม่: รายจ่ายครู / รายได้ Manager / กำไรสุทธิ ── -->
-    <div class="revenue-cards rev-cards-secondary">
-
-      <div class="revenue-card teacher-expense"
-           [class.active]="activeKpi === 'teacherExpense'"
-           (click)="selectKpi('teacherExpense')"
-           role="button"
-           tabindex="0">
-        <h3>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-          รายจ่ายครู (สถาบันจ่ายครู)
-          <span class="kpi-clickable-hint">คลิกดูรายละเอียด ↓</span>
-        </h3>
-        <div class="amount">{{ kpiTeacherExpense | number: '1.0-0' }} <span class="unit">บาท</span></div>
-        <div class="amount-change">เฉพาะคลาสที่ Manager ยืนยันแล้ว</div>
+        <div class="revenue-card pending"
+             [class.active]="activeKpi === 'unpaid'"
+             (click)="selectKpi('unpaid')"
+             role="button" tabindex="0">
+          <h3>รอการชำระ</h3>
+          <div class="amount">{{ unpaidFiltered | number: '1.0-0' }} <span class="unit">บาท</span></div>
+          <div class="amount-change negative">
+            <ng-container *ngIf="!filterStudent">ยอดค้างชำระ</ng-container>
+            <ng-container *ngIf="filterStudent">ยอดค้างชำระของ {{ studentFilterLabel }}</ng-container>
+          </div>
+        </div>
       </div>
+    </section>
 
-      <div class="revenue-card manager-income"
-           [class.active]="activeKpi === 'myIncome'"
-           (click)="selectKpi('myIncome')"
-           role="button"
-           tabindex="0">
-        <h3>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M20 7h-9M14 17H5M21 17a4 4 0 1 0-8 0M11 7a4 4 0 1 1-8 0"/></svg>
-          {{ myIncomeTitle }}
-          <span class="kpi-clickable-hint">คลิกดูรายละเอียด ↓</span>
-        </h3>
-        <div class="amount">{{ myIncomeAmount | number: '1.0-0' }} <span class="unit">บาท</span></div>
-        <div class="amount-change">{{ myIncomeSubtitle }}</div>
+    <!-- ── Section C: รายได้บุคลากร (กรองตามครูผู้สอน) ── -->
+    <section class="kpi-section">
+      <div class="kpi-section-head">
+        <div class="kpi-section-label">
+          <span class="kpi-section-pill kpi-pill-teacher">บุคลากร</span>
+          <span class="kpi-section-title">รายได้บุคลากร</span>
+        </div>
+        <div class="kpi-section-filter">
+          <label class="filter-label-inline">กรองตามครูผู้สอน</label>
+          <select class="filter-select"
+                  [(ngModel)]="filterTeacher"
+                  (change)="onPersonFilterChange()">
+            <option value="">ทั้งหมด</option>
+            <option *ngFor="let t of teachers" [value]="t._id">{{ t | displayName }}</option>
+          </select>
+        </div>
       </div>
-
-      <div class="revenue-card net-institute">
-        <h3>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-          กำไรสุทธิสถาบัน
-        </h3>
-        <div class="amount" [class.negative-amt]="kpiNetInstitute < 0">{{ kpiNetInstitute | number: '1.0-0' }} <span class="unit">บาท</span></div>
-        <div class="amount-change">ยอดชำระแล้ว − รายจ่ายครู</div>
+      <div class="revenue-cards kpi-row-1">
+        <div class="revenue-card manager-income"
+             [class.active]="activeKpi === 'myIncome'"
+             (click)="selectKpi('myIncome')"
+             role="button" tabindex="0">
+          <h3>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M20 7h-9M14 17H5M21 17a4 4 0 1 0-8 0M11 7a4 4 0 1 1-8 0"/></svg>
+            {{ myIncomeTitle }}
+          </h3>
+          <div class="amount">{{ myIncomeAmount | number: '1.0-0' }} <span class="unit">บาท</span></div>
+          <div class="amount-change">{{ myIncomeSubtitle }}</div>
+        </div>
       </div>
-
-    </div>
+    </section>
 
     <!-- ── Analytics Charts ── -->
     <div class="rev-charts">
@@ -212,12 +231,7 @@
             </svg>
             รายการรายรับ/รายจ่าย
           </div>
-          <button class="btn-add-expense" type="button" (click)="openExpenseModal()">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            เพิ่มรายรับ/รายจ่าย
-          </button>
+          <span class="rev-expense-count" *ngIf="manualExpenses.length > 0">{{ manualExpenses.length }} รายการ</span>
         </div>
 
         <div class="rev-expense-list">

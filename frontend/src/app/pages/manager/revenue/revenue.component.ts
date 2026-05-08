@@ -214,17 +214,48 @@ export class RevenueComponent implements OnInit, OnDestroy {
       );
     }
 
-    // Person filter (frontend-only — never affects KPIs)
-    if (this.filterTeacher && this.activeKpi !== 'myIncome') {
-      list = list.filter(s => s.teacherId === this.filterTeacher);
-    }
-    if (this.filterStudent) {
+    // Student filter — only applied to paid/unpaid mode (the student-related KPIs)
+    if (this.filterStudent && (this.activeKpi === 'paid' || this.activeKpi === 'unpaid')) {
       list = list.filter(s =>
         s.attendedStudents?.some(st => st.studentId === this.filterStudent)
       );
     }
+    // Teacher filter is already baked into myIncome mode above; no extra filtering elsewhere.
 
     return list;
+  }
+
+  // ── Student-filtered paid/unpaid totals (used by ยืนยันแล้ว / รอชำระ KPIs) ──
+  get paidFiltered(): number {
+    if (!this.filterStudent) return this.kpiPaid;
+    let sum = 0;
+    for (const s of this.allSchedules) {
+      const entry = s.attendedStudents?.find(st => st.studentId === this.filterStudent);
+      if (entry && entry.paymentStatus === 'confirmed') {
+        sum += entry.paymentAmount || 0;
+      }
+    }
+    return sum;
+  }
+
+  get unpaidFiltered(): number {
+    if (!this.filterStudent) return this.kpiUnpaid;
+    let sum = 0;
+    for (const s of this.allSchedules) {
+      const entry = s.attendedStudents?.find(st => st.studentId === this.filterStudent);
+      if (entry && entry.paymentStatus !== 'confirmed') {
+        sum += entry.paymentAmount || 0;
+      }
+    }
+    return sum;
+  }
+
+  get studentFilterLabel(): string {
+    if (!this.filterStudent) return '';
+    const s = this.students.find(x => x._id === this.filterStudent);
+    if (!s) return '';
+    const nick = (s.nickname || '').trim() || `${s.firstName || ''} ${s.lastName || ''}`.trim();
+    return nick;
   }
 
   /** ป้ายหัวข้อตาราง — เปลี่ยนตาม activeKpi */
