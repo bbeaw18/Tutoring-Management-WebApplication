@@ -25,6 +25,7 @@ export interface IRevenueSchedule {
   courseName: string;
   teacherId?: string | null;
   teacherName: string;
+  teacherRole?: 'teacher' | 'manager' | 'admin' | null;
   attendedStudents: {
     studentId: string;
     name: string;

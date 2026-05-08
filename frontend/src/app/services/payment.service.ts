@@ -72,7 +72,12 @@ export class PaymentService {
 
   // GET /payments/revenue-report  (manager/admin only)
   getRevenueReport(params?: { month?: string; teacherId?: string; studentId?: string }): Observable<{
-    kpi: { total: number; paid: number; unpaid: number };
+    kpi: {
+      total: number; paid: number; unpaid: number;
+      teacherExpense?: number;
+      managerIncome?: number;
+      netInstitute?: number;
+    };
     schedules: IRevenueSchedule[];
   }> {
     return this.http.get<IApiResponse<any>>(`${this.apiUrl}/revenue-report`, { params: params as any }).pipe(

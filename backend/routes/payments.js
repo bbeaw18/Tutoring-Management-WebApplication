@@ -335,7 +335,7 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
 
     const schedules = await Schedule.find(scheduleQuery)
       .populate('course', 'name subject')
-      .populate('teacher', 'firstName lastName nickname')
+      .populate('teacher', 'firstName lastName nickname role')
       .sort({ date: -1 });
 
     // H5: เปลี่ยนจาก N+1 queries (Attendance.find + Payment.findOne per schedule)
@@ -381,6 +381,11 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
 
     const scheduleList = [];
     let kpiTotal = 0, kpiPaid = 0;
+    // KPI ใหม่:
+    //   - teacherExpense = รายจ่ายสถาบันสำหรับครู (role='teacher' เท่านั้น)
+    //   - managerIncome  = รายได้ Manager (role='manager' ที่สอน)
+    // นับเฉพาะคลาสที่ Manager ยืนยันแล้ว (status='completed')
+    let kpiTeacherExpense = 0, kpiManagerIncome = 0;
 
     for (const s of schedules) {
       const sid = s._id.toString();
@@ -400,6 +405,18 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
       kpiTotal += totalForSchedule;
       kpiPaid  += paidForSchedule;
 
+      // ── คำนวณ teacher income split (manager-confirmed คลาสเท่านั้น) ──
+      if (s.status === 'completed') {
+        const teacherIncome = s.actualTeacherIncome || 0;
+        const teacherRole = s.teacher?.role;
+        if (teacherRole === 'manager') {
+          kpiManagerIncome += teacherIncome;
+        } else if (teacherRole === 'teacher') {
+          kpiTeacherExpense += teacherIncome;
+        }
+        // role='admin' หรือไม่ระบุ → ไม่นับใน KPI ใดๆ
+      }
+
       scheduleList.push({
         scheduleId:      s._id,
         date:            s.date,
@@ -408,6 +425,8 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
         courseName:      s.course?.name || '-',
         teacherId:       s.teacher?._id || null,
         teacherName:     s.teacher ? (s.teacher.nickname || `${s.teacher.firstName} ${s.teacher.lastName}`) : '-',
+        teacherRole:     s.teacher?.role || null,
+        teacherId:       s.teacher?._id || null,
         attendedStudents: attendances.map(att => {
           const sid = s._id.toString();
           const key = `${att.student._id.toString()}:${sid}`;
@@ -434,7 +453,14 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
     }
 
     sendResponse(res, 200, true, {
-      kpi: { total: kpiTotal, paid: kpiPaid, unpaid: kpiTotal - kpiPaid },
+      kpi: {
+        total: kpiTotal,
+        paid: kpiPaid,
+        unpaid: kpiTotal - kpiPaid,
+        teacherExpense: kpiTeacherExpense,
+        managerIncome:  kpiManagerIncome,
+        netInstitute:   kpiPaid - kpiTeacherExpense  // กำไรสถาบัน = รายได้รวม - รายจ่ายครู
+      },
       schedules: scheduleList
     }, 'Revenue report retrieved');
   } catch (error) {

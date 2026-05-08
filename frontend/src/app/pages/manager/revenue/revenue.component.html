@@ -43,6 +43,48 @@
 
     </div>
 
+    <!-- ── KPI ใหม่: รายจ่ายครู / รายได้ Manager / กำไรสุทธิ ── -->
+    <div class="revenue-cards rev-cards-secondary">
+
+      <div class="revenue-card teacher-expense"
+           [class.active]="activeKpi === 'teacherExpense'"
+           (click)="selectKpi('teacherExpense')"
+           role="button"
+           tabindex="0">
+        <h3>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          รายจ่ายครู (สถาบันจ่ายครู)
+          <span class="kpi-clickable-hint">คลิกดูรายละเอียด ↓</span>
+        </h3>
+        <div class="amount">{{ kpiTeacherExpense | number: '1.0-0' }} <span class="unit">บาท</span></div>
+        <div class="amount-change">เฉพาะคลาสที่ Manager ยืนยันแล้ว</div>
+      </div>
+
+      <div class="revenue-card manager-income"
+           [class.active]="activeKpi === 'managerIncome'"
+           (click)="selectKpi('managerIncome')"
+           role="button"
+           tabindex="0">
+        <h3>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M20 7h-9M14 17H5M21 17a4 4 0 1 0-8 0M11 7a4 4 0 1 1-8 0"/></svg>
+          รายได้ Manager
+          <span class="kpi-clickable-hint">คลิกดูรายละเอียด ↓</span>
+        </h3>
+        <div class="amount">{{ kpiManagerIncome | number: '1.0-0' }} <span class="unit">บาท</span></div>
+        <div class="amount-change">รายได้ของ Manager ที่สอนคลาสเอง</div>
+      </div>
+
+      <div class="revenue-card net-institute">
+        <h3>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          กำไรสุทธิสถาบัน
+        </h3>
+        <div class="amount" [class.negative-amt]="kpiNetInstitute < 0">{{ kpiNetInstitute | number: '1.0-0' }} <span class="unit">บาท</span></div>
+        <div class="amount-change">ยอดชำระแล้ว − รายจ่ายครู</div>
+      </div>
+
+    </div>
+
     <!-- ── Analytics Charts ── -->
     <div class="rev-charts">
 
@@ -258,14 +300,56 @@
 
     </div>
 
+    <!-- ── ป้ายหัวข้อตาราง — เปลี่ยนตาม activeKpi ── -->
+    <div class="table-section-header">
+      <h3 class="table-section-title">{{ scheduleTableTitle }}</h3>
+      <span class="table-section-count">{{ filteredSchedules.length }} คลาส</span>
+    </div>
+
     <!-- ── Empty State ── -->
     <div *ngIf="filteredSchedules.length === 0" class="empty-state">
       <h3>ไม่พบข้อมูล</h3>
-      <p>ยังไม่มีคลาสที่เสร็จสิ้นในช่วงเวลานี้</p>
+      <p *ngIf="activeKpi === 'teacherExpense'">ยังไม่มีคลาสที่ครูสอนและ Manager ยืนยันแล้วในช่วงนี้</p>
+      <p *ngIf="activeKpi === 'managerIncome'">ยังไม่มีคลาสที่ Manager สอนและยืนยันแล้วในช่วงนี้</p>
+      <p *ngIf="activeKpi !== 'teacherExpense' && activeKpi !== 'managerIncome'">ยังไม่มีคลาสที่เสร็จสิ้นในช่วงเวลานี้</p>
     </div>
 
-    <!-- ── Per-Student Payment Table ── -->
-    <div *ngIf="filteredSchedules.length > 0" class="payments-table">
+    <!-- ── Teacher Income Table (สำหรับโหมด teacherExpense / managerIncome) ── -->
+    <div *ngIf="filteredSchedules.length > 0 && showTeacherIncomeColumn" class="payments-table">
+      <table>
+        <thead>
+          <tr>
+            <th>วันที่</th>
+            <th>วิชา</th>
+            <th>{{ activeKpi === 'managerIncome' ? 'Manager ผู้สอน' : 'ครูผู้สอน' }}</th>
+            <th>เวลา / ระยะเวลา</th>
+            <th>ผู้เข้าเรียน</th>
+            <th class="currency">{{ activeKpi === 'managerIncome' ? 'รายได้ Manager' : 'รายจ่ายให้ครู' }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let s of filteredSchedules">
+            <td>{{ formatDate(s.date) }}</td>
+            <td>
+              <div class="course-cell">{{ s.courseName }}</div>
+            </td>
+            <td>{{ s.teacherName }}</td>
+            <td>
+              {{ s.startTime }}–{{ s.endTime }}
+            </td>
+            <td>
+              <span class="student-count">{{ s.attendanceCount }} คน</span>
+            </td>
+            <td class="currency teacher-income-cell">
+              ฿{{ (s.actualTeacherIncome || 0) | number: '1.0-0' }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── Per-Student Payment Table (โหมด all/paid/unpaid) ── -->
+    <div *ngIf="filteredSchedules.length > 0 && !showTeacherIncomeColumn" class="payments-table">
       <table>
         <thead>
           <tr>

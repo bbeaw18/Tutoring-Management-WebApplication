@@ -12,7 +12,7 @@ import { LoadingComponent } from '../../../shared/components/loading/loading.com
 import { MonthPickerComponent } from '../../../shared/components/month-picker/month-picker.component';
 import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
 
-type KpiMode = 'all' | 'paid' | 'unpaid';
+type KpiMode = 'all' | 'paid' | 'unpaid' | 'teacherExpense' | 'managerIncome';
 
 interface PieSlice {
   key: string;
@@ -39,6 +39,10 @@ export class RevenueComponent implements OnInit, OnDestroy {
   kpiTotal   = 0;
   kpiPaid    = 0;
   kpiUnpaid  = 0;
+  // KPI ใหม่ (ผูกกับสถานะ completed/manager-confirmed เท่านั้น)
+  kpiTeacherExpense = 0;   // รายจ่ายสถาบัน — รายได้ครู (role='teacher')
+  kpiManagerIncome  = 0;   // รายได้ Manager (role='manager' ที่สอน)
+  kpiNetInstitute   = 0;   // กำไรสุทธิสถาบัน = paid - teacherExpense
 
   // Active KPI filter
   activeKpi: KpiMode = 'all';
@@ -124,6 +128,9 @@ export class RevenueComponent implements OnInit, OnDestroy {
           this.kpiTotal  = res.kpi.total;
           this.kpiPaid   = res.kpi.paid;
           this.kpiUnpaid = res.kpi.unpaid;
+          this.kpiTeacherExpense = res.kpi.teacherExpense || 0;
+          this.kpiManagerIncome  = res.kpi.managerIncome  || 0;
+          this.kpiNetInstitute   = res.kpi.netInstitute   || 0;
           this.allSchedules = res.schedules;
           this.loading = false;
         },
@@ -160,12 +167,45 @@ export class RevenueComponent implements OnInit, OnDestroy {
     if (this.activeKpi === 'unpaid') {
       return this.allSchedules.filter(s => s.unpaid > 0);
     }
+    if (this.activeKpi === 'teacherExpense') {
+      // เฉพาะคลาสที่ Manager ยืนยันแล้ว + ครูเป็น role='teacher'
+      return this.allSchedules.filter(s =>
+        s.status === 'completed' &&
+        s.teacherRole === 'teacher' &&
+        (s.actualTeacherIncome || 0) > 0
+      );
+    }
+    if (this.activeKpi === 'managerIncome') {
+      // เฉพาะคลาสที่ Manager ยืนยันแล้ว + ครูเป็น role='manager'
+      return this.allSchedules.filter(s =>
+        s.status === 'completed' &&
+        s.teacherRole === 'manager' &&
+        (s.actualTeacherIncome || 0) > 0
+      );
+    }
     return this.allSchedules;
   }
 
-  // ── Auto teacher wage from completed schedules in selected month ──
+  /** ป้ายหัวข้อตาราง — เปลี่ยนตาม activeKpi */
+  get scheduleTableTitle(): string {
+    switch (this.activeKpi) {
+      case 'paid':           return 'คลาสที่ชำระเงินแล้ว';
+      case 'unpaid':         return 'คลาสที่รอการชำระเงิน';
+      case 'teacherExpense': return 'คลาสที่ครูสอน (รายจ่ายสถาบัน)';
+      case 'managerIncome':  return 'คลาสที่ Manager สอน (รายได้ Manager)';
+      default:               return 'คลาสทั้งหมด';
+    }
+  }
+
+  /** จะแสดงคอลัมน์รายจ่ายครู/รายได้ Manager หรือไม่ */
+  get showTeacherIncomeColumn(): boolean {
+    return this.activeKpi === 'teacherExpense' || this.activeKpi === 'managerIncome';
+  }
+
+  // ── Auto teacher wage = ค่าจ้างครู (role='teacher') ที่ Manager ยืนยันแล้ว ──
+  // ใช้ค่าจาก backend (kpiTeacherExpense) เพื่อให้ตรงกับ KPI card
   get teacherWageTotal(): number {
-    return this.allSchedules.reduce((sum, s) => sum + (s.actualTeacherIncome || 0), 0);
+    return this.kpiTeacherExpense;
   }
 
   get manualExpenseTotal(): number {
