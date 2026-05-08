@@ -5,14 +5,15 @@ import { Subject } from 'rxjs';
 import { takeUntil, forkJoin } from 'rxjs';
 import { PaymentService } from '../../../services/payment.service';
 import { UserService } from '../../../services/user.service';
-import { ExpenseService, IExpense } from '../../../services/expense.service';
+import { ExpenseService, IExpense, ExpenseType } from '../../../services/expense.service';
+import { AuthService } from '../../../services/auth.service';
 import { IRevenueSchedule } from '../../../interfaces/payment.interface';
 import { IUser } from '../../../interfaces/user.interface';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { MonthPickerComponent } from '../../../shared/components/month-picker/month-picker.component';
 import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
 
-type KpiMode = 'all' | 'paid' | 'unpaid' | 'teacherExpense' | 'managerIncome';
+type KpiMode = 'all' | 'paid' | 'unpaid' | 'teacherExpense' | 'managerIncome' | 'myIncome';
 
 interface PieSlice {
   key: string;
@@ -67,12 +68,16 @@ export class RevenueComponent implements OnInit, OnDestroy {
   // ── Expenses (per month) ─────────────────────────────────────
   manualExpenses: IExpense[] = [];
 
-  // Modal state for adding new expense
+  // Modal state for adding new expense / income
   showExpenseModal = false;
+  newExpenseType: ExpenseType = 'expense';
   newExpenseDescription = '';
   newExpenseAmount: number | null = null;
   savingExpense = false;
   expenseError = '';
+
+  // Current logged-in user — used for "รายได้ของคุณ" KPI
+  currentUser: IUser | null = null;
 
   // Palette for teacher slices
   private readonly TEACHER_COLORS = [
@@ -83,13 +88,25 @@ export class RevenueComponent implements OnInit, OnDestroy {
   constructor(
     private paymentService: PaymentService,
     private userService: UserService,
-    private expenseService: ExpenseService
+    private expenseService: ExpenseService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
     // Set default month to current month
     const now = new Date();
     this.filterMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    // Track current user — default filterTeacher to themselves so KPI shows "รายได้ของคุณ"
+    this.authService.currentUser$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(user => {
+        this.currentUser = user;
+        if (user && !this.filterTeacher) {
+          this.filterTeacher = user._id;
+          this.loadReport();
+        }
+      });
 
     this.loadDropdowns();
     this.loadReport();
@@ -183,6 +200,15 @@ export class RevenueComponent implements OnInit, OnDestroy {
         (s.actualTeacherIncome || 0) > 0
       );
     }
+    if (this.activeKpi === 'myIncome') {
+      const targetId = this.filterTeacher || this.currentUser?._id || '';
+      if (!targetId) return [];
+      return this.allSchedules.filter(s =>
+        s.teacherId === targetId &&
+        s.status === 'completed' &&
+        (s.actualTeacherIncome || 0) > 0
+      );
+    }
     return this.allSchedules;
   }
 
@@ -192,6 +218,7 @@ export class RevenueComponent implements OnInit, OnDestroy {
       case 'paid':           return 'คลาสที่ชำระเงินแล้ว';
       case 'unpaid':         return 'คลาสที่รอการชำระเงิน';
       case 'teacherExpense': return 'คลาสที่ครูสอน (รายจ่ายสถาบัน)';
+      case 'myIncome':       return `คลาสของ ${this.myIncomeTitle.replace(/^รายได้ของ\s*/, '')}`;
       case 'managerIncome':  return 'คลาสที่ Manager สอน (รายได้ Manager)';
       default:               return 'คลาสทั้งหมด';
     }
@@ -199,7 +226,9 @@ export class RevenueComponent implements OnInit, OnDestroy {
 
   /** จะแสดงคอลัมน์รายจ่ายครู/รายได้ Manager หรือไม่ */
   get showTeacherIncomeColumn(): boolean {
-    return this.activeKpi === 'teacherExpense' || this.activeKpi === 'managerIncome';
+    return this.activeKpi === 'teacherExpense' ||
+           this.activeKpi === 'managerIncome' ||
+           this.activeKpi === 'myIncome';
   }
 
   // ── Auto teacher wage = ค่าจ้างครู (role='teacher') ที่ Manager ยืนยันแล้ว ──
@@ -209,15 +238,53 @@ export class RevenueComponent implements OnInit, OnDestroy {
   }
 
   get manualExpenseTotal(): number {
-    return this.manualExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    return this.manualExpenses
+      .filter(e => e.type !== 'income')
+      .reduce((sum, e) => sum + (e.amount || 0), 0);
+  }
+
+  get manualIncomeTotal(): number {
+    return this.manualExpenses
+      .filter(e => e.type === 'income')
+      .reduce((sum, e) => sum + (e.amount || 0), 0);
   }
 
   get expenseTotal(): number {
     return this.teacherWageTotal + this.manualExpenseTotal;
   }
 
+  get incomeTotal(): number {
+    return this.kpiTotal + this.manualIncomeTotal;
+  }
+
   get netProfit(): number {
-    return this.kpiTotal - this.expenseTotal;
+    return this.incomeTotal - this.expenseTotal;
+  }
+
+  // ── "รายได้ของคุณ" / "รายได้ของ <ชื่อเล่น>" — ขึ้นกับ filterTeacher ──
+  get myIncomeTitle(): string {
+    if (!this.filterTeacher || this.filterTeacher === this.currentUser?._id) {
+      return 'รายได้ของคุณ';
+    }
+    const t = this.teachers.find(x => x._id === this.filterTeacher);
+    if (!t) return 'รายได้ของครู';
+    const nickname = (t.nickname || '').trim() || `${t.firstName || ''} ${t.lastName || ''}`.trim();
+    return `รายได้ของ ${nickname}`;
+  }
+
+  get myIncomeAmount(): number {
+    const targetId = this.filterTeacher || this.currentUser?._id || '';
+    if (!targetId) return 0;
+    return this.allSchedules
+      .filter(s => s.teacherId === targetId && s.status === 'completed')
+      .reduce((sum, s) => sum + (s.actualTeacherIncome || 0), 0);
+  }
+
+  get myIncomeSubtitle(): string {
+    if (!this.filterTeacher || this.filterTeacher === this.currentUser?._id) {
+      return 'รายได้จากการสอนของคุณในเดือนนี้';
+    }
+    return 'รายได้จากการสอนของครูคนนี้ในเดือนนี้';
   }
 
   // ── Teacher revenue proportion pie ──
@@ -249,7 +316,7 @@ export class RevenueComponent implements OnInit, OnDestroy {
 
   // ── Income vs Expense pie ──
   get incomeExpensePie(): PieSlice[] {
-    const income = this.kpiTotal;
+    const income = this.incomeTotal;
     const expense = this.expenseTotal;
     const total = income + expense || 1;
     return this.buildPieSlices([
@@ -315,8 +382,9 @@ export class RevenueComponent implements OnInit, OnDestroy {
     return status === 'completed' ? 'badge-completed' : 'badge-pending';
   }
 
-  // ── Expense modal handlers ──
+  // ── Expense/Income modal handlers ──
   openExpenseModal(): void {
+    this.newExpenseType = 'expense';
     this.newExpenseDescription = '';
     this.newExpenseAmount = null;
     this.expenseError = '';
@@ -345,7 +413,7 @@ export class RevenueComponent implements OnInit, OnDestroy {
     }
     this.savingExpense = true;
     this.expenseError = '';
-    this.expenseService.create({ description: desc, amount, month: this.filterMonth })
+    this.expenseService.create({ description: desc, type: this.newExpenseType, amount, month: this.filterMonth })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (created) => {
@@ -355,7 +423,7 @@ export class RevenueComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           this.savingExpense = false;
-          this.expenseError = err?.error?.message || 'ไม่สามารถบันทึกรายจ่ายได้';
+          this.expenseError = err?.error?.message || 'ไม่สามารถบันทึกรายการได้';
         }
       });
   }

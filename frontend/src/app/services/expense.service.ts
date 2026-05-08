@@ -5,9 +5,12 @@ import { map } from 'rxjs/operators';
 import { environment } from '@environments/environment';
 import { IApiResponse } from '../interfaces/api-response.interface';
 
+export type ExpenseType = 'income' | 'expense';
+
 export interface IExpense {
   _id: string;
   description: string;
+  type: ExpenseType;
   amount: number;
   month: string; // YYYY-MM
   createdBy?: string | null;
@@ -27,7 +30,7 @@ export class ExpenseService {
     );
   }
 
-  create(body: { description: string; amount: number; month: string }): Observable<IExpense> {
+  create(body: { description: string; type: ExpenseType; amount: number; month: string }): Observable<IExpense> {
     return this.http.post<IApiResponse<IExpense>>(this.apiUrl, body).pipe(
       map(res => res.data)
     );

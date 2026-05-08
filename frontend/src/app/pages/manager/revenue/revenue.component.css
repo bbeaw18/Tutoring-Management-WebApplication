@@ -1323,6 +1323,89 @@ tbody tr:hover { background: rgba(30,63,128,0.03); }
   cursor: not-allowed;
 }
 
+/* ── Type Toggle (รายรับ/รายจ่าย) ─────────────────── */
+.exp-type-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-2);
+}
+
+.exp-type-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 2px solid var(--gray-200);
+  background: #fff;
+  border-radius: var(--r-md);
+  color: var(--gray-600);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s var(--ease-out);
+}
+
+.exp-type-btn:hover:not(:disabled) {
+  border-color: var(--gray-300);
+  background: var(--gray-50);
+}
+
+.exp-type-btn.active.is-expense {
+  border-color: #ef4444;
+  background: #fef2f2;
+  color: #b91c1c;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, .15);
+}
+
+.exp-type-btn.active.is-income {
+  border-color: #22c55e;
+  background: #f0fdf4;
+  color: #15803d;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, .15);
+}
+
+.exp-type-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+/* ── Income variant (รายรับเพิ่มเติม) ─────────────── */
+.exp-row.exp-income {
+  background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+  border-color: #bbf7d0;
+}
+
+.exp-tag.exp-tag-income {
+  background: #22c55e;
+}
+
+.exp-amount.exp-amount-income {
+  color: #16a34a;
+}
+
+.rev-expense-totals {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+.rev-expense-total.income-row {
+  background: linear-gradient(135deg, #f0fdf4, #fff);
+  border-color: #bbf7d0;
+}
+
+.rev-expense-total.income-row strong {
+  color: #16a34a;
+}
+
+/* ── Filter bar at top — under page header ─────── */
+.filter-bar.filter-bar-top {
+  margin-top: 0;
+  margin-bottom: var(--sp-2);
+}
+
 /* ── KPI ใหม่ (รายจ่ายครู / รายได้ Manager / กำไรสุทธิ) ─── */
 .rev-cards-secondary {
   margin-top: var(--sp-3, 12px);

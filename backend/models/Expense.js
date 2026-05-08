@@ -6,6 +6,12 @@ const ExpenseSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  // ประเภทรายการ — 'income' = รายรับเพิ่มเติม, 'expense' = รายจ่าย
+  type: {
+    type: String,
+    enum: ['income', 'expense'],
+    default: 'expense'
+  },
   amount: {
     type: Number,
     required: true,

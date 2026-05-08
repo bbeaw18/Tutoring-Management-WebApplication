@@ -22,7 +22,7 @@ router.get('/', authenticateToken, roleCheck(['admin', 'manager']), async (req, 
 // POST /api/expenses — create expense (admin/manager)
 router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req, res) => {
   try {
-    const { description, amount, month } = req.body;
+    const { description, amount, month, type } = req.body;
     if (!description || !String(description).trim()) {
       return sendResponse(res, 400, false, null, 'description is required');
     }
@@ -33,8 +33,10 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
     if (!month || !/^\d{4}-\d{2}$/.test(month)) {
       return sendResponse(res, 400, false, null, 'month must be in YYYY-MM format');
     }
+    const normalizedType = type === 'income' ? 'income' : 'expense';
     const expense = await Expense.create({
       description: String(description).trim(),
+      type: normalizedType,
       amount: numAmount,
       month,
       createdBy: req.user.id

@@ -8,6 +8,44 @@
 
   <div *ngIf="!loading" class="content">
 
+    <!-- ── Filter Bar (top) ── -->
+    <div class="filter-bar filter-bar-top">
+
+      <div class="filter-group">
+        <span class="filter-label">เดือน</span>
+        <kms-month-picker [(ngModel)]="filterMonth" (valueChange)="onFilterChange()" placeholder="ทั้งหมด"></kms-month-picker>
+      </div>
+
+      <div class="filter-group">
+        <span class="filter-label">ครูผู้สอน</span>
+        <select
+          class="filter-select"
+          [(ngModel)]="filterTeacher"
+          (change)="onFilterChange()"
+        >
+          <option value="">ทั้งหมด</option>
+          <option *ngFor="let t of teachers" [value]="t._id">
+            {{ t | displayName }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <span class="filter-label">นักเรียน</span>
+        <select
+          class="filter-select"
+          [(ngModel)]="filterStudent"
+          (change)="onFilterChange()"
+        >
+          <option value="">ทั้งหมด</option>
+          <option *ngFor="let s of students" [value]="s._id">
+            {{ s | displayName }}
+          </option>
+        </select>
+      </div>
+
+    </div>
+
     <!-- ── KPI Cards ── -->
     <div class="revenue-cards">
 
@@ -61,17 +99,17 @@
       </div>
 
       <div class="revenue-card manager-income"
-           [class.active]="activeKpi === 'managerIncome'"
-           (click)="selectKpi('managerIncome')"
+           [class.active]="activeKpi === 'myIncome'"
+           (click)="selectKpi('myIncome')"
            role="button"
            tabindex="0">
         <h3>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M20 7h-9M14 17H5M21 17a4 4 0 1 0-8 0M11 7a4 4 0 1 1-8 0"/></svg>
-          รายได้ Manager
+          {{ myIncomeTitle }}
           <span class="kpi-clickable-hint">คลิกดูรายละเอียด ↓</span>
         </h3>
-        <div class="amount">{{ kpiManagerIncome | number: '1.0-0' }} <span class="unit">บาท</span></div>
-        <div class="amount-change">รายได้ของ Manager ที่สอนคลาสเอง</div>
+        <div class="amount">{{ myIncomeAmount | number: '1.0-0' }} <span class="unit">บาท</span></div>
+        <div class="amount-change">{{ myIncomeSubtitle }}</div>
       </div>
 
       <div class="revenue-card net-institute">
@@ -111,7 +149,7 @@
                       transform="rotate(-90 50 50)"/>
             </svg>
             <div class="rev-pie-center">
-              <div class="rev-pie-total">{{ kpiTotal | number: '1.0-0' }}</div>
+              <div class="rev-pie-total">{{ incomeTotal | number: '1.0-0' }}</div>
               <div class="rev-pie-sub">บาท · รายรับรวม</div>
             </div>
           </div>
@@ -172,13 +210,13 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
             </svg>
-            รายการรายจ่าย
+            รายการรายรับ/รายจ่าย
           </div>
           <button class="btn-add-expense" type="button" (click)="openExpenseModal()">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
-            เพิ่มรายการรายจ่าย
+            เพิ่มรายรับ/รายจ่าย
           </button>
         </div>
 
@@ -195,13 +233,21 @@
             <div class="exp-amount">{{ teacherWageTotal | number: '1.0-0' }} ฿</div>
           </div>
 
-          <!-- Manual expenses -->
-          <div class="exp-row" *ngFor="let e of manualExpenses; trackBy: trackByExpenseId">
+          <!-- Manual incomes / expenses -->
+          <div class="exp-row" *ngFor="let e of manualExpenses; trackBy: trackByExpenseId"
+               [class.exp-income]="e.type === 'income'">
             <div class="exp-info">
-              <div class="exp-desc">{{ e.description }}</div>
+              <div class="exp-desc">
+                <span class="exp-tag" [class.exp-tag-income]="e.type === 'income'">
+                  {{ e.type === 'income' ? 'รายรับ' : 'รายจ่าย' }}
+                </span>
+                {{ e.description }}
+              </div>
               <div class="exp-meta">{{ formatDate(e.createdAt) }}</div>
             </div>
-            <div class="exp-amount">{{ e.amount | number: '1.0-0' }} ฿</div>
+            <div class="exp-amount" [class.exp-amount-income]="e.type === 'income'">
+              {{ e.type === 'income' ? '+' : '' }}{{ e.amount | number: '1.0-0' }} ฿
+            </div>
             <button class="btn-del-expense" type="button" (click)="deleteExpense(e)" title="ลบ">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>
@@ -210,31 +256,64 @@
           </div>
 
           <div class="exp-empty" *ngIf="manualExpenses.length === 0">
-            ยังไม่มีรายการรายจ่ายเพิ่มเติม
+            ยังไม่มีรายการเพิ่มเติม
           </div>
         </div>
 
-        <div class="rev-expense-total">
-          <span>รวมรายจ่ายเดือนนี้</span>
-          <strong>{{ expenseTotal | number: '1.0-0' }} ฿</strong>
+        <div class="rev-expense-totals">
+          <div class="rev-expense-total income-row" *ngIf="manualIncomeTotal > 0">
+            <span>รายรับเพิ่มเติมเดือนนี้</span>
+            <strong>+{{ manualIncomeTotal | number: '1.0-0' }} ฿</strong>
+          </div>
+          <div class="rev-expense-total">
+            <span>รวมรายจ่ายเดือนนี้</span>
+            <strong>{{ expenseTotal | number: '1.0-0' }} ฿</strong>
+          </div>
         </div>
       </div>
 
     </div>
 
-    <!-- ── Add Expense Modal ── -->
+    <!-- ── Add Income/Expense Modal ── -->
     <div class="exp-modal-backdrop" *ngIf="showExpenseModal" (click)="closeExpenseModal()">
       <div class="exp-modal" (click)="$event.stopPropagation()">
         <div class="exp-modal-head">
-          <h3>เพิ่มรายการรายจ่าย</h3>
+          <h3>เพิ่มรายรับ/รายจ่าย</h3>
           <button class="exp-modal-close" type="button" (click)="closeExpenseModal()" [disabled]="savingExpense">×</button>
         </div>
         <div class="exp-modal-body">
           <div class="exp-field">
+            <label>ประเภท</label>
+            <div class="exp-type-toggle">
+              <button type="button"
+                      class="exp-type-btn"
+                      [class.active]="newExpenseType === 'expense'"
+                      [class.is-expense]="newExpenseType === 'expense'"
+                      (click)="newExpenseType = 'expense'"
+                      [disabled]="savingExpense">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+                รายจ่าย
+              </button>
+              <button type="button"
+                      class="exp-type-btn"
+                      [class.active]="newExpenseType === 'income'"
+                      [class.is-income]="newExpenseType === 'income'"
+                      (click)="newExpenseType = 'income'"
+                      [disabled]="savingExpense">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+                </svg>
+                รายรับ
+              </button>
+            </div>
+          </div>
+          <div class="exp-field">
             <label>รายการ</label>
             <input type="text"
                    [(ngModel)]="newExpenseDescription"
-                   placeholder="เช่น ค่าน้ำค่าไฟ, ค่าเช่าสถานที่"
+                   [placeholder]="newExpenseType === 'income' ? 'เช่น เงินสนับสนุน, รายได้พิเศษ' : 'เช่น ค่าน้ำค่าไฟ, ค่าเช่าสถานที่'"
                    maxlength="200"
                    [disabled]="savingExpense" />
           </div>
@@ -262,44 +341,6 @@
       </div>
     </div>
 
-    <!-- ── Filter Bar ── -->
-    <div class="filter-bar">
-
-      <div class="filter-group">
-        <span class="filter-label">เดือน</span>
-        <kms-month-picker [(ngModel)]="filterMonth" (valueChange)="onFilterChange()" placeholder="ทั้งหมด"></kms-month-picker>
-      </div>
-
-      <div class="filter-group">
-        <span class="filter-label">ครูผู้สอน</span>
-        <select
-          class="filter-select"
-          [(ngModel)]="filterTeacher"
-          (change)="onFilterChange()"
-        >
-          <option value="">ทั้งหมด</option>
-          <option *ngFor="let t of teachers" [value]="t._id">
-            {{ t | displayName }}
-          </option>
-        </select>
-      </div>
-
-      <div class="filter-group">
-        <span class="filter-label">นักเรียน</span>
-        <select
-          class="filter-select"
-          [(ngModel)]="filterStudent"
-          (change)="onFilterChange()"
-        >
-          <option value="">ทั้งหมด</option>
-          <option *ngFor="let s of students" [value]="s._id">
-            {{ s | displayName }}
-          </option>
-        </select>
-      </div>
-
-    </div>
-
     <!-- ── ป้ายหัวข้อตาราง — เปลี่ยนตาม activeKpi ── -->
     <div class="table-section-header">
       <h3 class="table-section-title">{{ scheduleTableTitle }}</h3>
@@ -311,7 +352,8 @@
       <h3>ไม่พบข้อมูล</h3>
       <p *ngIf="activeKpi === 'teacherExpense'">ยังไม่มีคลาสที่ครูสอนและ Manager ยืนยันแล้วในช่วงนี้</p>
       <p *ngIf="activeKpi === 'managerIncome'">ยังไม่มีคลาสที่ Manager สอนและยืนยันแล้วในช่วงนี้</p>
-      <p *ngIf="activeKpi !== 'teacherExpense' && activeKpi !== 'managerIncome'">ยังไม่มีคลาสที่เสร็จสิ้นในช่วงเวลานี้</p>
+      <p *ngIf="activeKpi === 'myIncome'">ยังไม่มีคลาสที่ครูคนนี้สอนและยืนยันแล้วในช่วงนี้</p>
+      <p *ngIf="activeKpi !== 'teacherExpense' && activeKpi !== 'managerIncome' && activeKpi !== 'myIncome'">ยังไม่มีคลาสที่เสร็จสิ้นในช่วงเวลานี้</p>
     </div>
 
     <!-- ── Teacher Income Table (สำหรับโหมด teacherExpense / managerIncome) ── -->
