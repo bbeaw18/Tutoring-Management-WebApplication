@@ -5,6 +5,7 @@ import { Subject } from 'rxjs';
 import { takeUntil, forkJoin } from 'rxjs';
 import { PaymentService } from '../../../services/payment.service';
 import { UserService } from '../../../services/user.service';
+import { ExpenseService, IExpense } from '../../../services/expense.service';
 import { IRevenueSchedule } from '../../../interfaces/payment.interface';
 import { IUser } from '../../../interfaces/user.interface';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
@@ -12,6 +13,17 @@ import { MonthPickerComponent } from '../../../shared/components/month-picker/mo
 import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
 
 type KpiMode = 'all' | 'paid' | 'unpaid';
+
+interface PieSlice {
+  key: string;
+  label: string;
+  value: number;
+  pct: number;
+  color: string;
+  // SVG pre-computed arc
+  dashArray: string;
+  dashOffset: string;
+}
 
 @Component({
   selector: 'app-revenue',
@@ -48,9 +60,26 @@ export class RevenueComponent implements OnInit, OnDestroy {
   // Tracks the paymentId currently being confirmed (for button disable state)
   confirmingPaymentId: string | null = null;
 
+  // ── Expenses (per month) ─────────────────────────────────────
+  manualExpenses: IExpense[] = [];
+
+  // Modal state for adding new expense
+  showExpenseModal = false;
+  newExpenseDescription = '';
+  newExpenseAmount: number | null = null;
+  savingExpense = false;
+  expenseError = '';
+
+  // Palette for teacher slices
+  private readonly TEACHER_COLORS = [
+    '#ec4899', '#1e3f80', '#22c55e', '#f59e0b', '#8b5cf6',
+    '#0ea5e9', '#ef4444', '#14b8a6', '#f97316', '#a855f7'
+  ];
+
   constructor(
     private paymentService: PaymentService,
-    private userService: UserService
+    private userService: UserService,
+    private expenseService: ExpenseService
   ) {}
 
   ngOnInit(): void {
@@ -60,6 +89,7 @@ export class RevenueComponent implements OnInit, OnDestroy {
 
     this.loadDropdowns();
     this.loadReport();
+    this.loadExpenses();
   }
 
   ngOnDestroy(): void {
@@ -101,8 +131,22 @@ export class RevenueComponent implements OnInit, OnDestroy {
       });
   }
 
+  loadExpenses(): void {
+    if (!this.filterMonth) {
+      this.manualExpenses = [];
+      return;
+    }
+    this.expenseService.list({ month: this.filterMonth })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (list) => { this.manualExpenses = list || []; },
+        error: (err) => console.error('[Revenue] loadExpenses failed:', err)
+      });
+  }
+
   onFilterChange(): void {
     this.loadReport();
+    this.loadExpenses();
   }
 
   selectKpi(mode: KpiMode): void {
@@ -119,51 +163,83 @@ export class RevenueComponent implements OnInit, OnDestroy {
     return this.allSchedules;
   }
 
-  /** Daily revenue bars for the currently filtered month */
-  get dailyBars(): { day: number; paid: number; unpaid: number; heightPaid: number; heightUnpaid: number; isPeak: boolean }[] {
-    if (!this.filterMonth) return [];
-    const [y, m] = this.filterMonth.split('-').map(Number);
-    const daysInMonth = new Date(y, m, 0).getDate();
-    const buckets: Record<number, { paid: number; unpaid: number }> = {};
-    for (let d = 1; d <= daysInMonth; d++) buckets[d] = { paid: 0, unpaid: 0 };
-    for (const s of this.allSchedules) {
-      const dt = new Date(s.date);
-      const day = dt.getDate();
-      if (!buckets[day]) buckets[day] = { paid: 0, unpaid: 0 };
-      buckets[day].paid   += s.paid   || 0;
-      buckets[day].unpaid += s.unpaid || 0;
-    }
-    const maxVal = Math.max(1, ...Object.values(buckets).map(v => v.paid + v.unpaid));
-    const peakVal = maxVal;
-    return Object.entries(buckets).map(([day, v]) => {
-      const total = v.paid + v.unpaid;
-      return {
-        day: Number(day),
-        paid: v.paid,
-        unpaid: v.unpaid,
-        heightPaid:   maxVal > 0 ? (v.paid / maxVal) * 100 : 0,
-        heightUnpaid: maxVal > 0 ? (v.unpaid / maxVal) * 100 : 0,
-        isPeak: total === peakVal && total > 0
-      };
-    });
+  // ── Auto teacher wage from completed schedules in selected month ──
+  get teacherWageTotal(): number {
+    return this.allSchedules.reduce((sum, s) => sum + (s.actualTeacherIncome || 0), 0);
   }
 
-  /** Top teachers by total income for period */
-  get topTeachers(): { name: string; total: number; count: number; pct: number }[] {
-    const tally: Record<string, { name: string; total: number; count: number }> = {};
+  get manualExpenseTotal(): number {
+    return this.manualExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  }
+
+  get expenseTotal(): number {
+    return this.teacherWageTotal + this.manualExpenseTotal;
+  }
+
+  get netProfit(): number {
+    return this.kpiTotal - this.expenseTotal;
+  }
+
+  // ── Teacher revenue proportion pie ──
+  get teacherPie(): PieSlice[] {
+    const tally: Record<string, { name: string; total: number }> = {};
     for (const s of this.allSchedules) {
-      const t: any = (s as any).teacher;
-      if (!t) continue;
-      const id = t._id || t.id || (typeof t === 'string' ? t : '');
-      if (!id) continue;
-      const name = `${t.firstName || ''} ${t.lastName || ''}`.trim() || 'ไม่ระบุ';
-      if (!tally[id]) tally[id] = { name, total: 0, count: 0 };
-      tally[id].total += (s.paid || 0) + (s.unpaid || 0);
-      tally[id].count += 1;
+      const id = s.teacherId || s.teacherName || 'unknown';
+      const name = s.teacherName || 'ไม่ระบุ';
+      const value = (s.paid || 0) + (s.unpaid || 0);
+      if (!tally[id]) tally[id] = { name, total: 0 };
+      tally[id].total += value;
     }
-    const list = Object.values(tally).sort((a, b) => b.total - a.total).slice(0, 5);
-    const max = Math.max(1, ...list.map(x => x.total));
-    return list.map(x => ({ ...x, pct: (x.total / max) * 100 }));
+    const list = Object.entries(tally)
+      .map(([key, v]) => ({ key, name: v.name, total: v.total }))
+      .filter(x => x.total > 0)
+      .sort((a, b) => b.total - a.total);
+
+    const sum = list.reduce((s, x) => s + x.total, 0) || 1;
+    return this.buildPieSlices(
+      list.map((x, i) => ({
+        key: x.key,
+        label: x.name,
+        value: x.total,
+        color: this.TEACHER_COLORS[i % this.TEACHER_COLORS.length]
+      })),
+      sum
+    );
+  }
+
+  // ── Income vs Expense pie ──
+  get incomeExpensePie(): PieSlice[] {
+    const income = this.kpiTotal;
+    const expense = this.expenseTotal;
+    const total = income + expense || 1;
+    return this.buildPieSlices([
+      { key: 'income', label: 'รายรับ', value: income, color: '#22c55e' },
+      { key: 'expense', label: 'รายจ่าย', value: expense, color: '#ef4444' }
+    ], total);
+  }
+
+  /** Build pie slices with cumulative SVG dashArray/dashOffset for r=42 circle */
+  private buildPieSlices(
+    items: { key: string; label: string; value: number; color: string }[],
+    total: number
+  ): PieSlice[] {
+    const circ = 2 * Math.PI * 42; // r=42
+    let cumulative = 0;
+    return items.map(it => {
+      const pct = total > 0 ? (it.value / total) * 100 : 0;
+      const len = (pct / 100) * circ;
+      const slice: PieSlice = {
+        key: it.key,
+        label: it.label,
+        value: it.value,
+        pct,
+        color: it.color,
+        dashArray: `${len} ${circ - len}`,
+        dashOffset: `${-cumulative}`
+      };
+      cumulative += len;
+      return slice;
+    });
   }
 
   /** Paid vs unpaid donut (percentage for arc) */
@@ -199,6 +275,63 @@ export class RevenueComponent implements OnInit, OnDestroy {
     return status === 'completed' ? 'badge-completed' : 'badge-pending';
   }
 
+  // ── Expense modal handlers ──
+  openExpenseModal(): void {
+    this.newExpenseDescription = '';
+    this.newExpenseAmount = null;
+    this.expenseError = '';
+    this.showExpenseModal = true;
+  }
+
+  closeExpenseModal(): void {
+    if (this.savingExpense) return;
+    this.showExpenseModal = false;
+  }
+
+  saveExpense(): void {
+    const desc = (this.newExpenseDescription || '').trim();
+    const amount = Number(this.newExpenseAmount);
+    if (!desc) {
+      this.expenseError = 'กรุณากรอกรายการ';
+      return;
+    }
+    if (!Number.isFinite(amount) || amount < 0) {
+      this.expenseError = 'กรุณากรอกราคาที่ถูกต้อง';
+      return;
+    }
+    if (!this.filterMonth) {
+      this.expenseError = 'กรุณาเลือกเดือน';
+      return;
+    }
+    this.savingExpense = true;
+    this.expenseError = '';
+    this.expenseService.create({ description: desc, amount, month: this.filterMonth })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (created) => {
+          this.manualExpenses = [created, ...this.manualExpenses];
+          this.savingExpense = false;
+          this.showExpenseModal = false;
+        },
+        error: (err) => {
+          this.savingExpense = false;
+          this.expenseError = err?.error?.message || 'ไม่สามารถบันทึกรายจ่ายได้';
+        }
+      });
+  }
+
+  deleteExpense(exp: IExpense): void {
+    if (!confirm(`ลบรายการ "${exp.description}" ?`)) return;
+    this.expenseService.delete(exp._id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.manualExpenses = this.manualExpenses.filter(e => e._id !== exp._id);
+        },
+        error: (err) => alert(err?.error?.message || 'ไม่สามารถลบรายการได้')
+      });
+  }
+
   /** Manager กดยืนยันการชำระเงินของนักเรียนรายคน */
   confirmStudentPayment(student: { paymentId?: string | null; paymentStatus?: string; name?: string }): void {
     if (!student?.paymentId || student.paymentStatus !== 'pending') return;
@@ -214,7 +347,6 @@ export class RevenueComponent implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.confirmingPaymentId = null;
-          // อัปเดต local state ทันที (ไม่ต้องรอ refetch)
           for (const s of this.allSchedules) {
             for (const st of s.attendedStudents) {
               if (st.paymentId === paymentId) {
@@ -222,7 +354,6 @@ export class RevenueComponent implements OnInit, OnDestroy {
               }
             }
           }
-          // ดึงข้อมูลใหม่เพื่อ refresh KPI
           this.loadReport();
         },
         error: (err) => {
@@ -230,5 +361,13 @@ export class RevenueComponent implements OnInit, OnDestroy {
           alert(err?.error?.message || 'ไม่สามารถยืนยันการชำระเงินได้');
         }
       });
+  }
+
+  trackByExpenseId(_i: number, e: IExpense): string {
+    return e._id;
+  }
+
+  trackByPieKey(_i: number, p: PieSlice): string {
+    return p.key;
   }
 }

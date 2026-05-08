@@ -406,6 +406,7 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
         startTime:       s.startTime,
         endTime:         s.endTime,
         courseName:      s.course?.name || '-',
+        teacherId:       s.teacher?._id || null,
         teacherName:     s.teacher ? (s.teacher.nickname || `${s.teacher.firstName} ${s.teacher.lastName}`) : '-',
         attendedStudents: attendances.map(att => {
           const sid = s._id.toString();

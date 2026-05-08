@@ -588,7 +588,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
     { label: 'ปฏิทินมาสเตอร์',  path: '/dashboard/manager-calendar', icon: this.ICON_CALENDAR,  roles: ['manager', 'admin'] },
     { label: 'ประวัติการสอน',     path: '/dashboard/history',          icon: this.ICON_HISTORY,   roles: ['manager', 'admin'] },
     { label: 'จัดการรายวิชา',    path: '/dashboard/course-management', icon: this.ICON_OPENBOOK,  roles: ['manager', 'admin'] },
-    { label: 'รายได้',            path: '/dashboard/revenue',          icon: this.ICON_COIN,      roles: ['manager', 'admin'] },
+    { label: 'รายรับ/รายจ่าย',     path: '/dashboard/revenue',          icon: this.ICON_COIN,      roles: ['manager', 'admin'] },
     { label: 'อัพโหลด VDO',      path: '/dashboard/video-management', icon: this.ICON_VIDEO,     roles: ['manager', 'admin'] },
     { label: 'VDO Online',        path: '/dashboard/vdo-online',       icon: this.ICON_PLAY,      roles: ['manager', 'admin'] },
     { label: 'บุคลากร',           path: '/dashboard/staff',            icon: this.ICON_USERS,     roles: ['manager', 'admin'] },

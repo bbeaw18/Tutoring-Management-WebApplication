@@ -209,7 +209,7 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
       this.actions = [
         { label: 'ปฏิทินมาสเตอร์', desc: 'ตารางเรียนทุกคลาส', icon: ICONS.calendar, route: '/dashboard/manager-calendar', color: 'brand' },
         { label: 'จัดการรายวิชา', desc: 'เพิ่ม/แก้ไข/ลบคลาส', icon: ICONS.book, route: '/dashboard/course-management', color: 'info' },
-        { label: 'รายได้', desc: 'สถิติและรายงานการเงิน', icon: ICONS.revenue, route: '/dashboard/revenue', color: 'success' },
+        { label: 'รายรับ/รายจ่าย', desc: 'สถิติและรายงานการเงิน', icon: ICONS.revenue, route: '/dashboard/revenue', color: 'success' },
         { label: 'บุคลากร', desc: 'จัดการครูและนักเรียน', icon: ICONS.people, route: '/dashboard/staff', color: 'warning' },
         { label: 'อนุมัติครู', desc: 'ตรวจสอบและอนุมัติ', icon: ICONS.check, route: '/dashboard/teacher-approval', color: 'danger' },
         { label: 'VDO Online', desc: 'จัดการวิดีโอออนไลน์', icon: ICONS.video, route: '/dashboard/vdo-online', color: 'brand' },

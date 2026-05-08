@@ -23,6 +23,7 @@ export interface IRevenueSchedule {
   startTime: string;
   endTime: string;
   courseName: string;
+  teacherId?: string | null;
   teacherName: string;
   attendedStudents: {
     studentId: string;

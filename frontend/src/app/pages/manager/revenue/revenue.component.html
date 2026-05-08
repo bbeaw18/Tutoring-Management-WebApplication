@@ -1,7 +1,7 @@
 <div class="revenue-container">
   <div class="page-header">
-    <h1>รายได้</h1>
-    <p>สถิติรายได้และการชำระเงินตามคลาส</p>
+    <h1>รายรับ/รายจ่าย</h1>
+    <p>สรุปรายรับ-รายจ่ายของสถาบันต่อเดือน</p>
   </div>
 
   <app-loading *ngIf="loading"></app-loading>
@@ -46,99 +46,178 @@
     <!-- ── Analytics Charts ── -->
     <div class="rev-charts">
 
-      <!-- Daily revenue bar chart -->
-      <div class="rev-chart-card rev-bar-card">
+      <!-- Teacher revenue proportion pie chart -->
+      <div class="rev-chart-card rev-pie-card">
         <div class="rev-chart-head">
           <div class="rev-chart-title">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>
+              <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>
             </svg>
-            รายได้รายวัน
-          </div>
-          <div class="rev-chart-legend">
-            <span class="lg-item"><span class="lg-sw lg-paid"></span>ชำระแล้ว</span>
-            <span class="lg-item"><span class="lg-sw lg-unpaid"></span>ค้างชำระ</span>
+            สัดส่วนรายได้ของครูแต่ละคน
           </div>
         </div>
-        <div class="rev-bar-track">
-          <div class="rev-bar-col" *ngFor="let b of dailyBars" [class.is-peak]="b.isPeak"
-               [title]="'วันที่ ' + b.day + ' · ชำระ ' + (b.paid | number) + ' · ค้าง ' + (b.unpaid | number)">
-            <div class="rev-bar-stack">
-              <div class="rev-bar-seg rev-bar-unpaid" [style.height.%]="b.heightUnpaid"></div>
-              <div class="rev-bar-seg rev-bar-paid" [style.height.%]="b.heightPaid"></div>
+        <ng-container *ngIf="teacherPie.length > 0; else noTeacherData">
+          <div class="rev-pie-wrap">
+            <svg class="rev-pie-svg" viewBox="0 0 100 100">
+              <circle class="rev-pie-bg" cx="50" cy="50" r="42"/>
+              <circle *ngFor="let s of teacherPie; trackBy: trackByPieKey"
+                      class="rev-pie-slice"
+                      cx="50" cy="50" r="42"
+                      [attr.stroke]="s.color"
+                      [attr.stroke-dasharray]="s.dashArray"
+                      [attr.stroke-dashoffset]="s.dashOffset"
+                      transform="rotate(-90 50 50)"/>
+            </svg>
+            <div class="rev-pie-center">
+              <div class="rev-pie-total">{{ kpiTotal | number: '1.0-0' }}</div>
+              <div class="rev-pie-sub">บาท · รายรับรวม</div>
             </div>
-            <span class="rev-bar-day" *ngIf="b.day % 5 === 0 || b.day === 1">{{ b.day }}</span>
           </div>
-        </div>
+          <div class="rev-pie-legend">
+            <div class="pie-row" *ngFor="let s of teacherPie; trackBy: trackByPieKey">
+              <span class="pie-dot" [style.background]="s.color"></span>
+              <span class="pie-label">{{ s.label }}</span>
+              <span class="pie-pct">{{ s.pct | number: '1.0-1' }}%</span>
+              <span class="pie-val">{{ s.value | number: '1.0-0' }} ฿</span>
+            </div>
+          </div>
+        </ng-container>
+        <ng-template #noTeacherData>
+          <div class="rev-pie-empty">ไม่มีข้อมูลรายได้ของครูในเดือนนี้</div>
+        </ng-template>
       </div>
 
-      <!-- Paid vs unpaid donut -->
-      <div class="rev-chart-card rev-donut-card">
+      <!-- Income vs Expense pie -->
+      <div class="rev-chart-card rev-pie-card">
         <div class="rev-chart-head">
           <div class="rev-chart-title">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10h-10z"/>
+              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
             </svg>
-            สัดส่วนการชำระ
+            รายรับ - รายจ่าย
           </div>
         </div>
-        <div class="rev-donut-wrap">
-          <svg class="rev-donut-svg" viewBox="0 0 100 100">
-            <circle class="rev-donut-bg" cx="50" cy="50" r="42"/>
-            <circle class="rev-donut-fg" cx="50" cy="50" r="42"
-                    [attr.stroke-dasharray]="donutDashArray"
-                    stroke-dashoffset="0"
+        <div class="rev-pie-wrap">
+          <svg class="rev-pie-svg" viewBox="0 0 100 100">
+            <circle class="rev-pie-bg" cx="50" cy="50" r="42"/>
+            <circle *ngFor="let s of incomeExpensePie; trackBy: trackByPieKey"
+                    class="rev-pie-slice"
+                    cx="50" cy="50" r="42"
+                    [attr.stroke]="s.color"
+                    [attr.stroke-dasharray]="s.dashArray"
+                    [attr.stroke-dashoffset]="s.dashOffset"
                     transform="rotate(-90 50 50)"/>
           </svg>
-          <div class="rev-donut-center">
-            <div class="rev-donut-pct">{{ paidRatioPct | number: '1.0-0' }}%</div>
-            <div class="rev-donut-sub">ชำระแล้ว</div>
+          <div class="rev-pie-center">
+            <div class="rev-pie-total" [class.is-loss]="netProfit < 0">{{ netProfit | number: '1.0-0' }}</div>
+            <div class="rev-pie-sub">บาท · กำไรสุทธิ</div>
           </div>
         </div>
-        <div class="rev-donut-legend">
-          <div class="dl-row">
-            <span class="dl-dot dl-paid"></span>
-            <span class="dl-label">ชำระแล้ว</span>
-            <span class="dl-val">{{ kpiPaid | number: '1.0-0' }} ฿</span>
-          </div>
-          <div class="dl-row">
-            <span class="dl-dot dl-unpaid"></span>
-            <span class="dl-label">ค้างชำระ</span>
-            <span class="dl-val">{{ kpiUnpaid | number: '1.0-0' }} ฿</span>
+        <div class="rev-pie-legend">
+          <div class="pie-row" *ngFor="let s of incomeExpensePie; trackBy: trackByPieKey">
+            <span class="pie-dot" [style.background]="s.color"></span>
+            <span class="pie-label">{{ s.label }}</span>
+            <span class="pie-pct">{{ s.pct | number: '1.0-1' }}%</span>
+            <span class="pie-val">{{ s.value | number: '1.0-0' }} ฿</span>
           </div>
         </div>
       </div>
 
-      <!-- Top Teachers leaderboard -->
-      <div class="rev-chart-card rev-top-card">
+      <!-- Expense list & add -->
+      <div class="rev-chart-card rev-expense-card">
         <div class="rev-chart-head">
           <div class="rev-chart-title">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
             </svg>
-            ครูทำรายได้สูงสุด
+            รายการรายจ่าย
           </div>
+          <button class="btn-add-expense" type="button" (click)="openExpenseModal()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            เพิ่มรายการรายจ่าย
+          </button>
         </div>
-        <div class="rev-top-list" *ngIf="topTeachers.length > 0">
-          <div class="rev-top-row" *ngFor="let t of topTeachers; let i = index">
-            <div class="rev-top-rank" [class.rank-1]="i === 0" [class.rank-2]="i === 1" [class.rank-3]="i === 2">{{ i + 1 }}</div>
-            <div class="rev-top-body">
-              <div class="rev-top-top">
-                <span class="rev-top-name">{{ t.name }}</span>
-                <span class="rev-top-total">{{ t.total | number: '1.0-0' }} ฿</span>
+
+        <div class="rev-expense-list">
+          <!-- Auto: ค่าจ้างครูสอนพิเศษ -->
+          <div class="exp-row exp-auto">
+            <div class="exp-info">
+              <div class="exp-desc">
+                <span class="exp-tag">อัตโนมัติ</span>
+                ค่าจ้างครูสอนพิเศษในสถาบัน
               </div>
-              <div class="rev-top-bar">
-                <div class="rev-top-fill" [style.width.%]="t.pct"></div>
-              </div>
-              <div class="rev-top-sub">{{ t.count }} คลาส</div>
+              <div class="exp-meta">คิดจากรายได้ต่อชั่วโมง × ชั่วโมงสอน</div>
             </div>
+            <div class="exp-amount">{{ teacherWageTotal | number: '1.0-0' }} ฿</div>
+          </div>
+
+          <!-- Manual expenses -->
+          <div class="exp-row" *ngFor="let e of manualExpenses; trackBy: trackByExpenseId">
+            <div class="exp-info">
+              <div class="exp-desc">{{ e.description }}</div>
+              <div class="exp-meta">{{ formatDate(e.createdAt) }}</div>
+            </div>
+            <div class="exp-amount">{{ e.amount | number: '1.0-0' }} ฿</div>
+            <button class="btn-del-expense" type="button" (click)="deleteExpense(e)" title="ลบ">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="exp-empty" *ngIf="manualExpenses.length === 0">
+            ยังไม่มีรายการรายจ่ายเพิ่มเติม
           </div>
         </div>
-        <div class="rev-top-empty" *ngIf="topTeachers.length === 0">
-          ไม่มีข้อมูลในช่วงเวลานี้
+
+        <div class="rev-expense-total">
+          <span>รวมรายจ่ายเดือนนี้</span>
+          <strong>{{ expenseTotal | number: '1.0-0' }} ฿</strong>
         </div>
       </div>
 
+    </div>
+
+    <!-- ── Add Expense Modal ── -->
+    <div class="exp-modal-backdrop" *ngIf="showExpenseModal" (click)="closeExpenseModal()">
+      <div class="exp-modal" (click)="$event.stopPropagation()">
+        <div class="exp-modal-head">
+          <h3>เพิ่มรายการรายจ่าย</h3>
+          <button class="exp-modal-close" type="button" (click)="closeExpenseModal()" [disabled]="savingExpense">×</button>
+        </div>
+        <div class="exp-modal-body">
+          <div class="exp-field">
+            <label>รายการ</label>
+            <input type="text"
+                   [(ngModel)]="newExpenseDescription"
+                   placeholder="เช่น ค่าน้ำค่าไฟ, ค่าเช่าสถานที่"
+                   maxlength="200"
+                   [disabled]="savingExpense" />
+          </div>
+          <div class="exp-field">
+            <label>ราคา (บาท)</label>
+            <input type="number"
+                   [(ngModel)]="newExpenseAmount"
+                   placeholder="0"
+                   min="0"
+                   step="1"
+                   [disabled]="savingExpense" />
+          </div>
+          <div class="exp-field">
+            <label>เดือน</label>
+            <input type="text" [value]="filterMonth" disabled />
+          </div>
+          <div class="exp-error" *ngIf="expenseError">{{ expenseError }}</div>
+        </div>
+        <div class="exp-modal-foot">
+          <button class="btn-secondary" type="button" (click)="closeExpenseModal()" [disabled]="savingExpense">ยกเลิก</button>
+          <button class="btn-primary" type="button" (click)="saveExpense()" [disabled]="savingExpense">
+            {{ savingExpense ? 'กำลังบันทึก...' : 'บันทึก' }}
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- ── Filter Bar ── -->

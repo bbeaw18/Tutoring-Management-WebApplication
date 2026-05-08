@@ -559,7 +559,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     // Manager / Admin
     { label: 'ปฏิทินมาสเตอร์',     path: '/dashboard/manager-calendar', group: 'ไปยัง', keywords: 'manager master calendar', roles: ['manager','admin'], icon: this._I(`<rect x="3" y="4" width="18" height="18" rx="2"/>`) },
     { label: 'จัดการรายวิชา',      path: '/dashboard/course-management', group: 'ไปยัง', keywords: 'course management admin', roles: ['manager','admin'], icon: this._I(`<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>`) },
-    { label: 'รายได้',              path: '/dashboard/revenue',         group: 'ไปยัง', keywords: 'revenue income เงิน',     roles: ['manager','admin'], icon: this._I(`<circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 10h5.5a1.5 1.5 0 0 1 0 3H9m0 0h5.5a1.5 1.5 0 0 1 0 3H9"/>`) },
+    { label: 'รายรับ/รายจ่าย',       path: '/dashboard/revenue',         group: 'ไปยัง', keywords: 'revenue income expense เงิน รายจ่าย รายรับ', roles: ['manager','admin'], icon: this._I(`<circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 10h5.5a1.5 1.5 0 0 1 0 3H9m0 0h5.5a1.5 1.5 0 0 1 0 3H9"/>`) },
     { label: 'อัพโหลด VDO',         path: '/dashboard/video-management', group: 'ไปยัง', keywords: 'video upload manage',    roles: ['manager','admin'], icon: this._I(`<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>`) },
     { label: 'VDO Online',          path: '/dashboard/vdo-online',      group: 'ไปยัง', keywords: 'vdo online live',         roles: ['manager','admin'], icon: this._I(`<circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor"/>`) },
     { label: 'บุคลากร',             path: '/dashboard/staff',           group: 'ไปยัง', keywords: 'staff people user',      roles: ['manager','admin'], icon: this._I(`<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>`) },
@@ -683,7 +683,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
       '/dashboard/teacher-profile': 'ประวัติชั่วโมง',
       '/dashboard/manager-calendar': 'ปฏิทินมาสเตอร์',
       '/dashboard/course-management': 'จัดการรายวิชา',
-      '/dashboard/revenue':         'รายได้',
+      '/dashboard/revenue':         'รายรับ/รายจ่าย',
       '/dashboard/video-management': 'อัพโหลด VDO',
       '/dashboard/staff':           'บุคลากร',
       '/dashboard/teacher-approval': 'อนุมัติครู',
