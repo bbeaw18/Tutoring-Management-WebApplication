@@ -102,7 +102,7 @@ export class RevenueComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(user => {
         this.currentUser = user;
-        if (user && !this.filterTeacher) {
+        if (user?._id && !this.filterTeacher) {
           this.filterTeacher = user._id;
           this.loadReport();
         }
