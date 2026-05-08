@@ -258,6 +258,28 @@ export class RevenueComponent implements OnInit, OnDestroy {
     return nick;
   }
 
+  /** Teachers list with the current user prepended (if not already included) */
+  get teachersForFilter(): IUser[] {
+    if (!this.currentUser?._id) return this.teachers;
+    const inList = this.teachers.some(t => t._id === this.currentUser?._id);
+    return inList ? this.teachers : [this.currentUser, ...this.teachers];
+  }
+
+  /** Display name for the currently selected teacher (or "ทั้งหมด") */
+  get teacherFilterDisplay(): string {
+    if (!this.filterTeacher) return 'ทั้งหมด';
+    const list = this.teachersForFilter;
+    const t = list.find(x => x._id === this.filterTeacher);
+    if (!t) return 'ทั้งหมด';
+    const nick = (t.nickname || '').trim() || `${t.firstName || ''} ${t.lastName || ''}`.trim();
+    return nick;
+  }
+
+  /** True when the currently selected teacher is the logged-in user */
+  get isFilteringSelf(): boolean {
+    return !!this.currentUser?._id && this.filterTeacher === this.currentUser._id;
+  }
+
   /** ป้ายหัวข้อตาราง — เปลี่ยนตาม activeKpi */
   get scheduleTableTitle(): string {
     switch (this.activeKpi) {

@@ -1565,6 +1565,56 @@ tbody tr:hover { background: rgba(30,63,128,0.03); }
   color: var(--brand-600, #db2777);
 }
 
+/* ── Visible chip showing currently selected teacher/student ── */
+.filter-current-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  background: var(--gray-100);
+  color: var(--gray-700);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.filter-current-chip svg {
+  flex-shrink: 0;
+  color: var(--gray-500);
+}
+
+.filter-current-chip.is-active {
+  background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+  color: #6d28d9;
+}
+
+.filter-current-chip.is-active svg {
+  color: #8b5cf6;
+}
+
+.kpi-section-filter.is-self .filter-current-chip {
+  background: linear-gradient(135deg, #fce7f3, #fbcfe8);
+  color: #be185d;
+}
+
+.kpi-section-filter.is-self .filter-current-chip svg {
+  color: #ec4899;
+}
+
+.filter-self-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  padding: 1px 6px;
+  background: #ec4899;
+  color: #fff;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .03em;
+}
+
 /* ── KPI Row layouts ───────────────────────────────── */
 .revenue-cards.kpi-row-3 {
   display: grid;

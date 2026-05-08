@@ -117,13 +117,21 @@
           <span class="kpi-section-pill kpi-pill-teacher">บุคลากร</span>
           <span class="kpi-section-title">รายได้บุคลากร</span>
         </div>
-        <div class="kpi-section-filter">
+        <div class="kpi-section-filter" [class.is-self]="isFilteringSelf">
           <label class="filter-label-inline">กรองตามครูผู้สอน</label>
+          <span class="filter-current-chip" [class.is-active]="!!filterTeacher">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+            {{ teacherFilterDisplay }}<span *ngIf="isFilteringSelf" class="filter-self-badge">คุณ</span>
+          </span>
           <select class="filter-select"
                   [(ngModel)]="filterTeacher"
                   (change)="onPersonFilterChange()">
             <option value="">ทั้งหมด</option>
-            <option *ngFor="let t of teachers" [value]="t._id">{{ t | displayName }}</option>
+            <option *ngFor="let t of teachersForFilter" [value]="t._id">
+              {{ t | displayName }}<ng-container *ngIf="t._id === currentUser?._id"> (คุณ)</ng-container>
+            </option>
           </select>
         </div>
       </div>
