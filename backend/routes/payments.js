@@ -14,7 +14,7 @@ const Course = require('../models/Course');
 const Notification = require('../models/Notification');
 const { authenticateToken } = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
-const { sendResponse, getPaginationParams, createPaginationObject, computeEffectivePrice } = require('../utils/helpers');
+const { sendResponse, getPaginationParams, createPaginationObject, computeEffectivePrice, computeEffectiveTeacherIncome } = require('../utils/helpers');
 const { deriveDisplayStatus } = require('../utils/scheduleAggregation');
 const generatePayload = require('promptpay-qr');
 const QRCode = require('qrcode');
@@ -416,14 +416,18 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
       kpiTotal += totalForSchedule;
       kpiPaid  += paidForSchedule;
 
+      // ── คำนวณ teacher income แบบ date-gated (ไม่พึ่ง flag เก่า) ──
+      // ใช้ค่านี้แทน s.actualTeacherIncome ใน KPI + scheduleList
+      // (ป้องกันค่าเก่าที่ถูกบันทึกตอน flag incomeHourly ไม่ตรงกับวันที่ rollout)
+      const effectiveTeacherIncome = computeEffectiveTeacherIncome(s, attendances.length);
+
       // ── คำนวณ teacher income split (manager-confirmed คลาสเท่านั้น) ──
       if (s.status === 'completed') {
-        const teacherIncome = s.actualTeacherIncome || 0;
         const teacherRole = s.teacher?.role;
         if (teacherRole === 'manager') {
-          kpiManagerIncome += teacherIncome;
+          kpiManagerIncome += effectiveTeacherIncome;
         } else if (teacherRole === 'teacher') {
-          kpiTeacherExpense += teacherIncome;
+          kpiTeacherExpense += effectiveTeacherIncome;
         }
         // role='admin' หรือไม่ระบุ → ไม่นับใน KPI ใดๆ
       }
@@ -484,7 +488,8 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
         unpaid:          totalForSchedule - paidForSchedule,
         status:          s.status,
         displayStatus:   deriveDisplayStatus(s),
-        actualTeacherIncome: s.actualTeacherIncome || 0
+        // ใช้ค่าที่คำนวณใหม่ตาม date gate (ไม่พึ่ง flag เก่าที่อาจผิด)
+        actualTeacherIncome: effectiveTeacherIncome
       });
     }
 

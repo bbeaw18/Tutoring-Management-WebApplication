@@ -243,17 +243,11 @@ async function autoCompleteExpiredSchedules() {
 
       console.log(`[AutoComplete] กำลังเปลี่ยนเป็น awaiting_confirmation: ${schedule._id}`);
 
-      // คำนวณรายได้เบื้องต้น (ยังไม่บันทึก hours)
-      // โหมดใหม่ (incomeHourly=true): rate × hours; โหมดเดิม: flat
-      const baseRate = (attendanceCount === 1)
-        ? (schedule.teacherIncomeIndividual || 0)
-        : (schedule.teacherIncomeGroup || 0);
-      if (schedule.incomeHourly) {
-        const hours = (schedule.totalDurationMinutes || 0) / 60;
-        schedule.actualTeacherIncome = Math.round(baseRate * hours);
-      } else {
-        schedule.actualTeacherIncome = baseRate;
-      }
+      // คำนวณรายได้เบื้องต้น (ยังไม่บันทึก hours) — ใช้ date-gate
+      // คลาสตั้งแต่ TEACHER_HOURLY_FROM (8 พ.ค. 2569) → rate × hours
+      // ก่อนหน้านั้น → flat rate
+      const { computeEffectiveTeacherIncome } = require('./utils/helpers');
+      schedule.actualTeacherIncome = computeEffectiveTeacherIncome(schedule, attendanceCount);
 
       // รอ manager ยืนยัน — ยังไม่บันทึก hours
       schedule.status = 'awaiting_confirmation';

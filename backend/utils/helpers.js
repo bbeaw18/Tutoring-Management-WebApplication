@@ -50,7 +50,8 @@ const createPaginationObject = (page, limit, total) => {
 
 // ── Hourly-mode rollout cutoffs (ตรงกับ frontend) ──
 // ค่าเรียนคิดต่อชั่วโมงเริ่มใช้กับคลาสตั้งแต่วันที่นี้ — คลาสก่อนหน้ายังเป็น flat
-const PRICE_HOURLY_FROM = new Date('2026-05-09T00:00:00+07:00');
+const PRICE_HOURLY_FROM   = new Date('2026-05-09T00:00:00+07:00');
+const TEACHER_HOURLY_FROM = new Date('2026-05-08T00:00:00+07:00');
 
 /**
  * คำนวณราคาคอร์สที่นักเรียนต้องจ่ายจริง สำหรับ schedule หนึ่งคน
@@ -72,10 +73,37 @@ const computeEffectivePrice = (schedule) => {
   return price;
 };
 
+/**
+ * คำนวณรายได้ครูจริง สำหรับ schedule + จำนวนนักเรียนที่เข้าเรียน
+ * - คลาสตั้งแต่ 8 พ.ค. 2569 (TEACHER_HOURLY_FROM) → rate × duration ใน ชม.
+ * - คลาสก่อนหน้านั้น → rate flat ต่อคลาส
+ * - rate เลือกจาก attendanceCount: 1 → individual, >1 → group, 0 → 0
+ *
+ * Note: ใช้ "วันที่" ไม่ใช่ flag — สอดคล้องกับ frontend display
+ */
+const computeEffectiveTeacherIncome = (schedule, attendanceCount) => {
+  if (!schedule) return 0;
+  const att = Number(attendanceCount || 0);
+  let rate = 0;
+  if (att === 1)      rate = Number(schedule.teacherIncomeIndividual || 0);
+  else if (att > 1)   rate = Number(schedule.teacherIncomeGroup || 0);
+  if (!rate) return 0;
+  const dt = schedule.date ? new Date(schedule.date) : null;
+  const isHourly = dt && !isNaN(dt.getTime()) && dt >= TEACHER_HOURLY_FROM;
+  if (isHourly && schedule.totalDurationMinutes > 0) {
+    const hours = schedule.totalDurationMinutes / 60;
+    return Math.round(rate * hours);
+  }
+  return rate;
+};
+
 module.exports = {
   generateToken,
   sendResponse,
   getPaginationParams,
   createPaginationObject,
-  computeEffectivePrice
+  computeEffectivePrice,
+  computeEffectiveTeacherIncome,
+  TEACHER_HOURLY_FROM,
+  PRICE_HOURLY_FROM
 };

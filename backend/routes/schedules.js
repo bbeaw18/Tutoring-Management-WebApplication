@@ -9,7 +9,7 @@ const Attendance = require('../models/Attendance');
 const Payment = require('../models/Payment');
 const { authenticateToken } = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
-const { sendResponse, getPaginationParams, createPaginationObject, computeEffectivePrice } = require('../utils/helpers');
+const { sendResponse, getPaginationParams, createPaginationObject, computeEffectivePrice, computeEffectiveTeacherIncome } = require('../utils/helpers');
 const {
   buildPaymentSummariesByScheduleId,
   deriveDisplayStatus,
@@ -643,21 +643,12 @@ router.post('/:id/close-qr', authenticateToken, async (req, res) => {
     schedule.qrActive = false;
 
     // คำนวณรายได้จริงตามจำนวนผู้เช็คชื่อ
-    // โหมดใหม่ (incomeHourly=true): rate × duration ในหน่วยชั่วโมง
-    // โหมดเดิม (incomeHourly=false): rate เป็นยอดต่อคลาส (flat) — ไม่กระทบข้อมูลเก่า
-    let baseRate = 0;
-    if (attendanceCount === 1) {
-      baseRate = schedule.teacherIncomeIndividual || 0;
-    } else if (attendanceCount > 1) {
-      baseRate = schedule.teacherIncomeGroup || 0;
-    }
+    // ใช้ "วันที่" ของคลาสเป็นตัวตัด (TEACHER_HOURLY_FROM = 8 พ.ค. 2569)
+    // ตั้งแต่วันนั้นไป → rate × duration; ก่อนหน้านั้น → flat rate
     if (attendanceCount === 0) {
       schedule.actualTeacherIncome = 0;
-    } else if (schedule.incomeHourly) {
-      const hours = (schedule.totalDurationMinutes || 0) / 60;
-      schedule.actualTeacherIncome = Math.round(baseRate * hours);
     } else {
-      schedule.actualTeacherIncome = baseRate;
+      schedule.actualTeacherIncome = computeEffectiveTeacherIncome(schedule, attendanceCount);
     }
 
     // เปลี่ยนสถานะเป็น awaiting_confirmation เพื่อรอผู้จัดการยืนยัน
