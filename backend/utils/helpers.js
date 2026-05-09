@@ -48,15 +48,24 @@ const createPaginationObject = (page, limit, total) => {
   };
 };
 
+// ── Hourly-mode rollout cutoffs (ตรงกับ frontend) ──
+// ค่าเรียนคิดต่อชั่วโมงเริ่มใช้กับคลาสตั้งแต่วันที่นี้ — คลาสก่อนหน้ายังเป็น flat
+const PRICE_HOURLY_FROM = new Date('2026-05-09T00:00:00+07:00');
+
 /**
  * คำนวณราคาคอร์สที่นักเรียนต้องจ่ายจริง สำหรับ schedule หนึ่งคน
- * - ถ้า incomeHourly = true → coursePrice เป็นยอดต่อชั่วโมง คูณกับ duration จริง
- * - ถ้า incomeHourly = false (ข้อมูลเก่า) → coursePrice เป็นยอด flat ต่อคลาส
- * ใช้ Math.round เพื่อให้ตรงกับ pattern ของ actualTeacherIncome
+ * - คลาสตั้งแต่ 9 พ.ค. 2569 (PRICE_HOURLY_FROM) → coursePrice = อัตราต่อชั่วโมง × duration
+ * - คลาสก่อนหน้านั้น → coursePrice = ยอด flat ต่อคลาส (ไม่คูณ ชม.)
+ *
+ * Note: ใช้ "วันที่ของคลาส" เป็นตัวตัด ไม่พึ่ง flag incomeHourly
+ *       เพราะ flag ถูกตั้งกับคลาสบางคลาสก่อนการ rollout จริง
  */
 const computeEffectivePrice = (schedule) => {
   const price = Number(schedule?.coursePrice || 0);
-  if (schedule?.incomeHourly && schedule?.totalDurationMinutes > 0) {
+  if (!price) return 0;
+  const dt = schedule?.date ? new Date(schedule.date) : null;
+  const isHourly = dt && !isNaN(dt.getTime()) && dt >= PRICE_HOURLY_FROM;
+  if (isHourly && schedule?.totalDurationMinutes > 0) {
     const hours = schedule.totalDurationMinutes / 60;
     return Math.round(price * hours);
   }
