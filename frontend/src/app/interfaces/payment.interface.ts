@@ -22,10 +22,27 @@ export interface IRevenueSchedule {
   date: Date;
   startTime: string;
   endTime: string;
+  // Course metadata (populated from related Course doc)
+  courseId?: string | null;
   courseName: string;
+  subject?: string;
+  type?: 'group' | 'individual' | null;
+  gradeLevel?: string;
+  teachingType?: string;
+  description?: string;
+  // Teacher
   teacherId?: string | null;
   teacherName: string;
   teacherRole?: 'teacher' | 'manager' | 'admin' | null;
+  // Confirmation state
+  teacherConfirmed?: boolean;
+  teacherConfirmedAt?: string | null;
+  isFullyConfirmed?: boolean;
+  managerConfirmedBy?: string | null;
+  managerConfirmedAt?: string | null;
+  totalDurationMinutes?: number;
+  note?: string | null;
+  // Per-student payment
   attendedStudents: {
     studentId: string;
     name: string;

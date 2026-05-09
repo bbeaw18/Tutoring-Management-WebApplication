@@ -487,6 +487,21 @@
   letter-spacing: 0.5px;
   border: 1px solid #fde68a;
 }
+
+/* Payment summary pills (มาจาก paymentSummary backend) */
+.h-tl-pay-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  letter-spacing: 0.2px;
+  border: 1px solid transparent;
+}
+.h-tl-pay-pill.h-tl-pay-paid    { background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
+.h-tl-pay-pill.h-tl-pay-pending { background: #fef3c7; color: #b45309; border-color: #fde68a; }
+.h-tl-pay-pill.h-tl-pay-unpaid  { background: #fee2e2; color: #b91c1c; border-color: #fecaca; }
 .h-tl-actions {
   margin-top: 10px;
   display: flex;

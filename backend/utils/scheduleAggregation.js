@@ -1,0 +1,96 @@
+/**
+ * Shared aggregation helpers for Schedule responses.
+ * Used by /schedules/calendar, /schedules/calendar/weekly, and
+ * /attendance/teacher-history so they all return consistent paymentSummary data.
+ */
+const Attendance = require('../models/Attendance');
+const Payment = require('../models/Payment');
+const { computeEffectivePrice } = require('./helpers');
+
+/**
+ * Build per-schedule paymentSummary { paid, unpaid, pending, total, paidCount, unpaidCount }
+ * Batched to avoid N+1: 2 queries (Attendance + Payment) for all schedules.
+ *
+ * @param {Array<mongoose.Document>} scheduleObjs — schedules with _id, coursePrice,
+ *        incomeHourly, totalDurationMinutes available
+ * @returns {Promise<Map<string, object>>} keyed by schedule._id.toString()
+ */
+async function buildPaymentSummariesByScheduleId(scheduleObjs) {
+  const ids = scheduleObjs.map(s => s._id);
+  if (ids.length === 0) return new Map();
+
+  const [allAttendances, allPayments] = await Promise.all([
+    Attendance.find({ schedule: { $in: ids } }).select('schedule student'),
+    Payment.find({ schedule: { $in: ids }, status: { $in: ['pending', 'confirmed'] } })
+      .select('schedule student amount status')
+  ]);
+
+  // Group attendance by schedule for O(1) lookup
+  const attBySchedule = new Map(); // sid -> [att, ...]
+  for (const att of allAttendances) {
+    const sid = att.schedule.toString();
+    if (!attBySchedule.has(sid)) attBySchedule.set(sid, []);
+    attBySchedule.get(sid).push(att);
+  }
+
+  // Group payments — keep the strongest status per (schedule, student)
+  const paymentByKey = new Map();
+  for (const p of allPayments) {
+    const key = `${p.schedule.toString()}:${p.student.toString()}`;
+    const existing = paymentByKey.get(key);
+    if (!existing || (existing.status === 'pending' && p.status === 'confirmed')) {
+      paymentByKey.set(key, { status: p.status, amount: p.amount });
+    }
+  }
+
+  const summaries = new Map();
+  for (const s of scheduleObjs) {
+    const sid = s._id.toString();
+    const effPrice = computeEffectivePrice(s);
+    const attendances = attBySchedule.get(sid) || [];
+    const attCount = attendances.length;
+
+    let paid = 0, pending = 0, unpaid = 0;
+    let paidCount = 0, pendingCount = 0, unpaidCount = 0;
+
+    for (const att of attendances) {
+      const key = `${sid}:${att.student.toString()}`;
+      const pay = paymentByKey.get(key);
+      if (pay?.status === 'confirmed') {
+        paid += pay.amount || effPrice;
+        paidCount++;
+      } else if (pay?.status === 'pending') {
+        pending += pay.amount || effPrice;
+        pendingCount++;
+      } else {
+        unpaid += effPrice;
+        unpaidCount++;
+      }
+    }
+
+    summaries.set(sid, {
+      attendanceCount: attCount,
+      total: attCount * effPrice,
+      paid,
+      pending,
+      unpaid,
+      paidCount,
+      pendingCount,
+      unpaidCount,
+      effectivePrice: effPrice
+    });
+  }
+  return summaries;
+}
+
+/** Standard populate field specs for Schedule responses */
+const SCHEDULE_COURSE_FIELDS = 'name subject type gradeLevel teachingType description coursePrice teacherIncomeGroup teacherIncomeIndividual incomeHourly';
+const SCHEDULE_TEACHER_FIELDS = 'firstName lastName nickname email role';
+const SCHEDULE_STUDENT_FIELDS = 'firstName lastName nickname email grade academicYear';
+
+module.exports = {
+  buildPaymentSummariesByScheduleId,
+  SCHEDULE_COURSE_FIELDS,
+  SCHEDULE_TEACHER_FIELDS,
+  SCHEDULE_STUDENT_FIELDS
+};

@@ -334,8 +334,9 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
     }
 
     const schedules = await Schedule.find(scheduleQuery)
-      .populate('course', 'name subject')
-      .populate('teacher', 'firstName lastName nickname role')
+      .populate('course', 'name subject type gradeLevel teachingType description coursePrice teacherIncomeGroup teacherIncomeIndividual incomeHourly')
+      .populate('teacher', 'firstName lastName nickname email role')
+      .populate('managerConfirmedBy', 'firstName lastName nickname')
       .sort({ date: -1 });
 
     // H5: เปลี่ยนจาก N+1 queries (Attendance.find + Payment.findOne per schedule)
@@ -423,10 +424,29 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
         date:            s.date,
         startTime:       s.startTime,
         endTime:         s.endTime,
+        // ── Course metadata (full populate so consumers don't need a 2nd query) ──
+        courseId:        s.course?._id || null,
         courseName:      s.course?.name || '-',
+        subject:         s.course?.subject || '',
+        type:            s.course?.type || null,            // 'group' | 'individual'
+        gradeLevel:      s.course?.gradeLevel || '',
+        teachingType:    s.course?.teachingType || '',
+        description:     s.course?.description || '',
+        // ── Teacher (id + display name + role) ──
         teacherId:       s.teacher?._id || null,
         teacherName:     s.teacher ? (s.teacher.nickname || `${s.teacher.firstName} ${s.teacher.lastName}`) : '-',
         teacherRole:     s.teacher?.role || null,
+        // ── Confirmation state — same shape as /calendar ──
+        teacherConfirmed:    s.teacherConfirmed || false,
+        teacherConfirmedAt:  s.teacherConfirmedAt || null,
+        isFullyConfirmed:    s.isFullyConfirmed || false,
+        managerConfirmedBy:  s.managerConfirmedBy
+                              ? (s.managerConfirmedBy.nickname || `${s.managerConfirmedBy.firstName} ${s.managerConfirmedBy.lastName}`)
+                              : null,
+        managerConfirmedAt:  s.managerConfirmedAt || null,
+        totalDurationMinutes: s.totalDurationMinutes || 0,
+        note:                s.note || null,
+        // ── Per-student payment ──
         attendedStudents: attendances.map(att => {
           const sid = s._id.toString();
           const key = `${att.student._id.toString()}:${sid}`;

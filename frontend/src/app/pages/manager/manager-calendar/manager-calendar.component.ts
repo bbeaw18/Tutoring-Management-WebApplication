@@ -686,6 +686,27 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy {
    *  - 1 คน → "subject - น้องnick - ม.6"
    *  - หลายคน → "subject - น้องnick1 ม.6, น้องnick2 ม.5"
    */
+  /** Helpers for new course-metadata fields (now populated by /calendar) */
+  getCourseSubject(schedule: ISchedule): string {
+    const c = schedule.course as any;
+    return c && typeof c === 'object' ? (c.subject || c.name || '') : '';
+  }
+
+  getCourseGradeLevel(schedule: ISchedule): string {
+    const c = schedule.course as any;
+    return c && typeof c === 'object' ? (c.gradeLevel || '') : '';
+  }
+
+  getCourseType(schedule: ISchedule): string {
+    const c = schedule.course as any;
+    return c && typeof c === 'object' ? (c.type || '') : '';
+  }
+
+  getCourseTeachingType(schedule: ISchedule): string {
+    const c = schedule.course as any;
+    return c && typeof c === 'object' ? (c.teachingType || '') : '';
+  }
+
   getCourseName(schedule: ISchedule): string {
     const c = schedule.course as any;
     const subject = (c && typeof c === 'object') ? (c.subject || c.name || '-') : '-';

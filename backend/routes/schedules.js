@@ -6,9 +6,16 @@ const Enrollment = require('../models/Enrollment');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 const Attendance = require('../models/Attendance');
+const Payment = require('../models/Payment');
 const { authenticateToken } = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
 const { sendResponse, getPaginationParams, createPaginationObject, computeEffectivePrice } = require('../utils/helpers');
+const {
+  buildPaymentSummariesByScheduleId,
+  SCHEDULE_COURSE_FIELDS,
+  SCHEDULE_TEACHER_FIELDS,
+  SCHEDULE_STUDENT_FIELDS
+} = require('../utils/scheduleAggregation');
 const { sendScheduleCreatedEmail, sendScheduleConfirmedEmail, sendPaymentReminderEmail, sendScheduleRescheduledEmail, sendStudentBookingConfirmedEmail, sendStudentBookingDeclinedEmail, sendVideoLinkEmail } = require('../services/emailService');
 const { generateQRToken, generateQRCodeDataURL } = require('../services/qrService');
 
@@ -241,18 +248,24 @@ const calendarMonthlyHandler = async (req, res) => {
     const query = { date: { $gte: startDate, $lte: endDate }, status: { $ne: 'cancelled' }, ...roleFilter };
 
     const schedules = await Schedule.find(query)
-      .populate('course', 'name subject type')
-      .populate('teacher', 'firstName lastName nickname email')
-      .populate('students', 'firstName lastName nickname email grade academicYear')
+      .populate('course', SCHEDULE_COURSE_FIELDS)
+      .populate('teacher', SCHEDULE_TEACHER_FIELDS)
+      .populate('students', SCHEDULE_STUDENT_FIELDS)
       .populate('studentConfirmations.student', 'firstName lastName nickname')
+      .populate('managerConfirmedBy', 'firstName lastName nickname')
       .sort({ date: 1 });
 
-    // จัดกลุ่มตามวัน
+    // Attach paymentSummary per schedule (batched — no N+1)
+    const summaries = await buildPaymentSummariesByScheduleId(schedules);
+
+    // จัดกลุ่มตามวัน + แนบ paymentSummary
     const calendarData = {};
     schedules.forEach(schedule => {
       const dateKey = schedule.date.toISOString().split('T')[0];
       if (!calendarData[dateKey]) calendarData[dateKey] = [];
-      calendarData[dateKey].push(schedule);
+      const obj = schedule.toObject();
+      obj.paymentSummary = summaries.get(schedule._id.toString()) || null;
+      calendarData[dateKey].push(obj);
     });
 
     sendResponse(res, 200, true, calendarData, 'Monthly calendar data retrieved');
@@ -279,18 +292,24 @@ const calendarWeeklyHandler = async (req, res) => {
     };
 
     const schedules = await Schedule.find(query)
-      .populate('course', 'name subject type')
-      .populate('teacher', 'firstName lastName nickname email')
-      .populate('students', 'firstName lastName nickname email grade academicYear')
+      .populate('course', SCHEDULE_COURSE_FIELDS)
+      .populate('teacher', SCHEDULE_TEACHER_FIELDS)
+      .populate('students', SCHEDULE_STUDENT_FIELDS)
       .populate('studentConfirmations.student', 'firstName lastName nickname')
+      .populate('managerConfirmedBy', 'firstName lastName nickname')
       .sort({ date: 1, startTime: 1 });
 
-    // จัดกลุ่มตามวัน
+    // Attach paymentSummary per schedule (batched — no N+1)
+    const summaries = await buildPaymentSummariesByScheduleId(schedules);
+
+    // จัดกลุ่มตามวัน + แนบ paymentSummary
     const calendarData = {};
     schedules.forEach(schedule => {
       const dateKey = schedule.date.toISOString().split('T')[0];
       if (!calendarData[dateKey]) calendarData[dateKey] = [];
-      calendarData[dateKey].push(schedule);
+      const obj = schedule.toObject();
+      obj.paymentSummary = summaries.get(schedule._id.toString()) || null;
+      calendarData[dateKey].push(obj);
     });
 
     sendResponse(res, 200, true, calendarData, 'Weekly calendar data retrieved');
@@ -715,6 +734,20 @@ router.patch('/:id/reschedule', authenticateToken, roleCheck(['admin', 'manager'
     await schedule.save();
     await schedule.populate('studentConfirmations.student', 'firstName lastName nickname');
 
+    // ── Sync Schedule → Course เพื่อให้หน้าจัดการรายวิชาแสดงข้อมูลตรงกับ Calendar ──
+    // (ก่อนหน้านี้แก้แค่ Schedule ทำให้ Course.scheduledDate/startTime/endTime ค้างของเก่า)
+    if (schedule.course?._id) {
+      try {
+        await Course.findByIdAndUpdate(schedule.course._id, {
+          scheduledDate: schedule.date,
+          startTime: schedule.startTime,
+          endTime: schedule.endTime
+        });
+      } catch (syncErr) {
+        console.error('[Reschedule] Course sync failed (non-blocking):', syncErr.message);
+      }
+    }
+
     // ส่ง Notification ให้ครูและนักเรียน
     const courseObj   = schedule.course;
     const teacherObj  = schedule.teacher;
@@ -827,6 +860,23 @@ router.put('/:id', authenticateToken, roleCheck(['admin', 'manager']), async (re
     await schedule.populate('course', 'name');
     await schedule.populate('teacher', 'firstName lastName nickname email');
 
+    // ── Sync Schedule → Course ให้ฟิลด์ที่ทับซ้อนตรงกัน ──
+    if (schedule.course?._id && (date || startTime || endTime || coursePrice !== undefined ||
+        teacherIncomeGroup !== undefined || teacherIncomeIndividual !== undefined)) {
+      try {
+        const courseSync = {};
+        if (date)      courseSync.scheduledDate = schedule.date;
+        if (startTime) courseSync.startTime     = schedule.startTime;
+        if (endTime)   courseSync.endTime       = schedule.endTime;
+        if (coursePrice             !== undefined) courseSync.coursePrice             = schedule.coursePrice;
+        if (teacherIncomeGroup      !== undefined) courseSync.teacherIncomeGroup      = schedule.teacherIncomeGroup;
+        if (teacherIncomeIndividual !== undefined) courseSync.teacherIncomeIndividual = schedule.teacherIncomeIndividual;
+        await Course.findByIdAndUpdate(schedule.course._id, courseSync);
+      } catch (syncErr) {
+        console.error('[UpdateSchedule] Course sync failed (non-blocking):', syncErr.message);
+      }
+    }
+
     if (date || startTime) {
       for (const studentId of schedule.students) {
         const notification = new Notification({
@@ -909,6 +959,15 @@ router.patch('/:id/manager-confirm', authenticateToken, roleCheck(['admin', 'man
     schedule.managerConfirmedBy = req.user.id;
     schedule.managerConfirmedAt = new Date();
     await schedule.save();
+
+    // ── Sync Course.status = 'completed' ให้ตรงกัน (ถ้ายังไม่ completed) ──
+    if (schedule.course?._id) {
+      try {
+        await Course.findByIdAndUpdate(schedule.course._id, { status: 'completed' });
+      } catch (syncErr) {
+        console.error('[ManagerConfirm] Course status sync failed (non-blocking):', syncErr.message);
+      }
+    }
 
     const attendanceCount = attendances.length;
     // ✅ ดึง subject จาก course (Schedule schema ไม่มี field subject)

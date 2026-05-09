@@ -4,12 +4,37 @@ export interface IStudentConfirmation {
   confirmedAt: Date | null;
 }
 
+export interface IPaymentSummary {
+  attendanceCount: number;
+  total: number;            // ยอดรวมที่นักเรียนทั้งหมดต้องจ่าย (สำหรับคลาสนี้)
+  paid: number;             // ยอดที่ชำระแล้ว (รวม)
+  unpaid: number;           // ยอดยังไม่ชำระ
+  pending: number;          // ยอดรอ Manager ยืนยัน
+  paidCount: number;        // จำนวนนักเรียนที่ชำระแล้ว
+  unpaidCount: number;
+  pendingCount: number;
+  effectivePrice: number;   // coursePrice × hours (ตาม incomeHourly)
+}
+
 export interface ISchedule {
   _id: string;
   id?: string;
-  course: { _id: string; name: string; subject: string } | string;
-  teacher: { _id: string; firstName: string; lastName: string; email: string } | string;
-  students: Array<{ _id: string; firstName: string; lastName: string; email: string }>;
+  // Course is now populated with the full set of metadata used across calendar/history/revenue
+  course: {
+    _id: string;
+    name: string;
+    subject: string;
+    type?: 'group' | 'individual';
+    gradeLevel?: string;
+    teachingType?: string;
+    description?: string;
+    coursePrice?: number;
+    teacherIncomeGroup?: number;
+    teacherIncomeIndividual?: number;
+    incomeHourly?: boolean;
+  } | string;
+  teacher: { _id: string; firstName: string; lastName: string; nickname?: string; email: string; role?: string } | string;
+  students: Array<{ _id: string; firstName: string; lastName: string; nickname?: string; email: string; grade?: string; academicYear?: string }>;
   date: Date | string;
   startTime: string;
   endTime: string;
@@ -23,11 +48,14 @@ export interface ISchedule {
   teacherConfirmedAt?: Date | null;
   studentConfirmations: IStudentConfirmation[];
   isFullyConfirmed: boolean;
+  managerConfirmedBy?: { _id: string; firstName: string; lastName: string; nickname?: string } | string | null;
+  managerConfirmedAt?: Date | string | null;
 
   // Income
   teacherIncomeGroup: number;
   teacherIncomeIndividual: number;
   actualTeacherIncome?: number | null;
+  incomeHourly?: boolean;
 
   // Course pricing
   coursePrice: number;
@@ -38,6 +66,10 @@ export interface ISchedule {
   qrGeneratedAt?: Date | null;
   qrExpiresAt?: Date | null;
   qrActive: boolean;
+
+  // Aggregated payment data — included by /calendar response so consumers can show
+  // payment status without an extra round-trip.
+  paymentSummary?: IPaymentSummary | null;
 
   createdAt?: Date;
   updatedAt?: Date;

@@ -7,6 +7,12 @@ const Payment = require('../models/Payment');
 const { authenticateToken } = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
 const { sendResponse } = require('../utils/helpers');
+const {
+  buildPaymentSummariesByScheduleId,
+  SCHEDULE_COURSE_FIELDS,
+  SCHEDULE_TEACHER_FIELDS,
+  SCHEDULE_STUDENT_FIELDS
+} = require('../utils/scheduleAggregation');
 
 // Bangkok UTC+7 helper
 function bangkokClassTime(scheduleDate, timeStr) {
@@ -273,18 +279,23 @@ router.get('/teacher-history', authenticateToken, async (req, res) => {
       ...query,
       status: { $nin: ['cancelled'] }
     })
-      .populate('course', 'name subject type description gradeLevel teachingType')
-      .populate('teacher', 'firstName lastName nickname email')
-      .populate('students', 'firstName lastName nickname email grade academicYear')
+      .populate('course', SCHEDULE_COURSE_FIELDS)
+      .populate('teacher', SCHEDULE_TEACHER_FIELDS)
+      .populate('students', SCHEDULE_STUDENT_FIELDS)
       .populate('studentConfirmations.student', 'firstName lastName nickname')
       .populate('managerConfirmedBy', 'firstName lastName nickname')
       .sort({ date: -1 });
 
-    // เพิ่มข้อมูล attendance count ในแต่ละ schedule
-    const result = await Promise.all(schedules.map(async (s) => {
-      const attendanceCount = await Attendance.countDocuments({ schedule: s._id });
-      return { ...s.toObject(), attendanceCount };
-    }));
+    // เพิ่ม attendanceCount + paymentSummary แบบ batch (no N+1)
+    const summaries = await buildPaymentSummariesByScheduleId(schedules);
+    const result = schedules.map(s => {
+      const summary = summaries.get(s._id.toString()) || null;
+      return {
+        ...s.toObject(),
+        attendanceCount: summary?.attendanceCount || 0,
+        paymentSummary:  summary
+      };
+    });
 
     sendResponse(res, 200, true, result, 'Teacher history retrieved');
   } catch (error) {

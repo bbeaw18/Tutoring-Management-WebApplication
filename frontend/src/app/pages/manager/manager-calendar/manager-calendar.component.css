@@ -901,3 +901,31 @@
 @media (max-width: 560px) {
   .mc-stat-strip { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ── Payment summary badges in detail modal ─────────── */
+.payment-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.pay-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pay-pill.pay-paid    { background: #dcfce7; color: #15803d; }
+.pay-pill.pay-pending { background: #fef3c7; color: #b45309; }
+.pay-pill.pay-unpaid  { background: #fee2e2; color: #b91c1c; }
+
+.pay-amount-mini {
+  margin-left: 4px;
+  font-size: 11px;
+  color: var(--gray-600);
+  font-variant-numeric: tabular-nums;
+}

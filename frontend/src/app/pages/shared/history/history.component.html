@@ -396,6 +396,18 @@
                   ฿{{ s.actualTeacherIncome || 0 | number }}
                   <span *ngIf="s.status === 'awaiting_confirmation'" class="h-tl-pending-tag">รอยืนยัน</span>
                 </span>
+                <!-- Payment summary badges (มาจาก paymentSummary backend) -->
+                <ng-container *ngIf="$any(s).paymentSummary?.attendanceCount">
+                  <span class="h-tl-pay-pill h-tl-pay-paid"    *ngIf="$any(s).paymentSummary.paidCount">
+                    ชำระ {{ $any(s).paymentSummary.paidCount }}
+                  </span>
+                  <span class="h-tl-pay-pill h-tl-pay-pending" *ngIf="$any(s).paymentSummary.pendingCount">
+                    รอยืนยัน {{ $any(s).paymentSummary.pendingCount }}
+                  </span>
+                  <span class="h-tl-pay-pill h-tl-pay-unpaid"  *ngIf="$any(s).paymentSummary.unpaidCount">
+                    ค้าง {{ $any(s).paymentSummary.unpaidCount }}
+                  </span>
+                </ng-container>
               </div>
               <div class="h-tl-actions" *ngIf="(role === 'manager' || role === 'admin') && s.status === 'awaiting_confirmation'">
                 <button class="btn-confirm"
