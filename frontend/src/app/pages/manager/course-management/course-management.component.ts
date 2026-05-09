@@ -547,30 +547,42 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
   }
 
   // ── Tab filtering / search ────────────────────────────────
-  cmTab: 'all' | 'pending' | 'approved' | 'completed' | 'cancelled' = 'all';
+  // ใช้ displayStatus ตัวเดียวกับ calendar/history/revenue (6 สถานะ)
+  cmTab: 'all' | 'pending_teacher' | 'pending_students' | 'confirmed' | 'awaiting_manager' | 'completed' | 'cancelled' = 'all';
   cmSearch = '';
 
-  setCmTab(t: 'all' | 'pending' | 'approved' | 'completed' | 'cancelled'): void {
+  setCmTab(t: typeof this.cmTab): void {
     this.cmTab = t;
   }
 
-  get cmCounts(): { all: number; pending: number; approved: number; completed: number; cancelled: number } {
-    return {
-      all: this.courses.length,
-      pending: this.courses.filter(c => c.status === 'pending').length,
-      approved: this.courses.filter(c => c.status === 'approved' || c.status === 'active').length,
-      completed: this.courses.filter(c => c.status === 'completed').length,
-      cancelled: this.courses.filter(c => c.status === 'cancelled').length
+  get cmCounts(): {
+    all: number;
+    pending_teacher: number;
+    pending_students: number;
+    confirmed: number;
+    awaiting_manager: number;
+    completed: number;
+    cancelled: number;
+  } {
+    const byStatus = {
+      pending_teacher: 0,
+      pending_students: 0,
+      confirmed: 0,
+      awaiting_manager: 0,
+      completed: 0,
+      cancelled: 0
     };
+    for (const c of this.courses) {
+      const status = resolveDisplayStatus(c);
+      if (status in byStatus) (byStatus as any)[status]++;
+    }
+    return { all: this.courses.length, ...byStatus };
   }
 
   get cmFiltered(): ICourse[] {
     const term = this.cmSearch.trim().toLowerCase();
     return this.courses.filter(c => {
-      if (this.cmTab === 'pending'   && c.status !== 'pending') return false;
-      if (this.cmTab === 'approved'  && c.status !== 'approved' && c.status !== 'active') return false;
-      if (this.cmTab === 'completed' && c.status !== 'completed') return false;
-      if (this.cmTab === 'cancelled' && c.status !== 'cancelled') return false;
+      if (this.cmTab !== 'all' && resolveDisplayStatus(c) !== this.cmTab) return false;
       if (term) {
         const teacher: any = c.teacher;
         const teacherName = teacher && typeof teacher === 'object' ? `${teacher.firstName} ${teacher.lastName}` : '';

@@ -432,22 +432,32 @@
       <span class="total-badge">{{ courses.length }} รายการ</span>
     </div>
 
-    <!-- ── Status Tabs + Search ────────────────────────────── -->
+    <!-- ── Status Tabs + Search (ใช้ displayStatus ตรงกับทุกหน้า) ── -->
     <div *ngIf="courses.length > 0" class="cm-tabs-wrap">
       <div class="cm-tabs">
         <button class="cm-tab" [class.active]="cmTab === 'all'" (click)="setCmTab('all')">
           <span>ทั้งหมด</span>
           <span class="cm-tab-num">{{ cmCounts.all }}</span>
         </button>
-        <button class="cm-tab pending" [class.active]="cmTab === 'pending'" (click)="setCmTab('pending')">
+        <button class="cm-tab pending-teacher" [class.active]="cmTab === 'pending_teacher'" (click)="setCmTab('pending_teacher')">
           <span class="cm-tab-dot"></span>
           <span>รอครูยืนยัน</span>
-          <span class="cm-tab-num">{{ cmCounts.pending }}</span>
+          <span class="cm-tab-num">{{ cmCounts.pending_teacher }}</span>
         </button>
-        <button class="cm-tab approved" [class.active]="cmTab === 'approved'" (click)="setCmTab('approved')">
+        <button class="cm-tab pending-students" [class.active]="cmTab === 'pending_students'" (click)="setCmTab('pending_students')">
+          <span class="cm-tab-dot"></span>
+          <span>รอนักเรียนยืนยัน</span>
+          <span class="cm-tab-num">{{ cmCounts.pending_students }}</span>
+        </button>
+        <button class="cm-tab confirmed" [class.active]="cmTab === 'confirmed'" (click)="setCmTab('confirmed')">
           <span class="cm-tab-dot"></span>
           <span>ยืนยันแล้ว</span>
-          <span class="cm-tab-num">{{ cmCounts.approved }}</span>
+          <span class="cm-tab-num">{{ cmCounts.confirmed }}</span>
+        </button>
+        <button class="cm-tab awaiting-manager" [class.active]="cmTab === 'awaiting_manager'" (click)="setCmTab('awaiting_manager')">
+          <span class="cm-tab-dot"></span>
+          <span>รอ Manager ยืนยัน</span>
+          <span class="cm-tab-num">{{ cmCounts.awaiting_manager }}</span>
         </button>
         <button class="cm-tab completed" [class.active]="cmTab === 'completed'" (click)="setCmTab('completed')">
           <span class="cm-tab-dot"></span>

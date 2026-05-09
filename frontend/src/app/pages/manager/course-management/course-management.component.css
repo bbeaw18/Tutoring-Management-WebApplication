@@ -1135,10 +1135,12 @@
   flex-shrink: 0;
 }
 
-.cm-tab.pending   .cm-tab-dot { background: #f59e0b; }
-.cm-tab.approved  .cm-tab-dot { background: #16a34a; }
-.cm-tab.completed .cm-tab-dot { background: #3b82f6; }
-.cm-tab.cancelled .cm-tab-dot { background: #94a3b8; }
+.cm-tab.pending-teacher  .cm-tab-dot { background: #f59e0b; }
+.cm-tab.pending-students .cm-tab-dot { background: #0ea5e9; }
+.cm-tab.confirmed        .cm-tab-dot { background: #16a34a; }
+.cm-tab.awaiting-manager .cm-tab-dot { background: #ea580c; }
+.cm-tab.completed        .cm-tab-dot { background: #3b82f6; }
+.cm-tab.cancelled        .cm-tab-dot { background: #94a3b8; }
 
 .cm-tab-num {
   display: inline-flex;
@@ -1161,20 +1163,24 @@
   box-shadow: 0 1px 3px rgba(15,23,42,.08);
 }
 
-.cm-tab.active.pending   { color: #b45309; }
-.cm-tab.active.approved  { color: #15803d; }
-.cm-tab.active.completed { color: #1d4ed8; }
-.cm-tab.active.cancelled { color: #475569; }
+.cm-tab.active.pending-teacher  { color: #b45309; }
+.cm-tab.active.pending-students { color: #0369a1; }
+.cm-tab.active.confirmed        { color: #15803d; }
+.cm-tab.active.awaiting-manager { color: #c2410c; }
+.cm-tab.active.completed        { color: #1d4ed8; }
+.cm-tab.active.cancelled        { color: #475569; }
 
 .cm-tab.active .cm-tab-num {
   background: #0f172a;
   color: #fff;
 }
 
-.cm-tab.active.pending   .cm-tab-num { background: #f59e0b; }
-.cm-tab.active.approved  .cm-tab-num { background: #16a34a; }
-.cm-tab.active.completed .cm-tab-num { background: #3b82f6; }
-.cm-tab.active.cancelled .cm-tab-num { background: #94a3b8; }
+.cm-tab.active.pending-teacher  .cm-tab-num { background: #f59e0b; }
+.cm-tab.active.pending-students .cm-tab-num { background: #0ea5e9; }
+.cm-tab.active.confirmed        .cm-tab-num { background: #16a34a; }
+.cm-tab.active.awaiting-manager .cm-tab-num { background: #ea580c; }
+.cm-tab.active.completed        .cm-tab-num { background: #3b82f6; }
+.cm-tab.active.cancelled        .cm-tab-num { background: #94a3b8; }
 
 .cm-search {
   margin-left: auto;
