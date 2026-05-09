@@ -801,13 +801,58 @@
 
 .finance-item {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   font-weight: 600;
+  flex-wrap: wrap;
 }
 
-.teacher-income { color: #166534; }
-.student-price  { color: #92400e; }
+.finance-item svg {
+  flex-shrink: 0;
+}
+
+.finance-label {
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+
+.finance-formula {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  font-variant-numeric: tabular-nums;
+}
+
+.finance-rate {
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.finance-x,
+.finance-eq {
+  opacity: 0.55;
+  font-weight: 500;
+  font-size: 11px;
+}
+
+.finance-hours {
+  opacity: 0.85;
+  font-weight: 500;
+}
+
+.finance-total {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.teacher-income                 { color: #166534; }
+.teacher-income .finance-total  { color: #14532d; }
+.student-price                  { color: #92400e; }
+.student-price  .finance-total  { color: #78350f; }
 
 /* ── Animations ── */
 @keyframes pageEnter {

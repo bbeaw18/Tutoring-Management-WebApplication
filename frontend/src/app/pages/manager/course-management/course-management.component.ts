@@ -164,6 +164,45 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     return Math.round(this.coursePriceRate * this.classDurationHours);
   }
 
+  // ── Card display helpers ── (อัตรา × ชม. = ยอดรวม) ──
+  /** จำนวนชั่วโมงของคลาส คำนวณจาก startTime - endTime */
+  getCardHours(course: any): number {
+    if (!course?.startTime || !course?.endTime) return 0;
+    const [sh, sm] = String(course.startTime).split(':').map(Number);
+    const [eh, em] = String(course.endTime).split(':').map(Number);
+    const minutes = (eh * 60 + em) - (sh * 60 + sm);
+    return minutes > 0 ? minutes / 60 : 0;
+  }
+
+  /** อัตรารายได้ครู/ชม. ตามประเภทคลาส */
+  getTeacherRate(course: any): number {
+    if (!course) return 0;
+    return course.type === 'individual'
+      ? Number(course.teacherIncomeIndividual || 0)
+      : Number(course.teacherIncomeGroup || 0);
+  }
+
+  /** ยอดรายได้ครูรวม = อัตรา × ชม. */
+  getTeacherTotal(course: any): number {
+    return Math.round(this.getTeacherRate(course) * this.getCardHours(course));
+  }
+
+  /** อัตราค่าเรียน/ชม. */
+  getCoursePriceRate(course: any): number {
+    return Number(course?.coursePrice || 0);
+  }
+
+  /** ยอดค่าเรียนรวม (ต่อคน) = อัตรา × ชม. */
+  getCoursePriceTotalForCard(course: any): number {
+    return Math.round(this.getCoursePriceRate(course) * this.getCardHours(course));
+  }
+
+  /** Format ชั่วโมง — "2 ชม." หรือ "1.5 ชม." */
+  formatHours(h: number): string {
+    if (!h || h <= 0) return '0 ชม.';
+    return Number.isInteger(h) ? `${h} ชม.` : `${h.toFixed(1)} ชม.`;
+  }
+
   loadAll(): void {
     this.loading = true;
     this.courseService.getCourses({ limit: 100 } as any)
