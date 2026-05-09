@@ -338,13 +338,14 @@
                   <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
                   <path d="M6 12v5c3 3 9 3 12 0v-5"/>
                 </svg>
-                ค่าเรียน (นักเรียนต้องจ่าย) ฿
+                ค่าเรียน (อัตรา/ชม. — นักเรียนต้องจ่าย)
               </label>
               <div class="income-input-wrap">
                 <span class="income-currency">฿</span>
-                <input type="number" inputmode="numeric" formControlName="coursePrice" class="form-input income-input price-input" min="0" placeholder="ระบุจำนวนเงิน"/>
+                <input type="number" inputmode="numeric" formControlName="coursePrice" class="form-input income-input price-input" min="0" placeholder="ระบุอัตราต่อชั่วโมง"/>
+                <span class="income-suffix">/ ชม.</span>
               </div>
-              <span class="field-hint">นักเรียนจะเห็นยอดนี้ในอีเมลและระบบ</span>
+              <span class="field-hint">ค่าเรียนจริง = อัตรา × ชั่วโมงคลาส </span>
             </div>
           </div>
 
@@ -368,8 +369,13 @@
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
                 <polyline points="22,6 12,13 2,6"/>
               </svg>
-              <span>นักเรียนจะเห็น:</span>
-              <strong>ค่าเรียน ฿{{ bookingForm.get('coursePrice')?.value | number }}</strong>
+              <span>นักเรียนจะจ่าย:</span>
+              <strong>
+                ฿{{ coursePriceTotal | number }}
+                <small class="preview-formula" *ngIf="classDurationHours > 0 && coursePriceRate > 0">
+                  ({{ coursePriceRate | number }} × {{ classDurationHours | number:'1.0-2' }} ชม.)
+                </small>
+              </strong>
             </div>
           </div>
         </div>

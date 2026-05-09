@@ -8,7 +8,7 @@ const User = require('../models/User');
 const Attendance = require('../models/Attendance');
 const { authenticateToken } = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
-const { sendResponse, getPaginationParams, createPaginationObject } = require('../utils/helpers');
+const { sendResponse, getPaginationParams, createPaginationObject, computeEffectivePrice } = require('../utils/helpers');
 const { sendScheduleCreatedEmail, sendScheduleConfirmedEmail, sendPaymentReminderEmail, sendScheduleRescheduledEmail, sendStudentBookingConfirmedEmail, sendStudentBookingDeclinedEmail, sendVideoLinkEmail } = require('../services/emailService');
 const { generateQRToken, generateQRCodeDataURL } = require('../services/qrService');
 
@@ -914,7 +914,7 @@ router.patch('/:id/manager-confirm', authenticateToken, roleCheck(['admin', 'man
     // ✅ ดึง subject จาก course (Schedule schema ไม่มี field subject)
     const subjectName     = schedule.course?.subject || schedule.course?.name || '';
     const teacherIncome   = schedule.actualTeacherIncome || 0;
-    const coursePrice     = schedule.coursePrice || 0;
+    const coursePrice     = computeEffectivePrice(schedule);
     const dateText        = new Date(schedule.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
     const timeText        = `${schedule.startTime} – ${schedule.endTime} น.`;
 

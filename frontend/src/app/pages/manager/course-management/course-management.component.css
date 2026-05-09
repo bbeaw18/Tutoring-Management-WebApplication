@@ -1264,6 +1264,25 @@
 }
 .income-input-wrap input[type="number"] { -moz-appearance: textfield; }
 
+/* "/ ชม." suffix (อัตราต่อชั่วโมง) */
+.income-suffix {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  font-weight: 600;
+  font-size: 12px;
+  pointer-events: none;
+  user-select: none;
+  z-index: 1;
+  letter-spacing: -0.01em;
+}
+.income-input-wrap input:focus ~ .income-suffix,
+.income-input-wrap input:not(:placeholder-shown) ~ .income-suffix {
+  color: #be185d;
+}
+
 /* ── Fallback note (group bookings) ─────────────────────── */
 .income-fallback-note {
   display: flex;

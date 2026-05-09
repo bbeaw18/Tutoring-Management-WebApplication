@@ -48,9 +48,25 @@ const createPaginationObject = (page, limit, total) => {
   };
 };
 
+/**
+ * คำนวณราคาคอร์สที่นักเรียนต้องจ่ายจริง สำหรับ schedule หนึ่งคน
+ * - ถ้า incomeHourly = true → coursePrice เป็นยอดต่อชั่วโมง คูณกับ duration จริง
+ * - ถ้า incomeHourly = false (ข้อมูลเก่า) → coursePrice เป็นยอด flat ต่อคลาส
+ * ใช้ Math.round เพื่อให้ตรงกับ pattern ของ actualTeacherIncome
+ */
+const computeEffectivePrice = (schedule) => {
+  const price = Number(schedule?.coursePrice || 0);
+  if (schedule?.incomeHourly && schedule?.totalDurationMinutes > 0) {
+    const hours = schedule.totalDurationMinutes / 60;
+    return Math.round(price * hours);
+  }
+  return price;
+};
+
 module.exports = {
   generateToken,
   sendResponse,
   getPaginationParams,
-  createPaginationObject
+  createPaginationObject,
+  computeEffectivePrice
 };

@@ -14,7 +14,7 @@ const Course = require('../models/Course');
 const Notification = require('../models/Notification');
 const { authenticateToken } = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
-const { sendResponse, getPaginationParams, createPaginationObject } = require('../utils/helpers');
+const { sendResponse, getPaginationParams, createPaginationObject, computeEffectivePrice } = require('../utils/helpers');
 const generatePayload = require('promptpay-qr');
 const QRCode = require('qrcode');
 
@@ -253,7 +253,7 @@ router.get('/unpaid', authenticateToken, roleCheck(['student']), async (req, res
           date: att.schedule.date,
           startTime: att.schedule.startTime,
           endTime: att.schedule.endTime,
-          amount: att.schedule.coursePrice || 0,
+          amount: computeEffectivePrice(att.schedule),
           attendedAt: att.scannedAt
         });
       }
@@ -394,7 +394,8 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
       // ถ้า filter studentId แล้วนักเรียนคนนั้นไม่ได้เข้าเรียน → ข้ามคลาสนี้
       if (studentId && attendances.length === 0) continue;
 
-      const totalForSchedule = attendances.length * (s.coursePrice || 0);
+      const effectivePrice = computeEffectivePrice(s);
+      const totalForSchedule = attendances.length * effectivePrice;
       let paidForSchedule = 0;
 
       for (const att of attendances) {
@@ -426,7 +427,6 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
         teacherId:       s.teacher?._id || null,
         teacherName:     s.teacher ? (s.teacher.nickname || `${s.teacher.firstName} ${s.teacher.lastName}`) : '-',
         teacherRole:     s.teacher?.role || null,
-        teacherId:       s.teacher?._id || null,
         attendedStudents: attendances.map(att => {
           const sid = s._id.toString();
           const key = `${att.student._id.toString()}:${sid}`;
@@ -439,11 +439,11 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
             scannedAt:    att.scannedAt,
             paymentStatus,
             paymentId:    payment?._id || null,
-            paymentAmount: payment?.amount || (s.coursePrice || 0)
+            paymentAmount: payment?.amount || effectivePrice
           };
         }),
         attendanceCount: attendances.length,
-        coursePrice:     s.coursePrice || 0,
+        coursePrice:     effectivePrice,
         total:           totalForSchedule,
         paid:            paidForSchedule,
         unpaid:          totalForSchedule - paidForSchedule,
@@ -617,7 +617,7 @@ router.post('/claim-transfer', authenticateToken, roleCheck(['student']), async 
         return sendResponse(res, 400, false, null, msg);
       }
 
-      amount = schedule.coursePrice || 0;
+      amount = computeEffectivePrice(schedule);
       const subjectLabel = schedule.course?.subject || schedule.course?.name || 'คลาส';
       description = `ค่าเรียน ${subjectLabel} ${new Date(schedule.date).toLocaleDateString('th-TH')}`;
       paymentType = 'per_class';
@@ -645,7 +645,7 @@ router.post('/claim-transfer', authenticateToken, roleCheck(['student']), async 
           status: { $in: ['pending', 'confirmed'] }
         });
         if (!paid) {
-          amount += s.coursePrice || 0;
+          amount += computeEffectivePrice(s);
           relatedSchedules.push(s._id.toString());
           if (!courseId && s.course?._id) courseId = s.course._id;
         }
@@ -671,7 +671,7 @@ router.post('/claim-transfer', authenticateToken, roleCheck(['student']), async 
         schedule: sid,
         paymentMonth: paymentType === 'monthly' ? month : null,
         paymentType,
-        amount: sched.coursePrice || 0,
+        amount: computeEffectivePrice(sched),
         method: 'transfer',
         transactionRef: transactionRef || null,
         note: note || null,
@@ -789,7 +789,7 @@ router.post('/generate-promptpay-qr', authenticateToken, roleCheck(['student']),
       const attended = await Attendance.findOne({ schedule: scheduleId, student: req.user.id });
       if (!attended) return sendResponse(res, 400, false, null, 'ยังไม่ได้เช็คชื่อในคลาสนี้');
 
-      amount = schedule.coursePrice || 0;
+      amount = computeEffectivePrice(schedule);
       // ✅ ดึง subject จาก course (Schedule schema ไม่มี field subject)
       const subjectLabel = schedule.course?.subject || schedule.course?.name || 'คลาส';
       description = `ค่าเรียน ${subjectLabel} ${new Date(schedule.date).toLocaleDateString('th-TH')}`;
@@ -819,7 +819,7 @@ router.post('/generate-promptpay-qr', authenticateToken, roleCheck(['student']),
           status: { $in: ['pending', 'confirmed'] }
         });
         if (!paid) {
-          amount += s.coursePrice || 0;
+          amount += computeEffectivePrice(s);
           relatedSchedules.push(s._id.toString());
         }
       }
@@ -891,7 +891,7 @@ router.post('/kbank/create-charge', authenticateToken, roleCheck(['student']), a
         return sendResponse(res, 400, false, null, 'ชำระเงินสำหรับคลาสนี้แล้ว');
       }
 
-      amount = schedule.coursePrice || 0;
+      amount = computeEffectivePrice(schedule);
       description = `ค่าเรียน ${schedule.course?.name || 'คลาส'} ${new Date(schedule.date).toLocaleDateString('th-TH')}`;
       paymentType = 'per_class';
       relatedSchedules = [scheduleId];
@@ -919,7 +919,7 @@ router.post('/kbank/create-charge', authenticateToken, roleCheck(['student']), a
           status: 'paid'
         });
         if (!paidSession) {
-          amount += s.coursePrice || 0;
+          amount += computeEffectivePrice(s);
           relatedSchedules.push(s._id.toString());
           if (!courseId) courseId = s.course;
         }

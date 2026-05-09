@@ -129,6 +129,7 @@ async function runPaymentReminderJob() {
     const User = require('./models/User');
     const Schedule = require('./models/Schedule');
     const { sendPaymentReminderEmail } = require('./services/emailService');
+    const { computeEffectivePrice } = require('./utils/helpers');
 
     // หานักเรียนทั้งหมดที่มีการเช็คชื่อ
     const students = await User.find({ role: 'student', isActive: true });
@@ -152,7 +153,7 @@ async function runPaymentReminderJob() {
           unpaid.push({
             courseName: att.schedule.course?.name || '-',
             dateText: new Date(att.schedule.date).toLocaleDateString('th-TH'),
-            amount: att.schedule.coursePrice
+            amount: computeEffectivePrice(att.schedule)
           });
         }
       }
@@ -201,6 +202,7 @@ async function autoCompleteExpiredSchedules() {
     const User         = require('./models/User');
     const Notification = require('./models/Notification');
     const { sendManagerClassCompletedEmail } = require('./services/emailService');
+    const { computeEffectivePrice } = require('./utils/helpers');
 
     const now = new Date();
 
@@ -263,7 +265,7 @@ async function autoCompleteExpiredSchedules() {
       const dateText     = new Date(schedule.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
       const timeText     = `${schedule.startTime} – ${schedule.endTime} น.`;
       const teacherIncome = schedule.actualTeacherIncome || 0;
-      const coursePrice   = schedule.coursePrice || 0;
+      const coursePrice   = computeEffectivePrice(schedule);
 
       // แจ้ง in-app: ครู
       if (schedule.teacher) {

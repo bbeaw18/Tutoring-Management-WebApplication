@@ -153,6 +153,16 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     return Math.round(this.teacherIncomeRate * this.classDurationHours);
   }
 
+  /** อัตราค่าเรียน/ชม. ที่ Manager กรอก */
+  get coursePriceRate(): number {
+    return Number(this.bookingForm?.get('coursePrice')?.value) || 0;
+  }
+
+  /** ค่าเรียนทั้งหมดที่นักเรียนต้องจ่าย = อัตรา/ชม. × duration (ชั่วโมง) — ปัดเป็นจำนวนเต็ม */
+  get coursePriceTotal(): number {
+    return Math.round(this.coursePriceRate * this.classDurationHours);
+  }
+
   loadAll(): void {
     this.loading = true;
     this.courseService.getCourses({ limit: 100 } as any)
