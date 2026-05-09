@@ -19,6 +19,10 @@ export interface ICourse {
   teacherIncomeIndividual?: number;
   teacherIncomeGroup?: number;
   coursePrice?: number;
+  /** true = ราคา/รายได้เป็นอัตราต่อชั่วโมง (คลาสใหม่); false/undefined = flat per-class (คลาสเก่า) */
+  incomeHourly?: boolean;
+  /** Unified display status — แนบโดย backend (GET /courses) เพื่อให้ทุกหน้าใช้ค่าตรงกัน */
+  displayStatus?: 'pending_teacher' | 'pending_students' | 'confirmed' | 'awaiting_manager' | 'completed' | 'cancelled';
   status: 'pending' | 'approved' | 'active' | 'completed' | 'cancelled';
   teacherAccepted?: boolean;
   createdBy?: any;
