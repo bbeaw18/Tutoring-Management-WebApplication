@@ -164,6 +164,30 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     return Math.round(this.coursePriceRate * this.classDurationHours);
   }
 
+  // ── Hourly-mode rollout cutoffs ──
+  // เริ่มใช้การคิดต่อชม. ตั้งแต่วันที่กำหนด — คลาสก่อนหน้านี้ยังเป็น flat-rate เดิม
+  private readonly TEACHER_HOURLY_FROM = new Date('2026-05-08T00:00:00+07:00'); // 8 พ.ค.
+  private readonly PRICE_HOURLY_FROM   = new Date('2026-05-09T00:00:00+07:00'); // 9 พ.ค.
+
+  /** ใช้รูปแบบ "ชม.ละ × ชม. = รวม" สำหรับ "รายได้ครู" หรือไม่ */
+  isTeacherHourlyDisplay(course: any): boolean {
+    const d = this.getCourseDate(course);
+    return !!d && d >= this.TEACHER_HOURLY_FROM;
+  }
+
+  /** ใช้รูปแบบ "ชม.ละ × ชม. = รวม" สำหรับ "ค่าเรียน" หรือไม่ */
+  isPriceHourlyDisplay(course: any): boolean {
+    const d = this.getCourseDate(course);
+    return !!d && d >= this.PRICE_HOURLY_FROM;
+  }
+
+  private getCourseDate(course: any): Date | null {
+    const raw = course?.scheduledDate || course?.date;
+    if (!raw) return null;
+    const d = new Date(raw);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
   // ── Card display helpers ── (อัตรา × ชม. = ยอดรวม) ──
   /** จำนวนชั่วโมงของคลาส คำนวณจาก startTime - endTime */
   getCardHours(course: any): number {
