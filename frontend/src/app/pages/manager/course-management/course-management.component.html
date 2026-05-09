@@ -552,34 +552,61 @@
           </div>
 
           <div class="card-finance" *ngIf="(course.coursePrice || 0) > 0 || (course.teacherIncomeGroup || 0) > 0 || (course.teacherIncomeIndividual || 0) > 0">
-            <div class="finance-item teacher-income" *ngIf="getTeacherRate(course) > 0">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <line x1="12" y1="1" x2="12" y2="23"/>
-                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-              </svg>
-              <span class="finance-label">รายได้ครู</span>
-              <span class="finance-formula">
-                <span class="finance-rate">ชม.ละ ฿{{ getTeacherRate(course) | number }}</span>
-                <span class="finance-x" *ngIf="getCardHours(course) > 0">×</span>
-                <span class="finance-hours" *ngIf="getCardHours(course) > 0">{{ formatHours(getCardHours(course)) }}</span>
-                <span class="finance-eq" *ngIf="getCardHours(course) > 0">=</span>
-                <strong class="finance-total" *ngIf="getCardHours(course) > 0">฿{{ getTeacherTotal(course) | number }}</strong>
-              </span>
-            </div>
-            <div class="finance-item student-price" *ngIf="getCoursePriceRate(course) > 0">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-              </svg>
-              <span class="finance-label">ค่าเรียน</span>
-              <span class="finance-formula">
-                <span class="finance-rate">ชม.ละ ฿{{ getCoursePriceRate(course) | number }}</span>
-                <span class="finance-x" *ngIf="getCardHours(course) > 0">×</span>
-                <span class="finance-hours" *ngIf="getCardHours(course) > 0">{{ formatHours(getCardHours(course)) }}</span>
-                <span class="finance-eq" *ngIf="getCardHours(course) > 0">=</span>
-                <strong class="finance-total" *ngIf="getCardHours(course) > 0">฿{{ getCoursePriceTotalForCard(course) | number }}</strong>
-              </span>
-            </div>
+            <!-- ── คลาสใหม่ (incomeHourly=true): แสดง อัตรา × ชม. = ยอดรวม ── -->
+            <ng-container *ngIf="course.incomeHourly; else legacyFinance">
+              <div class="finance-item teacher-income" *ngIf="getTeacherRate(course) > 0">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="12" y1="1" x2="12" y2="23"/>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+                <span class="finance-label">รายได้ครู</span>
+                <span class="finance-formula">
+                  <span class="finance-rate">ชม.ละ ฿{{ getTeacherRate(course) | number }}</span>
+                  <span class="finance-x" *ngIf="getCardHours(course) > 0">×</span>
+                  <span class="finance-hours" *ngIf="getCardHours(course) > 0">{{ formatHours(getCardHours(course)) }}</span>
+                  <span class="finance-eq" *ngIf="getCardHours(course) > 0">=</span>
+                  <strong class="finance-total" *ngIf="getCardHours(course) > 0">฿{{ getTeacherTotal(course) | number }}</strong>
+                </span>
+              </div>
+              <div class="finance-item student-price" *ngIf="getCoursePriceRate(course) > 0">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                  <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                </svg>
+                <span class="finance-label">ค่าเรียน</span>
+                <span class="finance-formula">
+                  <span class="finance-rate">ชม.ละ ฿{{ getCoursePriceRate(course) | number }}</span>
+                  <span class="finance-x" *ngIf="getCardHours(course) > 0">×</span>
+                  <span class="finance-hours" *ngIf="getCardHours(course) > 0">{{ formatHours(getCardHours(course)) }}</span>
+                  <span class="finance-eq" *ngIf="getCardHours(course) > 0">=</span>
+                  <strong class="finance-total" *ngIf="getCardHours(course) > 0">฿{{ getCoursePriceTotalForCard(course) | number }}</strong>
+                </span>
+              </div>
+            </ng-container>
+
+            <!-- ── คลาสเก่า (incomeHourly=false / undefined): แสดงเป็น flat-rate เดิม ── -->
+            <ng-template #legacyFinance>
+              <div class="finance-item teacher-income" *ngIf="(course.teacherIncomeIndividual || 0) > 0 || (course.teacherIncomeGroup || 0) > 0">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="12" y1="1" x2="12" y2="23"/>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+                <span class="finance-label">รายได้ครู</span>
+                <span>
+                  {{ course.type === 'individual'
+                    ? '฿' + ((course.teacherIncomeIndividual || 0) | number)
+                    : '฿' + ((course.teacherIncomeGroup || 0) | number) }}
+                </span>
+              </div>
+              <div class="finance-item student-price" *ngIf="(course.coursePrice || 0) > 0">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                  <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                </svg>
+                <span class="finance-label">ค่าเรียน</span>
+                <span>฿{{ (course.coursePrice || 0) | number }}</span>
+              </div>
+            </ng-template>
           </div>
         </div>
 
