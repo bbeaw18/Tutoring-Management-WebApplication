@@ -740,15 +740,48 @@
           <div class="hd-grid">
             <div class="hd-field">
               <span class="hd-label">ราคาคอร์ส (ต่อคน)</span>
-              <span class="hd-value hd-amount">฿{{ selectedSchedule.coursePrice || 0 | number }}</span>
+              <span class="hd-value hd-amount">
+                <ng-container *ngIf="isPriceHourlyForSchedule(selectedSchedule); else priceFlat1">
+                  <span class="hd-formula">
+                    <span class="hd-rate">ชม.ละ ฿{{ selectedSchedule.coursePrice || 0 | number }}</span>
+                    <span class="hd-x">×</span>
+                    <span class="hd-hours">{{ formatHoursH(getScheduleHours(selectedSchedule)) }}</span>
+                    <span class="hd-eq">=</span>
+                    <strong class="hd-total">฿{{ getCoursePriceTotal(selectedSchedule) | number }}</strong>
+                  </span>
+                </ng-container>
+                <ng-template #priceFlat1>฿{{ selectedSchedule.coursePrice || 0 | number }}</ng-template>
+              </span>
             </div>
             <div class="hd-field">
               <span class="hd-label">รายได้ครู (เดี่ยว)</span>
-              <span class="hd-value">฿{{ selectedSchedule.teacherIncomeIndividual || 0 | number }}</span>
+              <span class="hd-value">
+                <ng-container *ngIf="isTeacherHourlyForSchedule(selectedSchedule) && (selectedSchedule.teacherIncomeIndividual || 0) > 0; else teacherIndvFlat">
+                  <span class="hd-formula">
+                    <span class="hd-rate">ชม.ละ ฿{{ selectedSchedule.teacherIncomeIndividual || 0 | number }}</span>
+                    <span class="hd-x">×</span>
+                    <span class="hd-hours">{{ formatHoursH(getScheduleHours(selectedSchedule)) }}</span>
+                    <span class="hd-eq">=</span>
+                    <strong class="hd-total">฿{{ getTeacherIncomeTotalByType(selectedSchedule, 'individual') | number }}</strong>
+                  </span>
+                </ng-container>
+                <ng-template #teacherIndvFlat>฿{{ selectedSchedule.teacherIncomeIndividual || 0 | number }}</ng-template>
+              </span>
             </div>
             <div class="hd-field">
               <span class="hd-label">รายได้ครู (กลุ่ม)</span>
-              <span class="hd-value">฿{{ selectedSchedule.teacherIncomeGroup || 0 | number }}</span>
+              <span class="hd-value">
+                <ng-container *ngIf="isTeacherHourlyForSchedule(selectedSchedule) && (selectedSchedule.teacherIncomeGroup || 0) > 0; else teacherGrpFlat">
+                  <span class="hd-formula">
+                    <span class="hd-rate">ชม.ละ ฿{{ selectedSchedule.teacherIncomeGroup || 0 | number }}</span>
+                    <span class="hd-x">×</span>
+                    <span class="hd-hours">{{ formatHoursH(getScheduleHours(selectedSchedule)) }}</span>
+                    <span class="hd-eq">=</span>
+                    <strong class="hd-total">฿{{ getTeacherIncomeTotalByType(selectedSchedule, 'group') | number }}</strong>
+                  </span>
+                </ng-container>
+                <ng-template #teacherGrpFlat>฿{{ selectedSchedule.teacherIncomeGroup || 0 | number }}</ng-template>
+              </span>
             </div>
             <div class="hd-field" *ngIf="isClassFinished(selectedSchedule)">
               <span class="hd-label">รายได้จริง (หลังเช็คชื่อ)</span>
@@ -769,7 +802,18 @@
           <div class="hd-grid">
             <div class="hd-field">
               <span class="hd-label">ราคาคอร์ส</span>
-              <span class="hd-value hd-amount">฿{{ selectedSchedule.coursePrice || 0 | number }}</span>
+              <span class="hd-value hd-amount">
+                <ng-container *ngIf="isPriceHourlyForSchedule(selectedSchedule); else priceFlat2">
+                  <span class="hd-formula">
+                    <span class="hd-rate">ชม.ละ ฿{{ selectedSchedule.coursePrice || 0 | number }}</span>
+                    <span class="hd-x">×</span>
+                    <span class="hd-hours">{{ formatHoursH(getScheduleHours(selectedSchedule)) }}</span>
+                    <span class="hd-eq">=</span>
+                    <strong class="hd-total">฿{{ getCoursePriceTotal(selectedSchedule) | number }}</strong>
+                  </span>
+                </ng-container>
+                <ng-template #priceFlat2>฿{{ selectedSchedule.coursePrice || 0 | number }}</ng-template>
+              </span>
             </div>
             <div class="hd-field">
               <span class="hd-label">สถานะการชำระเงินของฉัน</span>

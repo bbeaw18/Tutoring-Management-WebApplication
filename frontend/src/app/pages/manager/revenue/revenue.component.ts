@@ -430,6 +430,55 @@ export class RevenueComponent implements OnInit, OnDestroy {
     return `${paid} ${circ - paid}`;
   }
 
+  // ── Hourly-mode rollout cutoffs (must match course-management) ──
+  // เริ่มใช้การคิดต่อชม. ตั้งแต่วันที่กำหนด — คลาสก่อนหน้านี้ยังเป็น flat-rate เดิม
+  private readonly TEACHER_HOURLY_FROM = new Date('2026-05-08T00:00:00+07:00');
+  private readonly PRICE_HOURLY_FROM   = new Date('2026-05-09T00:00:00+07:00');
+
+  /** ชั่วโมงของคลาสคำนวณจาก totalDurationMinutes หรือ start/end time */
+  getScheduleHours(s: IRevenueSchedule): number {
+    if (s.totalDurationMinutes && s.totalDurationMinutes > 0) {
+      return s.totalDurationMinutes / 60;
+    }
+    if (s.startTime && s.endTime) {
+      const [sh, sm] = String(s.startTime).split(':').map(Number);
+      const [eh, em] = String(s.endTime).split(':').map(Number);
+      const minutes = (eh * 60 + em) - (sh * 60 + sm);
+      return minutes > 0 ? minutes / 60 : 0;
+    }
+    return 0;
+  }
+
+  formatHours(h: number): string {
+    if (!h || h <= 0) return '0 ชม.';
+    return Number.isInteger(h) ? `${h} ชม.` : `${h.toFixed(1)} ชม.`;
+  }
+
+  /** ใช้รูปแบบ "ชม.ละ × ชม. = รวม" สำหรับค่าเรียนของคลาสนี้หรือไม่ */
+  isPriceHourlyForSchedule(s: IRevenueSchedule): boolean {
+    const d = s?.date ? new Date(s.date) : null;
+    return !!d && !isNaN(d.getTime()) && d >= this.PRICE_HOURLY_FROM;
+  }
+
+  /** ใช้รูปแบบ "ชม.ละ × ชม. = รวม" สำหรับรายได้ครูของคลาสนี้หรือไม่ */
+  isTeacherHourlyForSchedule(s: IRevenueSchedule): boolean {
+    const d = s?.date ? new Date(s.date) : null;
+    return !!d && !isNaN(d.getTime()) && d >= this.TEACHER_HOURLY_FROM;
+  }
+
+  /** ราคาคอร์สต่อชม. (raw rate ที่ Manager กรอก) */
+  getCoursePriceRate(s: IRevenueSchedule): number {
+    return Number(s.coursePriceRaw || 0);
+  }
+
+  /** อัตรารายได้ครูต่อชม. ตามจำนวนนักเรียนที่เข้าเรียน (1 → individual, >1 → group) */
+  getTeacherRate(s: IRevenueSchedule): number {
+    const att = s.attendanceCount || 0;
+    if (att === 1) return Number(s.teacherIncomeIndividual || 0);
+    if (att > 1)   return Number(s.teacherIncomeGroup || 0);
+    return 0;
+  }
+
   formatDate(date: Date | string): string {
     return new Date(date).toLocaleDateString('th-TH', {
       year: 'numeric',

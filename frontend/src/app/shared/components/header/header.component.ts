@@ -62,7 +62,7 @@ interface CmdItem {
             <div class="dropdown-panel notif-panel" *ngIf="showNotifications">
               <div class="dropdown-header">
                 <span>การแจ้งเตือน</span>
-                <button class="text-link" *ngIf="unreadCount > 0">อ่านทั้งหมด</button>
+                <button class="text-link" *ngIf="unreadCount > 0" (click)="markAllNotificationsRead()">อ่านทั้งหมด</button>
               </div>
               <div class="notif-list">
                 <div *ngIf="!notifications.length" class="notif-empty">
@@ -72,7 +72,9 @@ interface CmdItem {
                   </svg>
                   <p>ไม่มีการแจ้งเตือน</p>
                 </div>
-                <div *ngFor="let n of notifications" class="notif-item" [class.unread]="!n.isRead">
+                <div *ngFor="let n of notifications" class="notif-item"
+                     [class.unread]="!n.isRead"
+                     (click)="markNotificationRead(n)">
                   <div class="notif-dot"></div>
                   <div class="notif-body">
                     <p class="notif-title">{{ n.title }}</p>
@@ -698,7 +700,42 @@ export class HeaderComponent implements OnInit, OnDestroy {
       this.notificationService.getNotifications().subscribe(res => {
         this.notifications = res.data || [];
       });
+      // Refresh unread count when opening (กันกรณีอัปเดตจากแท็บอื่น)
+      this.notificationService.getUnreadCount().subscribe(c => { this.unreadCount = c; });
     }
+  }
+
+  /** กดที่การแจ้งเตือน 1 รายการ → mark as read + ลด badge ทันที */
+  markNotificationRead(n: any): void {
+    if (!n || n.isRead) return;
+    const id = n._id || n.id;
+    if (!id) return;
+    // Optimistic update — ลด badge ทันทีไม่รอ server
+    n.isRead = true;
+    if (this.unreadCount > 0) this.unreadCount--;
+    this.notificationService.markAsRead(id).subscribe({
+      error: () => {
+        // rollback ถ้า server error
+        n.isRead = false;
+        this.notificationService.getUnreadCount().subscribe(c => { this.unreadCount = c; });
+      }
+    });
+  }
+
+  /** กดปุ่ม "อ่านทั้งหมด" → mark ทุกรายการ + เคลียร์ badge */
+  markAllNotificationsRead(): void {
+    if (this.unreadCount === 0) return;
+    // Optimistic
+    this.notifications = this.notifications.map(n => ({ ...n, isRead: true }));
+    const prevCount = this.unreadCount;
+    this.unreadCount = 0;
+    this.notificationService.markAllAsRead().subscribe({
+      error: () => {
+        // rollback
+        this.unreadCount = prevCount;
+        this.notificationService.getNotifications().subscribe(res => { this.notifications = res.data || []; });
+      }
+    });
   }
 
   toggleUserMenu(): void {

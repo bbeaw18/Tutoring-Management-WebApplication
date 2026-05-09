@@ -52,7 +52,10 @@ export interface IRevenueSchedule {
     paymentAmount?: number;
   }[];
   attendanceCount: number;
-  coursePrice: number;
+  coursePrice: number;            // effective total (rate × hours for hourly, else flat)
+  coursePriceRaw?: number;        // raw stored value — rate-per-hour for hourly classes
+  teacherIncomeIndividual?: number;
+  teacherIncomeGroup?: number;
   total: number;
   paid: number;
   unpaid: number;

@@ -684,6 +684,24 @@
 }
 .hd-amount { color: #1e40af; font-size: 1.05rem; font-weight: 800; }
 .hd-income { color: #15803d; font-size: 1.05rem; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; }
+
+/* "ชม.ละ X × Y ชม. = Z" inline formula in detail modal value cells */
+.hd-formula {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  flex-wrap: wrap;
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.hd-formula .hd-rate  { color: #475569; font-weight: 500; }
+.hd-formula .hd-x,
+.hd-formula .hd-eq    { color: #94a3b8; font-weight: 400; font-size: 11.5px; }
+.hd-formula .hd-hours { color: #475569; font-weight: 500; }
+.hd-formula .hd-total { font-size: 1.02rem; font-weight: 800; color: inherit; margin-left: 1px; }
+.hd-amount .hd-formula { font-size: 13px; }
+.hd-amount .hd-formula .hd-total { color: #1e40af; }
 .hd-pending-tag {
   font-size: 10px;
   font-weight: 700;

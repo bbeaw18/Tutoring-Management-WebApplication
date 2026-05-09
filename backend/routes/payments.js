@@ -474,6 +474,11 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
         }),
         attendanceCount: attendances.length,
         coursePrice:     effectivePrice,
+        // Raw rates from schedule — frontend uses these to render
+        // "ชม.ละ X × Y ชม. = Z" formula when class date is past hourly cutoff
+        coursePriceRaw:           s.coursePrice || 0,
+        teacherIncomeIndividual:  s.teacherIncomeIndividual || 0,
+        teacherIncomeGroup:       s.teacherIncomeGroup || 0,
         total:           totalForSchedule,
         paid:            paidForSchedule,
         unpaid:          totalForSchedule - paidForSchedule,

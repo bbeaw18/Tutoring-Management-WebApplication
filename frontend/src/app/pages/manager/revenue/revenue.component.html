@@ -405,7 +405,18 @@
               <span class="student-count">{{ s.attendanceCount }} คน</span>
             </td>
             <td class="currency teacher-income-cell">
-              ฿{{ (s.actualTeacherIncome || 0) | number: '1.0-0' }}
+              <ng-container *ngIf="isTeacherHourlyForSchedule(s) && getTeacherRate(s) > 0; else teacherFlat">
+                <div class="rev-formula">
+                  <span class="rev-rate">ชม.ละ ฿{{ getTeacherRate(s) | number: '1.0-0' }}</span>
+                  <span class="rev-x">×</span>
+                  <span class="rev-hours">{{ formatHours(getScheduleHours(s)) }}</span>
+                  <span class="rev-eq">=</span>
+                  <strong class="rev-total">฿{{ (s.actualTeacherIncome || 0) | number: '1.0-0' }}</strong>
+                </div>
+              </ng-container>
+              <ng-template #teacherFlat>
+                ฿{{ (s.actualTeacherIncome || 0) | number: '1.0-0' }}
+              </ng-template>
             </td>
           </tr>
         </tbody>
@@ -453,7 +464,20 @@
               <td>
                 <div class="student-cell">{{ st.name }}</div>
               </td>
-              <td class="currency">{{ st.paymentAmount | number: '1.0-0' }}</td>
+              <td class="currency">
+                <ng-container *ngIf="isPriceHourlyForSchedule(s) && getCoursePriceRate(s) > 0; else priceFlat">
+                  <div class="rev-formula">
+                    <span class="rev-rate">ชม.ละ ฿{{ getCoursePriceRate(s) | number: '1.0-0' }}</span>
+                    <span class="rev-x">×</span>
+                    <span class="rev-hours">{{ formatHours(getScheduleHours(s)) }}</span>
+                    <span class="rev-eq">=</span>
+                    <strong class="rev-total">฿{{ st.paymentAmount | number: '1.0-0' }}</strong>
+                  </div>
+                </ng-container>
+                <ng-template #priceFlat>
+                  ฿{{ st.paymentAmount | number: '1.0-0' }}
+                </ng-template>
+              </td>
               <td>
                 <!-- สถานะการชำระเงิน -->
                 <span *ngIf="st.paymentStatus === 'confirmed'" class="badge badge-paid-rev">

@@ -357,6 +357,66 @@ export class HistoryComponent implements OnInit, OnDestroy {
     return t ? (t.nickname || `${t.firstName} ${t.lastName}`) : '';
   }
 
+  // ── Hourly-mode rollout cutoffs (ตรงกับ course-management + revenue) ──
+  private readonly TEACHER_HOURLY_FROM = new Date('2026-05-08T00:00:00+07:00');
+  private readonly PRICE_HOURLY_FROM   = new Date('2026-05-09T00:00:00+07:00');
+
+  private getScheduleDate(s: any): Date | null {
+    const raw = s?.date;
+    if (!raw) return null;
+    const d = new Date(raw);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  isPriceHourlyForSchedule(s: any): boolean {
+    const d = this.getScheduleDate(s);
+    return !!d && d >= this.PRICE_HOURLY_FROM;
+  }
+
+  isTeacherHourlyForSchedule(s: any): boolean {
+    const d = this.getScheduleDate(s);
+    return !!d && d >= this.TEACHER_HOURLY_FROM;
+  }
+
+  /** ชั่วโมงของคลาส คำนวณจาก totalDurationMinutes ก่อน, fallback start/end */
+  getScheduleHours(s: any): number {
+    if (s?.totalDurationMinutes && s.totalDurationMinutes > 0) {
+      return s.totalDurationMinutes / 60;
+    }
+    if (s?.startTime && s?.endTime) {
+      const [sh, sm] = String(s.startTime).split(':').map(Number);
+      const [eh, em] = String(s.endTime).split(':').map(Number);
+      const minutes = (eh * 60 + em) - (sh * 60 + sm);
+      return minutes > 0 ? minutes / 60 : 0;
+    }
+    return 0;
+  }
+
+  formatHoursH(h: number): string {
+    if (!h || h <= 0) return '0 ชม.';
+    return Number.isInteger(h) ? `${h} ชม.` : `${h.toFixed(1)} ชม.`;
+  }
+
+  /** ค่าเรียนต่อคน — ยอดรวม (rate × hours สำหรับคลาสใหม่, flat สำหรับคลาสเก่า) */
+  getCoursePriceTotal(s: any): number {
+    const rate = Number(s?.coursePrice || 0);
+    if (this.isPriceHourlyForSchedule(s)) {
+      return Math.round(rate * this.getScheduleHours(s));
+    }
+    return rate;
+  }
+
+  /** รายได้ครูสำหรับ type — ยอดรวม */
+  getTeacherIncomeTotalByType(s: any, type: 'individual' | 'group'): number {
+    const rate = Number(type === 'individual'
+      ? (s?.teacherIncomeIndividual || 0)
+      : (s?.teacherIncomeGroup || 0));
+    if (this.isTeacherHourlyForSchedule(s)) {
+      return Math.round(rate * this.getScheduleHours(s));
+    }
+    return rate;
+  }
+
   // ─── Timeline view helpers ────────────────────────────────
   setHViewMode(m: 'timeline' | 'table'): void { this.hViewMode = m; }
   setHStatus(s: 'all' | 'completed' | 'awaiting_confirmation' | 'pending' | 'cancelled'): void {

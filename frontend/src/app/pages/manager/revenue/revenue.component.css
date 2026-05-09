@@ -1415,6 +1415,23 @@ tbody tr:hover { background: rgba(30,63,128,0.03); }
   margin-bottom: var(--sp-2);
 }
 
+/* ── "ชม.ละ X × Y ชม. = Z" formula in revenue table cells ── */
+.rev-formula {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  font-variant-numeric: tabular-nums;
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+.rev-formula .rev-rate  { color: var(--gray-600); font-weight: 500; }
+.rev-formula .rev-x,
+.rev-formula .rev-eq    { color: var(--gray-400); font-weight: 400; }
+.rev-formula .rev-hours { color: var(--gray-600); font-weight: 500; }
+.rev-formula .rev-total { font-size: 13px; font-weight: 800; color: var(--gray-900); }
+
 /* ═══════════════════════════════════════════════════════
    New Layout — Toolbar + KPI Sections (per filter scope)
    ═══════════════════════════════════════════════════════ */
