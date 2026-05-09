@@ -399,9 +399,17 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
       const totalForSchedule = attendances.length * effectivePrice;
       let paidForSchedule = 0;
 
+      // ── ใช้ราคาปัจจุบัน (effectivePrice) สำหรับ KPI/display ──
+      // เหตุผล: เมื่อ Manager แก้ไขราคาคลาสภายหลัง (เช่น 599 → 600) Payment record
+      // ที่สร้างไว้ก่อนหน้ายังเก็บราคาเดิม → เกิด mismatch ระหว่าง total (ราคาใหม่)
+      // กับ paid (ราคาเดิม) ทำให้ KPI เพี้ยน
+      // วิธีแก้: ถ้านักเรียนชำระแล้ว → นับเป็นจ่ายตามราคาปัจจุบันของคลาส
+      // (Payment.amount เก็บไว้เดิมเพื่อ audit trail)
       for (const att of attendances) {
         const key = `${att.student._id.toString()}:${sid}`;
-        paidForSchedule += paidAmountByKey.get(key) || 0;
+        if ((paidAmountByKey.get(key) || 0) > 0) {
+          paidForSchedule += effectivePrice;
+        }
       }
 
       kpiTotal += totalForSchedule;
@@ -459,7 +467,8 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
             scannedAt:    att.scannedAt,
             paymentStatus,
             paymentId:    payment?._id || null,
-            paymentAmount: payment?.amount || effectivePrice
+            // แสดงราคาปัจจุบันของคลาส ไม่ใช่ payment.amount เก่า — เพื่อให้ตรงกับหน้าอื่น
+            paymentAmount: effectivePrice
           };
         }),
         attendanceCount: attendances.length,

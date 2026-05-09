@@ -56,11 +56,14 @@ async function buildPaymentSummariesByScheduleId(scheduleObjs) {
     for (const att of attendances) {
       const key = `${sid}:${att.student.toString()}`;
       const pay = paymentByKey.get(key);
+      // ใช้ราคาปัจจุบันของคลาส (effPrice) เสมอ — ไม่ใช่ pay.amount เก่า
+      // เพื่อให้ตรงกับหน้า calendar/history ที่อ่าน schedule.coursePrice ปัจจุบัน
+      // (Payment.amount เก็บเดิมเป็น audit trail)
       if (pay?.status === 'confirmed') {
-        paid += pay.amount || effPrice;
+        paid += effPrice;
         paidCount++;
       } else if (pay?.status === 'pending') {
-        pending += pay.amount || effPrice;
+        pending += effPrice;
         pendingCount++;
       } else {
         unpaid += effPrice;
