@@ -576,18 +576,31 @@ router.patch('/:id/edit-booking', authenticateToken, roleCheck(['admin', 'manage
 
     await course.save();
 
-    // อัพเดต Schedule ที่เชื่อมกับ Course นี้
-    const scheduleUpdate = {};
-    if (scheduledDate !== undefined) scheduleUpdate.date                     = new Date(scheduledDate);
-    if (startTime     !== undefined) scheduleUpdate.startTime                = startTime;
-    if (endTime       !== undefined) scheduleUpdate.endTime                  = endTime;
-    if (teacher       !== undefined) scheduleUpdate.teacher                  = teacher;
-    if (teacherIncomeIndividual !== undefined) scheduleUpdate.teacherIncomeIndividual = Number(teacherIncomeIndividual);
-    if (teacherIncomeGroup      !== undefined) scheduleUpdate.teacherIncomeGroup      = Number(teacherIncomeGroup);
-    if (coursePrice             !== undefined) scheduleUpdate.coursePrice             = Number(coursePrice);
+    // ── อัพเดต Schedule ที่เชื่อมกับ Course นี้ ──
+    // แยกเป็น 2 ชั้น เพื่อให้แก้ราคาคลาสที่จบไปแล้วทำได้ (correction) แต่
+    // ไม่อนุญาตเปลี่ยนวัน/เวลา/ครูของคลาสที่จบแล้ว เพราะกระทบสถานะการยืนยัน
 
-    // ── ถ้ามีการเปลี่ยน "วัน/เวลา/ครู" → reset teacherConfirmed
-    //    เพราะครูคนใหม่ (หรือคนเดิมในเวลาใหม่) ต้องยืนยันใหม่ ──
+    // ── 1) Price/income ── sync ทุก schedule รวมถึงที่ completed/awaiting_confirmation
+    //    (เพื่อให้ revenue/history แสดงราคาตรงกับ course management หลังแก้ไข)
+    const priceUpdate = {};
+    if (teacherIncomeIndividual !== undefined) priceUpdate.teacherIncomeIndividual = Number(teacherIncomeIndividual);
+    if (teacherIncomeGroup      !== undefined) priceUpdate.teacherIncomeGroup      = Number(teacherIncomeGroup);
+    if (coursePrice             !== undefined) priceUpdate.coursePrice             = Number(coursePrice);
+    if (Object.keys(priceUpdate).length > 0) {
+      await Schedule.updateMany(
+        { course: course._id, status: { $ne: 'cancelled' } },
+        { $set: priceUpdate }
+      );
+    }
+
+    // ── 2) Date/time/teacher ── sync เฉพาะ schedule ที่ยังไม่ completed/cancelled
+    //    + reset teacherConfirmed เมื่อมีการเปลี่ยนวัน/เวลา/ครู
+    const scheduleUpdate = {};
+    if (scheduledDate !== undefined) scheduleUpdate.date      = new Date(scheduledDate);
+    if (startTime     !== undefined) scheduleUpdate.startTime = startTime;
+    if (endTime       !== undefined) scheduleUpdate.endTime   = endTime;
+    if (teacher       !== undefined) scheduleUpdate.teacher   = teacher;
+
     const significantChange =
       scheduledDate !== undefined ||
       startTime     !== undefined ||
@@ -604,7 +617,6 @@ router.patch('/:id/edit-booking', authenticateToken, roleCheck(['admin', 'manage
     }
 
     if (Object.keys(scheduleUpdate).length > 0) {
-      // อัปเดตเฉพาะ schedule ที่ยังไม่ completed/cancelled (กันแก้ของที่จบแล้ว)
       await Schedule.updateMany(
         { course: course._id, status: { $nin: ['cancelled', 'completed', 'awaiting_confirmation'] } },
         { $set: scheduleUpdate }
