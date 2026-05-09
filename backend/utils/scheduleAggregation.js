@@ -91,8 +91,39 @@ const SCHEDULE_COURSE_FIELDS = 'name subject type gradeLevel teachingType descri
 const SCHEDULE_TEACHER_FIELDS = 'firstName lastName nickname email role';
 const SCHEDULE_STUDENT_FIELDS = 'firstName lastName nickname email grade academicYear';
 
+/**
+ * Unified display status — มาจาก Schedule.status + teacherConfirmed + isFullyConfirmed
+ * ใช้ทุกหน้า (calendar, history, revenue, course-management) ให้แสดงผลตรงกัน
+ *
+ * Returns one of:
+ *   - 'cancelled'         → ยกเลิก
+ *   - 'completed'         → เสร็จสิ้น
+ *   - 'awaiting_manager'  → รอ Manager ยืนยันเสร็จสิ้น
+ *   - 'confirmed'         → ยืนยันแล้ว (ทั้งครู + นักเรียนทุกคนยืนยัน)
+ *   - 'pending_students'  → รอนักเรียนยืนยัน (ครูยืนยันแล้ว แต่นักเรียนบางคนยังไม่ยืนยัน)
+ *   - 'pending_teacher'   → รอครูยืนยัน
+ */
+function deriveDisplayStatus(schedule) {
+  if (!schedule) return 'pending_teacher';
+  const s = schedule.status;
+
+  if (s === 'cancelled')              return 'cancelled';
+  if (s === 'completed')              return 'completed';
+  if (s === 'awaiting_confirmation')  return 'awaiting_manager';
+
+  // status ∈ { 'pending', 'confirmed', 'scheduled' } → ดูจากการยืนยัน
+  if (!schedule.teacherConfirmed)     return 'pending_teacher';
+
+  // ครูยืนยันแล้ว — เช็คว่านักเรียนทุกคนยืนยันด้วยไหม
+  // (เคสไม่มีนักเรียน → ถือว่ายืนยันครบ)
+  const hasStudents = Array.isArray(schedule.students) && schedule.students.length > 0;
+  if (hasStudents && !schedule.isFullyConfirmed) return 'pending_students';
+  return 'confirmed';
+}
+
 module.exports = {
   buildPaymentSummariesByScheduleId,
+  deriveDisplayStatus,
   SCHEDULE_COURSE_FIELDS,
   SCHEDULE_TEACHER_FIELDS,
   SCHEDULE_STUDENT_FIELDS

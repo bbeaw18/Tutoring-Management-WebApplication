@@ -11,6 +11,7 @@ import { LoadingComponent } from '../../../shared/components/loading/loading.com
 import { DatePickerComponent } from '../../../shared/components/date-picker/date-picker.component';
 import { TimePickerComponent } from '../../../shared/components/time-picker/time-picker.component';
 import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
+import { resolveDisplayStatus, getDisplayStatusLabel, getDisplayStatusClass } from '../../../shared/constants/schedule-status';
 
 @Component({
   selector: 'app-course-management',
@@ -508,26 +509,16 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
   }
 
-  getStatusLabel(status: string): string {
-    const map: Record<string, string> = {
-      pending:   'รอครูยืนยัน',
-      approved:  'ครูยืนยันแล้ว',
-      active:    'กำลังสอน',
-      completed: 'เสร็จสิ้น',
-      cancelled: 'ยกเลิก'
-    };
-    return map[status] || status;
+  /**
+   * Use unified displayStatus from backend (attached on GET /courses).
+   * Falls back to deriving from raw fields if missing.
+   */
+  getStatusLabel(course: any): string {
+    return getDisplayStatusLabel(resolveDisplayStatus(course));
   }
 
-  getStatusClass(status: string): string {
-    const map: Record<string, string> = {
-      pending:   'badge-warning',
-      approved:  'badge-success',
-      active:    'badge-info',
-      completed: 'badge-completed',
-      cancelled: 'badge-danger'
-    };
-    return map[status] || '';
+  getStatusClass(course: any): string {
+    return getDisplayStatusClass(resolveDisplayStatus(course));
   }
 
   getDifficultyLabel(d: string): string {

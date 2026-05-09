@@ -10,6 +10,7 @@ import { AuthService } from '../../../services/auth.service';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
 import { ISchedule } from '../../../interfaces/schedule.interface';
+import { resolveDisplayStatus, getDisplayStatusLabel, getDisplayStatusClass } from '../../../shared/constants/schedule-status';
 
 type CalendarViewMode = 'monthly' | 'weekly';
 type FilterMode = 'all' | 'teacher' | 'student';
@@ -655,21 +656,22 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy {
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
-  getStatusLabel(status: string): string {
-    const labels: Record<string, string> = {
-      pending: 'รอครูยืนยัน', confirmed: 'ครูยืนยันแล้ว',
-      scheduled: 'นัดแล้ว', completed: 'เสร็จสิ้น', cancelled: 'ยกเลิก',
-      awaiting_confirmation: 'รอ Manager ยืนยัน'
-    };
-    return labels[status] || status;
+  /**
+   * Status label/class — accept either schedule object (preferred) or raw status string.
+   * Schedule object lets us compute the unified displayStatus (incl. รอนักเรียนยืนยัน).
+   */
+  getStatusLabel(scheduleOrStatus: any): string {
+    if (typeof scheduleOrStatus === 'string') {
+      return getDisplayStatusLabel(scheduleOrStatus as any);
+    }
+    return getDisplayStatusLabel(resolveDisplayStatus(scheduleOrStatus));
   }
 
-  getStatusClass(status: string): string {
-    const cls: Record<string, string> = {
-      pending: 'badge-warning', confirmed: 'badge-info',
-      scheduled: 'badge-primary', completed: 'badge-success', cancelled: 'badge-danger'
-    };
-    return cls[status] || '';
+  getStatusClass(scheduleOrStatus: any): string {
+    if (typeof scheduleOrStatus === 'string') {
+      return getDisplayStatusClass(scheduleOrStatus as any);
+    }
+    return getDisplayStatusClass(resolveDisplayStatus(scheduleOrStatus));
   }
 
   getTeacherName(schedule: ISchedule): string {

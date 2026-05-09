@@ -12,6 +12,7 @@ import { PaymentService } from '../../../services/payment.service';
 import { ISchedule } from '../../../interfaces/schedule.interface';
 import { MonthPickerComponent } from '../../../shared/components/month-picker/month-picker.component';
 import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
+import { resolveDisplayStatus, getDisplayStatusLabel, getDisplayStatusClass } from '../../../shared/constants/schedule-status';
 
 @Component({
   selector: 'app-history',
@@ -225,14 +226,15 @@ export class HistoryComponent implements OnInit, OnDestroy {
     return { accepted: 'conf-accepted', declined: 'conf-declined', pending: 'conf-pending' }[status] || '';
   }
 
-  getScheduleStatusLabel(s: string): string {
-    return { pending: 'รอครูยืนยัน', confirmed: 'ครูยืนยันแล้ว', scheduled: 'นัดแล้ว',
-             completed: 'เสร็จสิ้น', cancelled: 'ยกเลิก', awaiting_confirmation: 'รอ Manager ยืนยัน' }[s] || s;
+  /** Unified display status — accepts schedule object (best) or raw status string */
+  getScheduleStatusLabel(s: any): string {
+    if (typeof s === 'string') return getDisplayStatusLabel(s as any);
+    return getDisplayStatusLabel(resolveDisplayStatus(s));
   }
 
-  getScheduleStatusClass(s: string): string {
-    return { completed: 'status-completed', awaiting_confirmation: 'status-awaiting',
-             cancelled: 'status-cancelled', confirmed: 'status-confirmed' }[s] || 'status-pending';
+  getScheduleStatusClass(s: any): string {
+    if (typeof s === 'string') return getDisplayStatusClass(s as any);
+    return getDisplayStatusClass(resolveDisplayStatus(s));
   }
 
   getCourseName2(s: ISchedule): string {
@@ -328,20 +330,18 @@ export class HistoryComponent implements OnInit, OnDestroy {
     return `${months[parseInt(m) - 1]} ${parseInt(y) + 543}`;
   }
 
-  getStatusLabel(status: string): string {
-    // ── ตรงกับทุกหน้า: teacher-calendar, student-calendar, manager-calendar, vdo-online ──
-    const m: Record<string, string> = {
-      pending: 'รอครูยืนยัน',
-      confirmed: 'ครูยืนยันแล้ว',
-      scheduled: 'นัดแล้ว',
-      awaiting_confirmation: 'รอ Manager ยืนยัน',
-      completed: 'เสร็จสิ้น',
-      cancelled: 'ยกเลิก'
-    };
-    return m[status] || status;
+  getStatusLabel(scheduleOrStatus: any): string {
+    if (typeof scheduleOrStatus === 'string') return getDisplayStatusLabel(scheduleOrStatus as any);
+    return getDisplayStatusLabel(resolveDisplayStatus(scheduleOrStatus));
   }
 
-  getStatusClass(status: string): string {
+  getStatusClass(scheduleOrStatus: any): string {
+    if (typeof scheduleOrStatus === 'string') return getDisplayStatusClass(scheduleOrStatus as any);
+    return getDisplayStatusClass(resolveDisplayStatus(scheduleOrStatus));
+  }
+
+  /** Legacy helper still referenced by the old detail modal — keep for compat */
+  getStatusClassLegacy(status: string): string {
     const m: Record<string, string> = {
       pending: 'status-pending',
       confirmed: 'status-confirmed',

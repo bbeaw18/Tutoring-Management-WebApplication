@@ -494,8 +494,8 @@
         <!-- Card Header -->
         <div class="card-header">
           <div class="card-subject">{{ course.subject }}</div>
-          <span class="status-badge" [ngClass]="getStatusClass(course.status)">
-            {{ getStatusLabel(course.status) }}
+          <span class="status-badge" [ngClass]="getStatusClass(course)">
+            {{ getStatusLabel(course) }}
           </span>
         </div>
 

@@ -15,6 +15,7 @@ const Notification = require('../models/Notification');
 const { authenticateToken } = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
 const { sendResponse, getPaginationParams, createPaginationObject, computeEffectivePrice } = require('../utils/helpers');
+const { deriveDisplayStatus } = require('../utils/scheduleAggregation');
 const generatePayload = require('promptpay-qr');
 const QRCode = require('qrcode');
 
@@ -477,6 +478,7 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
         paid:            paidForSchedule,
         unpaid:          totalForSchedule - paidForSchedule,
         status:          s.status,
+        displayStatus:   deriveDisplayStatus(s),
         actualTeacherIncome: s.actualTeacherIncome || 0
       });
     }

@@ -12,6 +12,7 @@ const { roleCheck } = require('../middleware/roleCheck');
 const { sendResponse, getPaginationParams, createPaginationObject, computeEffectivePrice } = require('../utils/helpers');
 const {
   buildPaymentSummariesByScheduleId,
+  deriveDisplayStatus,
   SCHEDULE_COURSE_FIELDS,
   SCHEDULE_TEACHER_FIELDS,
   SCHEDULE_STUDENT_FIELDS
@@ -265,6 +266,7 @@ const calendarMonthlyHandler = async (req, res) => {
       if (!calendarData[dateKey]) calendarData[dateKey] = [];
       const obj = schedule.toObject();
       obj.paymentSummary = summaries.get(schedule._id.toString()) || null;
+      obj.displayStatus  = deriveDisplayStatus(schedule);
       calendarData[dateKey].push(obj);
     });
 
@@ -309,6 +311,7 @@ const calendarWeeklyHandler = async (req, res) => {
       if (!calendarData[dateKey]) calendarData[dateKey] = [];
       const obj = schedule.toObject();
       obj.paymentSummary = summaries.get(schedule._id.toString()) || null;
+      obj.displayStatus  = deriveDisplayStatus(schedule);
       calendarData[dateKey].push(obj);
     });
 

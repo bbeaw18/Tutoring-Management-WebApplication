@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Course = require('../models/Course');
 const Schedule = require('../models/Schedule');
+const { deriveDisplayStatus } = require('../utils/scheduleAggregation');
 const User = require('../models/User');
 const Enrollment = require('../models/Enrollment');
 const Notification = require('../models/Notification');
@@ -259,7 +260,31 @@ router.get('/', authenticateToken, async (req, res) => {
       .skip(skip)
       .sort({ createdAt: -1 });
 
-    sendResponse(res, 200, true, courses, 'Courses retrieved', createPaginationObject(page, limit, total));
+    // ── Attach displayStatus from related Schedule (latest one per course) ──
+    // ทำให้ course-management แสดงสถานะตรงกับ calendar/history
+    const courseIds = courses.map(c => c._id);
+    const schedules = await Schedule.find({ course: { $in: courseIds } })
+      .select('_id course status teacherConfirmed isFullyConfirmed students date')
+      .sort({ date: -1 });
+
+    // หาชี้ลด schedule ล่าสุดต่อ course
+    const latestScheduleByCourseId = new Map();
+    for (const sch of schedules) {
+      const cid = sch.course.toString();
+      if (!latestScheduleByCourseId.has(cid)) {
+        latestScheduleByCourseId.set(cid, sch);
+      }
+    }
+
+    const result = courses.map(c => {
+      const sch = latestScheduleByCourseId.get(c._id.toString());
+      return {
+        ...c.toObject(),
+        displayStatus: deriveDisplayStatus(sch || { status: c.status, teacherConfirmed: c.teacherAccepted, isFullyConfirmed: false, students: c.students })
+      };
+    });
+
+    sendResponse(res, 200, true, result, 'Courses retrieved', createPaginationObject(page, limit, total));
   } catch (error) {
     console.error('Get courses error:', error);
     sendResponse(res, 500, false, null, error.message);

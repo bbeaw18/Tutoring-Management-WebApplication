@@ -9,6 +9,7 @@ const { roleCheck } = require('../middleware/roleCheck');
 const { sendResponse } = require('../utils/helpers');
 const {
   buildPaymentSummariesByScheduleId,
+  deriveDisplayStatus,
   SCHEDULE_COURSE_FIELDS,
   SCHEDULE_TEACHER_FIELDS,
   SCHEDULE_STUDENT_FIELDS
@@ -293,7 +294,8 @@ router.get('/teacher-history', authenticateToken, async (req, res) => {
       return {
         ...s.toObject(),
         attendanceCount: summary?.attendanceCount || 0,
-        paymentSummary:  summary
+        paymentSummary:  summary,
+        displayStatus:   deriveDisplayStatus(s)
       };
     });
 

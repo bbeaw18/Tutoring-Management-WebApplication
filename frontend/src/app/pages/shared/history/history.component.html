@@ -270,7 +270,7 @@
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                   {{ sch.startTime }} – {{ sch.endTime }}
                 </div>
-                <span [class]="'status-badge ' + getScheduleStatusClass(sch.status)">{{ getScheduleStatusLabel(sch.status) }}</span>
+                <span [class]="'status-badge ' + getScheduleStatusClass(sch)">{{ getScheduleStatusLabel(sch) }}</span>
               </div>
               <div class="h-tl-title">{{ getCourseName2(sch) }}</div>
               <div class="h-tl-meta">
@@ -323,8 +323,8 @@
             <td>{{ sch.startTime }} – {{ sch.endTime }}</td>
             <td>{{ formatDuration(sch.totalDurationMinutes || 0) }}</td>
             <td>
-              <span [class]="'status-badge ' + getScheduleStatusClass(sch.status)">
-                {{ getScheduleStatusLabel(sch.status) }}
+              <span [class]="'status-badge ' + getScheduleStatusClass(sch)">
+                {{ getScheduleStatusLabel(sch) }}
               </span>
             </td>
             <td>
@@ -374,7 +374,7 @@
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                   {{ s.startTime }} – {{ s.endTime }}
                 </div>
-                <span [class]="'status-badge ' + getStatusClass(s.status)">{{ getStatusLabel(s.status) }}</span>
+                <span [class]="'status-badge ' + getStatusClass(s)">{{ getStatusLabel(s) }}</span>
               </div>
               <div class="h-tl-title">
                 {{ getCourseWithTeacher(s) }}
@@ -508,8 +508,8 @@
               </span>
             </td>
             <td>
-              <span [class]="'status-badge ' + getStatusClass(s.status)">
-                {{ getStatusLabel(s.status) }}
+              <span [class]="'status-badge ' + getStatusClass(s)">
+                {{ getStatusLabel(s) }}
               </span>
             </td>
             <ng-container *ngIf="role === 'manager' || role === 'admin'">
@@ -549,8 +549,8 @@
             <h2 class="hd-title">
               {{ selectedSchedule.course?.name || selectedSchedule.course?.subject || '-' }}
             </h2>
-            <span [class]="'hd-status-badge ' + getStatusClass(selectedSchedule.status)">
-              {{ getStatusLabel(selectedSchedule.status) }}
+            <span [class]="'hd-status-badge ' + getStatusClass(selectedSchedule)">
+              {{ getStatusLabel(selectedSchedule) }}
             </span>
           </div>
           <div class="hd-subtitle" *ngIf="selectedSchedule.course?.subject && selectedSchedule.course?.name">

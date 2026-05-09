@@ -1684,3 +1684,58 @@ router-outlet + * {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
+/* ═══════════════════════════════════════════════════════
+   Unified Schedule Display Status Badges
+   Backend attaches `displayStatus` and the shared helper at
+   shared/constants/schedule-status.ts maps it to one of these
+   classes. Used across course management, master calendar,
+   teaching history, and the revenue page.
+═══════════════════════════════════════════════════════ */
+.status-pending-teacher,
+.status-pending-students,
+.status-confirmed,
+.status-awaiting-manager,
+.status-completed,
+.status-cancelled {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.status-pending-teacher {
+  background: #fef3c7;
+  color: #b45309;
+  border-color: #fde68a;
+}
+.status-pending-students {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+.status-confirmed {
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+.status-awaiting-manager {
+  background: #fed7aa;
+  color: #c2410c;
+  border-color: #fdba74;
+}
+.status-completed {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #065f46;
+  border-color: #6ee7b7;
+}
+.status-cancelled {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
