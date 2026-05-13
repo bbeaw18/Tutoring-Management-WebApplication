@@ -1484,82 +1484,131 @@
 }
 
 /* ═══════════════════════════════════════════════════════
-   Series Card — คลาสในชุดสร้างอัตโนมัติ (ดีไซน์พิเศษ)
+   Series Card — คลาสในชุดสร้างอัตโนมัติ
+   แทนการแสดงหลายการ์ด → ใช้การ์ดเดียวที่ดูเหมือนซ้อนกันเป็นชุด
    ═══════════════════════════════════════════════════════ */
-.course-card.series-card {
+.courses-grid .course-card.series-card {
   position: relative;
+  /* ให้การ์ดซ้อนข้างหลัง (::before / ::after) โผล่นอกขอบได้ */
+  overflow: visible;
+  /* เผื่อระยะให้การ์ดที่ซ้อนข้างหลังโผล่ออกมา */
+  margin-right: 14px;
+  margin-bottom: 14px;
   border: 1.5px solid transparent;
   background:
     linear-gradient(rgba(255,255,255,0.97), rgba(255,255,255,0.97)) padding-box,
     linear-gradient(135deg, #8b5cf6 0%, var(--brand-600, #2557c2) 50%, #ec4899 100%) border-box;
   box-shadow: var(--shadow-sm), 0 4px 16px rgba(139, 92, 246, 0.12);
+  z-index: 1;
 }
-.course-card.series-card::before {
+
+/* การ์ดซ้อนข้างหลัง: ใช้ ::before (ใบที่ 2) และ ::after (ใบที่ 3)
+   เลื่อนเฉียงลงขวาเพื่อสร้างเอฟเฟกต์ "ชุด" */
+.courses-grid .course-card.series-card::before,
+.courses-grid .course-card.series-card::after {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: var(--r-2xl);
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.04) 0%, rgba(236, 72, 153, 0.04) 100%);
+  background: white;
+  border: 1.5px solid rgba(139, 92, 246, 0.30);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.10);
   pointer-events: none;
-  z-index: 0;
+  z-index: -1;
+  transition: transform var(--dur-base) var(--ease-out), opacity var(--dur-base) var(--ease-out);
 }
-.course-card.series-card > * { position: relative; z-index: 1; }
-.course-card.series-card:hover {
+.courses-grid .course-card.series-card::before {
+  transform: translate(6px, 6px) rotate(1.2deg);
+  opacity: 0.85;
+}
+.courses-grid .course-card.series-card::after {
+  transform: translate(12px, 12px) rotate(2.4deg);
+  opacity: 0.65;
+  border-color: rgba(236, 72, 153, 0.28);
+}
+
+.courses-grid .course-card.series-card-clickable { cursor: pointer; }
+
+.courses-grid .course-card.series-card:hover {
   transform: translateY(-3px);
-  box-shadow: var(--shadow-lg), 0 8px 24px rgba(139, 92, 246, 0.20);
+  box-shadow: var(--shadow-lg), 0 8px 24px rgba(139, 92, 246, 0.22);
 }
+/* hover: การ์ดซ้อนกาง "พัด" ออกเล็กน้อย เพื่อสื่อว่ามีหลายคลาส */
+.courses-grid .course-card.series-card:hover::before {
+  transform: translate(9px, 9px) rotate(2deg);
+  opacity: 0.92;
+}
+.courses-grid .course-card.series-card:hover::after {
+  transform: translate(18px, 18px) rotate(4deg);
+  opacity: 0.78;
+}
+
 .course-card.series-card .card-header {
   background: linear-gradient(135deg, #f5f3ff 0%, #fdf2f8 100%);
   border-bottom-color: rgba(139, 92, 246, 0.15);
+  /* การ์ด series ใช้ overflow: visible — header ต้องชน radius ของ card */
+  border-top-left-radius: var(--r-2xl);
+  border-top-right-radius: var(--r-2xl);
+}
+.course-card.series-card .card-footer {
+  border-bottom-left-radius: var(--r-2xl);
+  border-bottom-right-radius: var(--r-2xl);
 }
 
-/* ── Series Ribbon (มุมบนซ้าย) ── */
-.series-ribbon {
+/* ── Stack badge บนหัวการ์ด (แทน ribbon เก่า) ── */
+.series-stack-badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   position: absolute;
-  top: 10px;
-  right: 12px;
-  z-index: 5;
-  padding: 4px 10px 4px 8px;
+  top: -10px;
+  left: 14px;
+  z-index: 6;
+  padding: 4px 10px;
   background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
   color: white;
   border-radius: var(--r-full);
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.01em;
-  box-shadow: 0 3px 8px rgba(139, 92, 246, 0.35), 0 0 0 2px rgba(255,255,255,0.9);
-  cursor: pointer;
-  transition: all var(--dur-fast) var(--ease-out);
-  animation: seriesRibbonShimmer 3.5s ease-in-out infinite;
+  box-shadow: 0 4px 10px rgba(139, 92, 246, 0.35), 0 0 0 2px rgba(255,255,255,0.95);
+  white-space: nowrap;
 }
-.series-ribbon:hover {
-  transform: translateY(-1px) scale(1.04);
-  box-shadow: 0 5px 14px rgba(139, 92, 246, 0.45), 0 0 0 2px rgba(255,255,255,0.95);
-  filter: brightness(1.08);
-}
-.series-ribbon svg { flex-shrink: 0; }
-.series-ribbon-text {
-  letter-spacing: 0.02em;
-}
-.series-ribbon-count {
+.series-stack-badge svg { flex-shrink: 0; }
+.series-stack-count {
   display: inline-flex;
   align-items: center;
-  padding: 1px 6px;
-  background: rgba(255, 255, 255, 0.25);
+  padding: 1px 7px;
+  background: rgba(255, 255, 255, 0.28);
   border-radius: 999px;
   font-size: 10px;
   font-weight: 800;
   margin-left: 2px;
 }
-@keyframes seriesRibbonShimmer {
-  0%, 100% { box-shadow: 0 3px 8px rgba(139, 92, 246, 0.35), 0 0 0 2px rgba(255,255,255,0.9); }
-  50%      { box-shadow: 0 3px 14px rgba(236, 72, 153, 0.50), 0 0 0 2px rgba(255,255,255,0.95); }
+
+/* เผื่อระยะให้ stack badge ไม่บัง subject */
+.course-card.series-card .card-header { padding-top: 18px; }
+
+/* ── แถบช่วงวันที่สำหรับการ์ดชุด ── */
+.series-card-dates strong {
+  color: #6d28d9;
+  font-weight: 700;
+}
+.series-card-time {
+  color: var(--text-tertiary);
+  font-weight: 500;
 }
 
-/* ── Ribbon ปรับให้ status-badge ไม่ชนกัน ── */
-.course-card.series-card .card-header { padding-top: 30px; }
+/* ── footer hint สำหรับ series card ── */
+.teacher-status.series-footer-hint {
+  background: linear-gradient(135deg, #f5f3ff, #fdf2f8);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  color: #6d28d9;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.teacher-status.series-footer-hint svg { color: #8b5cf6; }
 
 /* ── ปุ่ม "ดูทั้งชุด" บน card footer ── */
 .btn-view-series {

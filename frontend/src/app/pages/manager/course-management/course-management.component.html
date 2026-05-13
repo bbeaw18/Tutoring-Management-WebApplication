@@ -501,16 +501,19 @@
     <!-- Courses Grid -->
     <div class="courses-grid" *ngIf="cmFiltered.length > 0">
       <div class="course-card" *ngFor="let course of cmFiltered"
-           [class.series-card]="isSeriesCourse(course)">
-        <!-- ── Series Ribbon (เฉพาะคลาสที่อยู่ในชุดสร้างอัตโนมัติ) ── -->
-        <div class="series-ribbon" *ngIf="isSeriesCourse(course)"
-             (click)="openSeriesModal(course)"
-             [title]="'คลาส ' + getSeriesIndex(course) + ' จากชุด ' + getSeriesCount(course) + ' คลาส — คลิกเพื่อดูทั้งชุด'">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 12a9 9 0 1 1-9-9"/><polyline points="21 3 21 9 15 9"/>
+           [class.series-card]="isSeriesCourse(course)"
+           [class.series-card-clickable]="isSeriesCourse(course)"
+           (click)="isSeriesCourse(course) && openSeriesModal(course)">
+        <!-- ── Series stack badge ── -->
+        <div class="series-stack-badge" *ngIf="isSeriesCourse(course)"
+             [title]="'ชุดนัดสอนอัตโนมัติ — ' + getSeriesCount(course) + ' คลาสในชุด'">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="21 8 21 21 3 21 3 8"/>
+            <rect x="1" y="3" width="22" height="5"/>
+            <line x1="10" y1="12" x2="14" y2="12"/>
           </svg>
-          <span class="series-ribbon-text">ชุดอัตโนมัติ</span>
-          <span class="series-ribbon-count">{{ getSeriesIndex(course) }}/{{ getSeriesCount(course) }}</span>
+          <span>ชุดอัตโนมัติ</span>
+          <span class="series-stack-count">{{ getSeriesCount(course) }} คลาส</span>
         </div>
 
         <!-- Card Header -->
@@ -551,9 +554,13 @@
               <line x1="8" y1="2" x2="8" y2="6"/>
               <line x1="16" y1="2" x2="16" y2="6"/>
             </svg>
-            <span class="card-value">
+            <span class="card-value" *ngIf="!isSeriesCourse(course)">
               {{ formatDateTime(course.scheduledDate) }}
               <span *ngIf="course.startTime"> {{ course.startTime }}–{{ course.endTime }}</span>
+            </span>
+            <span class="card-value series-card-dates" *ngIf="isSeriesCourse(course)">
+              <strong>{{ getSeriesDateRangeLabel(course) }}</strong>
+              <span class="series-card-time" *ngIf="course.startTime"> · {{ course.startTime }}–{{ course.endTime }}</span>
             </span>
           </div>
 
@@ -624,33 +631,38 @@
 
         <!-- Card Footer -->
         <div class="card-footer">
-          <div class="teacher-status pending-pulse" *ngIf="course.status === 'pending' && !course.teacherAccepted"
+          <div class="teacher-status pending-pulse" *ngIf="!isSeriesCourse(course) && course.status === 'pending' && !course.teacherAccepted"
                [title]="'รอ ' + getTeacherName(course.teacher) + ' กดยอมรับการนัดสอน'">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
             </svg>
             รอ<strong>{{ getTeacherName(course.teacher) }}</strong>ยืนยัน
           </div>
-          <div class="teacher-status confirmed" *ngIf="course.teacherAccepted">
+          <div class="teacher-status confirmed" *ngIf="!isSeriesCourse(course) && course.teacherAccepted">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="20 6 9 17 4 12"/>
             </svg>
             ครูยืนยันการสอนแล้ว
           </div>
+          <div class="teacher-status series-footer-hint" *ngIf="isSeriesCourse(course)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            คลิกเพื่อดูคลาสในชุด
+          </div>
           <div class="card-actions">
             <button class="btn-view-series" *ngIf="isSeriesCourse(course)"
-              (click)="openSeriesModal(course)"
+              (click)="$event.stopPropagation(); openSeriesModal(course)"
               [title]="'ดูคลาสทั้งหมดในชุด (' + getSeriesCount(course) + ' คลาส)'">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
-                <line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
+                <polyline points="21 8 21 21 3 21 3 8"/>
+                <rect x="1" y="3" width="22" height="5"/>
+                <line x1="10" y1="12" x2="14" y2="12"/>
               </svg>
-              ดูทั้งชุด ({{ getSeriesCount(course) }})
+              ดูทั้งชุด ({{ getSeriesCount(course) }} คลาส)
             </button>
             <button class="btn-edit-course" (click)="openEditModal(course)"
-              *ngIf="course.status !== 'cancelled' && course.status !== 'completed'">
+              *ngIf="!isSeriesCourse(course) && course.status !== 'cancelled' && course.status !== 'completed'">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -658,9 +670,9 @@
               แก้ไข
             </button>
             <button class="btn-cancel-course" (click)="cancelCourse(getId(course))"
-              *ngIf="course.status !== 'cancelled' && course.status !== 'completed'">ยกเลิก</button>
+              *ngIf="!isSeriesCourse(course) && course.status !== 'cancelled' && course.status !== 'completed'">ยกเลิก</button>
             <button class="btn-delete-course" (click)="permanentDelete(getId(course))"
-              *ngIf="course.status === 'cancelled'">
+              *ngIf="!isSeriesCourse(course) && course.status === 'cancelled'">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <polyline points="3 6 5 6 21 6"/>
                 <path d="M19 6l-1 14H6L5 6"/>
