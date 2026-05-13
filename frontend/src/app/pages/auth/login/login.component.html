@@ -24,31 +24,31 @@
         </div>
       </div>
       <h1 class="brand-title">รู้มากกว่า<br/>เรียนดีกว่า<br/>Know More Sci</h1>
-      <p class="brand-subtitle">แพลตฟอร์มการเรียนการสอนออนไลน์ ที่ชาญฉลาดและทันสมัย</p>
+      <p class="brand-subtitle">ระบบจัดการคลาส นัดหมาย และชำระเงิน สำหรับ Know More Sci</p>
       <div class="brand-features">
         <div class="feature-item">
           <div class="feature-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 3 3 6 3s6-1 6-3v-5"/>
+              <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>
             </svg>
           </div>
-          <span>จัดการคลาสเรียนได้ทุกที่ ทุกเวลา</span>
+          <span>ชำระเงินผ่าน PromptPay และ QR Code</span>
         </div>
         <div class="feature-item">
           <div class="feature-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
             </svg>
           </div>
-          <span>ความปลอดภัยสูงด้วย 2FA Authentication</span>
+          <span>ดูตารางเรียนและนัดหมายได้ทันที</span>
         </div>
         <div class="feature-item">
           <div class="feature-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
           </div>
-          <span>ติดตามความก้าวหน้าแบบ Real-time</span>
+          <span>ติดต่อ Manager ผ่าน LINE ได้ตลอดเวลา</span>
         </div>
       </div>
     </div>
@@ -72,7 +72,7 @@
             </div>
             <span>Know More Sci</span>
           </div>
-          <h2 class="form-title">{{ greeting }} 👋</h2>
+          <h2 class="form-title">{{ greeting }}</h2>
           <p class="form-desc">เข้าสู่ระบบเพื่อเริ่มต้นใช้งาน Know More Sci</p>
         </div>
 
@@ -243,6 +243,12 @@
       </div>
 
     </div>
+  </div>
+
+  <!-- Offline banner: add isOffline = false to .ts and bind *ngIf="isOffline" to activate -->
+  <div class="offline-banner" role="alert" aria-live="polite" style="display:none">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
+    <span>ไม่มีการเชื่อมต่ออินเทอร์เน็ต กรุณาตรวจสอบเครือข่ายแล้วลองใหม่</span>
   </div>
 
   <!-- Pending Approval Modal — teacher waiting for manager confirmation -->

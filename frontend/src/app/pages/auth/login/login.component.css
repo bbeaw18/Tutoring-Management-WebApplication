@@ -8,7 +8,7 @@
 /* ── Brand Panel (Left) ───────────────────────────────────────────────── */
 .brand-panel {
   flex: 1;
-  background: var(--gradient-dark);
+  background: var(--gradient-brand);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -102,10 +102,6 @@
   line-height: 1.1;
   letter-spacing: -0.04em;
   margin-bottom: var(--sp-6);
-  background: linear-gradient(135deg, #ffffff 0%, rgba(255,255,255,0.7) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .brand-subtitle {
@@ -161,7 +157,7 @@
 .form-panel {
   width: 480px;
   flex-shrink: 0;
-  background: var(--gray-50);
+  background: linear-gradient(160deg, #eef3ff 0%, #f5f7fc 55%, #fdf2f8 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -171,7 +167,14 @@
 
 .form-inner {
   width: 100%;
-  max-width: 380px;
+  max-width: 400px;
+  background: var(--glass-white);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-2xl);
+  box-shadow: 0 20px 60px rgba(30, 63, 128, 0.12), 0 4px 16px rgba(0, 0, 0, 0.04);
+  padding: var(--sp-8);
 }
 
 /* ── Form Card ────────────────────────────────────────────────────────── */
@@ -415,13 +418,22 @@
   .form-panel {
     width: 100%;
     flex: 1;
-    padding: var(--sp-8) var(--sp-5);
+    padding: var(--sp-6) var(--sp-5);
     align-items: flex-start;
     justify-content: flex-start;
     background: var(--gray-50);
   }
 
-  .form-inner { max-width: 100%; }
+  .form-inner {
+    max-width: 100%;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+  }
   .mobile-only { display: flex; }
   .form-logo {
     display: flex;
@@ -564,6 +576,25 @@
   color: #6b7280;
 }
 .login-otp-hint svg { color: #ec4899; }
+
+/* ── Offline Banner ──────────────────────────────────────────────────────── */
+.offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  background: #1c1917;
+  color: #fef3c7;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  z-index: var(--z-toast);
+}
+.offline-banner svg { flex-shrink: 0; color: #fbbf24; }
 
 /* ── Pending Approval Modal ────────────────────────────────────────────── */
 .pending-modal-overlay {
