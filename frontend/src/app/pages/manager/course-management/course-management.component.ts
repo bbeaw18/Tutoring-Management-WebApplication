@@ -35,6 +35,11 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
   successMessage = '';
   errorMessage = '';
 
+  // ─── Series Modal (ชุดนัดสอนอัตโนมัติ) ─────────────────────────
+  showSeriesModal = false;
+  seriesModalCourses: ICourse[] = [];
+  seriesModalAnchor: ICourse | null = null;
+
   // ─── Edit Modal ───────────────────────────────────────────────
   showEditModal = false;
   editingCourse: ICourse | null = null;
@@ -472,6 +477,63 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
       error: (err) => {
         this.errorMessage = err?.error?.message || 'เกิดข้อผิดพลาดในการลบ';
       }
+    });
+  }
+
+  // ─── Series helpers (ชุดนัดสอนอัตโนมัติ) ───────────────────────
+  /** คอร์สนี้เป็นส่วนหนึ่งของชุดนัดสอนอัตโนมัติหรือไม่ */
+  isSeriesCourse(course: any): boolean {
+    return !!(course?.seriesId);
+  }
+
+  /** จำนวนคลาสทั้งหมดในชุดเดียวกัน — ใช้ค่าจาก backend (seriesSize) เป็นหลัก
+   *  ถ้าไม่มี ให้นับจากคอร์สที่โหลดมาแล้วซึ่งมี seriesId เดียวกัน */
+  getSeriesCount(course: any): number {
+    if (!this.isSeriesCourse(course)) return 0;
+    const fromField = Number(course.seriesSize) || 0;
+    if (fromField > 0) return fromField;
+    return this.courses.filter(c => (c as any).seriesId === course.seriesId).length;
+  }
+
+  /** คลาสทั้งหมดในชุดเดียวกัน เรียงตามวันที่ */
+  getSeriesCourses(seriesId: string): ICourse[] {
+    if (!seriesId) return [];
+    return this.courses
+      .filter(c => (c as any).seriesId === seriesId)
+      .slice()
+      .sort((a, b) => {
+        const da = a.scheduledDate ? new Date(a.scheduledDate).getTime() : 0;
+        const db = b.scheduledDate ? new Date(b.scheduledDate).getTime() : 0;
+        return da - db;
+      });
+  }
+
+  /** ลำดับของคลาสนี้ในชุด (1-based) — สำหรับแสดง "1/4" บนการ์ด */
+  getSeriesIndex(course: any): number {
+    if (!this.isSeriesCourse(course)) return 0;
+    const all = this.getSeriesCourses(course.seriesId);
+    const idx = all.findIndex(c => this.getId(c) === this.getId(course));
+    return idx >= 0 ? idx + 1 : 0;
+  }
+
+  openSeriesModal(course: ICourse): void {
+    if (!this.isSeriesCourse(course)) return;
+    this.seriesModalAnchor = course;
+    this.seriesModalCourses = this.getSeriesCourses((course as any).seriesId);
+    this.showSeriesModal = true;
+  }
+
+  closeSeriesModal(): void {
+    this.showSeriesModal = false;
+    this.seriesModalCourses = [];
+    this.seriesModalAnchor = null;
+  }
+
+  /** วันที่ของคลาสในชุด — รูปแบบสั้น "อา. 17 พ.ค." */
+  formatSeriesDate(date: any): string {
+    if (!date) return '-';
+    return new Date(date).toLocaleDateString('th-TH', {
+      weekday: 'short', day: 'numeric', month: 'short'
     });
   }
 

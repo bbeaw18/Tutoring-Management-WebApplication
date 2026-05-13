@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const Course = require('../models/Course');
 const Schedule = require('../models/Schedule');
@@ -70,6 +71,11 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
     const createdCourses = [];
     const createdSchedules = [];
 
+    // ── ชุดนัดสอนอัตโนมัติ ── เมื่อ repeat สร้างได้มากกว่า 1 ครั้ง ให้ stamp seriesId เดียวกันทั้งชุด
+    const isSeries = scheduleDates.length > 1;
+    const seriesId = isSeries ? new mongoose.Types.ObjectId().toString() : null;
+    const seriesSize = scheduleDates.length;
+
     for (const dt of scheduleDates) {
       // Course หนึ่งตัวต่อหนึ่งวันนัด
       const c = new Course({
@@ -91,6 +97,8 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
         teacherIncomeGroup:      Number(teacherIncomeGroup) || 0,
         coursePrice:             Number(coursePrice) || 0,
         incomeHourly:            true,   // โค้ดใหม่: คิดรายได้ต่อชั่วโมง × duration
+        seriesId,
+        seriesSize,
         status: 'pending',
         createdBy: req.user.id
       });

@@ -87,6 +87,11 @@ const CourseSchema = new mongoose.Schema({
   incomeHourly:            { type: Boolean, default: false },
   // ── ประเภทการสอน (free-text, บันทึกลง DB แล้วดึงเป็น dropdown) ──
   teachingType: { type: String, default: '' },
+  // ── ชุดนัดสอนอัตโนมัติ (สร้างซ้ำรายสัปดาห์จนถึงสิ้นเดือน) ──
+  // คอร์สทั้งหมดที่ถูกสร้างจากการกดสร้างชุดเดียวกันจะแชร์ seriesId เดียวกัน
+  // seriesSize = จำนวนคลาสทั้งหมดในชุด (ใช้แสดงบน UI โดยไม่ต้อง query ทั้งชุด)
+  seriesId:   { type: String, default: null, index: true },
+  seriesSize: { type: Number, default: 1 },
   status: {
     type: String,
     enum: ['pending', 'approved', 'active', 'completed', 'cancelled'],

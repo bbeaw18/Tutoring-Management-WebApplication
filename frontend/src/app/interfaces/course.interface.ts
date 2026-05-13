@@ -21,6 +21,10 @@ export interface ICourse {
   coursePrice?: number;
   /** true = ราคา/รายได้เป็นอัตราต่อชั่วโมง (คลาสใหม่); false/undefined = flat per-class (คลาสเก่า) */
   incomeHourly?: boolean;
+  /** id ของชุดนัดสอนอัตโนมัติ (สร้างซ้ำรายสัปดาห์จนถึงสิ้นเดือน) — คอร์สทั้งชุดจะมีค่านี้เหมือนกัน */
+  seriesId?: string | null;
+  /** จำนวนคลาสทั้งหมดในชุด */
+  seriesSize?: number;
   /** Unified display status — แนบโดย backend (GET /courses) เพื่อให้ทุกหน้าใช้ค่าตรงกัน */
   displayStatus?: 'pending_teacher' | 'pending_students' | 'confirmed' | 'awaiting_manager' | 'completed' | 'cancelled';
   status: 'pending' | 'approved' | 'active' | 'completed' | 'cancelled';

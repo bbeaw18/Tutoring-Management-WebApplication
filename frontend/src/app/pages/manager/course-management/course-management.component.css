@@ -1482,3 +1482,341 @@
   font-weight: 500;
   color: var(--gray-500, #94a3b8);
 }
+
+/* ═══════════════════════════════════════════════════════
+   Series Card — คลาสในชุดสร้างอัตโนมัติ (ดีไซน์พิเศษ)
+   ═══════════════════════════════════════════════════════ */
+.course-card.series-card {
+  position: relative;
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(rgba(255,255,255,0.97), rgba(255,255,255,0.97)) padding-box,
+    linear-gradient(135deg, #8b5cf6 0%, var(--brand-600, #2557c2) 50%, #ec4899 100%) border-box;
+  box-shadow: var(--shadow-sm), 0 4px 16px rgba(139, 92, 246, 0.12);
+}
+.course-card.series-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-2xl);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.04) 0%, rgba(236, 72, 153, 0.04) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+.course-card.series-card > * { position: relative; z-index: 1; }
+.course-card.series-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg), 0 8px 24px rgba(139, 92, 246, 0.20);
+}
+.course-card.series-card .card-header {
+  background: linear-gradient(135deg, #f5f3ff 0%, #fdf2f8 100%);
+  border-bottom-color: rgba(139, 92, 246, 0.15);
+}
+
+/* ── Series Ribbon (มุมบนซ้าย) ── */
+.series-ribbon {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 5;
+  padding: 4px 10px 4px 8px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  color: white;
+  border-radius: var(--r-full);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 3px 8px rgba(139, 92, 246, 0.35), 0 0 0 2px rgba(255,255,255,0.9);
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-out);
+  animation: seriesRibbonShimmer 3.5s ease-in-out infinite;
+}
+.series-ribbon:hover {
+  transform: translateY(-1px) scale(1.04);
+  box-shadow: 0 5px 14px rgba(139, 92, 246, 0.45), 0 0 0 2px rgba(255,255,255,0.95);
+  filter: brightness(1.08);
+}
+.series-ribbon svg { flex-shrink: 0; }
+.series-ribbon-text {
+  letter-spacing: 0.02em;
+}
+.series-ribbon-count {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  margin-left: 2px;
+}
+@keyframes seriesRibbonShimmer {
+  0%, 100% { box-shadow: 0 3px 8px rgba(139, 92, 246, 0.35), 0 0 0 2px rgba(255,255,255,0.9); }
+  50%      { box-shadow: 0 3px 14px rgba(236, 72, 153, 0.50), 0 0 0 2px rgba(255,255,255,0.95); }
+}
+
+/* ── Ribbon ปรับให้ status-badge ไม่ชนกัน ── */
+.course-card.series-card .card-header { padding-top: 30px; }
+
+/* ── ปุ่ม "ดูทั้งชุด" บน card footer ── */
+.btn-view-series {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--sp-1) var(--sp-3);
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  color: white;
+  border: none;
+  border-radius: var(--r-full);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-th);
+  transition: all var(--dur-fast) var(--ease-out);
+  box-shadow: 0 2px 6px rgba(139, 92, 246, 0.30);
+}
+.btn-view-series:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(139, 92, 246, 0.40);
+  filter: brightness(1.08);
+}
+.btn-view-series svg { flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════════════════
+   Series Modal — รายการคลาสทั้งหมดในชุด
+   ═══════════════════════════════════════════════════════ */
+.modal-box.series-modal {
+  max-width: 720px;
+}
+.series-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: var(--sp-5) var(--sp-6) var(--sp-4);
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #faf5ff 0%, #fdf2f8 100%);
+}
+.series-modal-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex: 1;
+  min-width: 0;
+}
+.series-modal-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--r-lg);
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  color: white;
+  box-shadow: 0 4px 10px rgba(139, 92, 246, 0.35);
+  flex-shrink: 0;
+}
+.series-modal-header h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 3px;
+  background: linear-gradient(135deg, #6d28d9 0%, #be185d 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.series-modal-header .modal-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.series-modal-sub-divider { color: var(--gray-400, #94a3b8); }
+.series-modal-header .modal-subtitle strong { color: #6d28d9; font-weight: 700; }
+
+.series-modal-body {
+  padding: var(--sp-4) var(--sp-6) var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.series-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.series-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--r-xl);
+  transition: all var(--dur-fast) var(--ease-out);
+}
+.series-item:hover {
+  background: white;
+  border-color: #c4b5fd;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.10);
+}
+.series-item-current {
+  background: linear-gradient(135deg, #f5f3ff 0%, #fdf2f8 100%) !important;
+  border-color: #a78bfa !important;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+}
+.series-item-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: white;
+  border: 1.5px solid #c4b5fd;
+  color: #6d28d9;
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.series-item-current .series-item-number {
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  border-color: transparent;
+  color: white;
+}
+.series-item-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.series-item-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  flex-wrap: wrap;
+}
+.series-item-date svg { color: #8b5cf6; flex-shrink: 0; }
+.series-item-date strong { font-weight: 700; }
+.series-item-time {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.series-item-current-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  background: #ede9fe;
+  color: #6d28d9;
+  border: 1px solid #c4b5fd;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.series-item-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+.series-item-finance {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: white;
+  border: 1px solid var(--gray-200, #e2e8f0);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.series-item-finance strong { color: var(--gray-900); font-weight: 700; }
+.series-fin-label { color: var(--text-tertiary); }
+
+.series-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.series-item-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-out);
+  background: white;
+}
+.series-item-btn-edit {
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+.series-item-btn-edit:hover { background: #f0f9ff; border-color: #7dd3fc; }
+.series-item-btn-cancel {
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+.series-item-btn-cancel:hover { background: #fef2f2; border-color: #f87171; }
+
+.series-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding-top: var(--sp-3);
+  border-top: 1px dashed #e2e8f0;
+  flex-wrap: wrap;
+}
+.series-modal-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  line-height: 1.5;
+  flex: 1;
+  min-width: 0;
+}
+.series-modal-summary svg { color: #8b5cf6; flex-shrink: 0; margin-top: 2px; }
+
+.btn-close-series {
+  padding: var(--sp-2) var(--sp-4);
+  background: white;
+  color: var(--text-secondary);
+  border: 1px solid var(--gray-200, #e2e8f0);
+  border-radius: var(--r-full);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-th);
+  transition: all var(--dur-fast) var(--ease-out);
+  flex-shrink: 0;
+}
+.btn-close-series:hover {
+  background: var(--gray-50, #f8fafc);
+  border-color: var(--gray-300, #cbd5e1);
+}
+
+/* Responsive — series modal */
+@media (max-width: 540px) {
+  .series-item {
+    flex-wrap: wrap;
+  }
+  .series-item-actions {
+    margin-left: auto;
+  }
+  .series-item-main {
+    flex-basis: calc(100% - 40px);
+  }
+}
