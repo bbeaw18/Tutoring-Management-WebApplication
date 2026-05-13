@@ -462,7 +462,15 @@
                 <div class="teacher-cell">{{ s.teacherName }}</div>
               </td>
               <td>
-                <div class="student-cell">{{ st.name }}</div>
+                <button class="student-link" type="button"
+                        (click)="openStudentMonthlyModal(st.studentId, st.name)"
+                        [title]="'ดูคลาสทั้งหมดของน้อง' + getStudentNickname(st.studentId, st.name) + ' ในเดือนนี้'">
+                  <span class="student-link-avatar">{{ (getStudentNickname(st.studentId, st.name) || '?').charAt(0) }}</span>
+                  <span class="student-link-name">น้อง{{ getStudentNickname(st.studentId, st.name) }}</span>
+                  <svg class="student-link-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </button>
               </td>
               <td class="currency">
                 <ng-container *ngIf="isPriceHourlyForSchedule(s) && getCoursePriceRate(s) > 0; else priceFlat">
@@ -512,5 +520,90 @@
       </table>
     </div>
 
+  </div>
+
+  <!-- ─── Student Monthly Modal — คลาสทั้งหมดของนักเรียนในเดือนนี้ ─── -->
+  <div class="modal-overlay" *ngIf="showStudentMonthlyModal && studentMonthlyTarget" (click)="closeStudentMonthlyModal()">
+    <div class="modal-box student-monthly-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header student-monthly-header">
+        <div class="student-monthly-title-wrap">
+          <div class="student-monthly-avatar">{{ (studentMonthlyTarget.nickname || '?').charAt(0) }}</div>
+          <div>
+            <h2>คลาสของน้อง{{ studentMonthlyTarget.nickname }}</h2>
+            <p class="modal-subtitle">
+              เดือน <strong>{{ monthLabelTH(filterMonth) }}</strong>
+              <span class="student-monthly-sub-divider">·</span>
+              <strong>{{ studentMonthlyClasses.length }}</strong> คลาส
+            </p>
+          </div>
+        </div>
+        <button class="close-btn" (click)="closeStudentMonthlyModal()" aria-label="ปิด">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body student-monthly-body">
+        <div *ngIf="studentMonthlyClasses.length === 0" class="student-monthly-empty">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <p>ยังไม่มีคลาสในเดือนนี้</p>
+        </div>
+
+        <div class="student-monthly-list" *ngIf="studentMonthlyClasses.length > 0">
+          <div class="student-monthly-item" *ngFor="let s of studentMonthlyClasses; let i = index">
+            <div class="sm-item-number">{{ i + 1 }}</div>
+            <div class="sm-item-main">
+              <div class="sm-item-row sm-item-row-top">
+                <strong class="sm-item-subject">{{ s.courseName || s.subject || 'คลาส' }}</strong>
+                <span class="sm-item-date">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  {{ formatDate(s.date) }}
+                  <span class="sm-item-time" *ngIf="s.startTime">· {{ s.startTime }}–{{ s.endTime }}</span>
+                </span>
+              </div>
+              <div class="sm-item-row sm-item-row-bottom">
+                <span class="sm-item-teacher" *ngIf="s.teacherName">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                  {{ s.teacherName }}
+                </span>
+                <span class="sm-item-status" [ngClass]="getStatusClass(s.status)">{{ getStatusLabel(s.status) }}</span>
+              </div>
+            </div>
+            <div class="sm-item-finance">
+              <span class="sm-item-amount">฿{{ getStudentEntry(s, studentMonthlyTarget.id).amount | number: '1.0-0' }}</span>
+              <span class="sm-item-pay-badge"
+                    [class.sm-pay-confirmed]="getStudentEntry(s, studentMonthlyTarget.id).status === 'confirmed'"
+                    [class.sm-pay-pending]="getStudentEntry(s, studentMonthlyTarget.id).status === 'pending'"
+                    [class.sm-pay-unpaid]="getStudentEntry(s, studentMonthlyTarget.id).status === 'unpaid' || !getStudentEntry(s, studentMonthlyTarget.id).status">
+                <ng-container [ngSwitch]="getStudentEntry(s, studentMonthlyTarget.id).status">
+                  <ng-container *ngSwitchCase="'confirmed'">ชำระแล้ว</ng-container>
+                  <ng-container *ngSwitchCase="'pending'">รอ Manager ยืนยัน</ng-container>
+                  <ng-container *ngSwitchDefault>ค้างชำระ</ng-container>
+                </ng-container>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="student-monthly-footer" *ngIf="studentMonthlyClasses.length > 0">
+          <div class="sm-summary">
+            <div class="sm-summary-item">
+              <span class="sm-summary-label">รวมค่าเรียน</span>
+              <strong class="sm-summary-total">฿{{ studentMonthlyTotal | number: '1.0-0' }}</strong>
+            </div>
+            <div class="sm-summary-item sm-summary-paid">
+              <span class="sm-summary-label">ชำระแล้ว</span>
+              <strong>฿{{ studentMonthlyPaidTotal | number: '1.0-0' }}</strong>
+            </div>
+            <div class="sm-summary-item sm-summary-unpaid" *ngIf="studentMonthlyTotal - studentMonthlyPaidTotal > 0">
+              <span class="sm-summary-label">คงเหลือ</span>
+              <strong>฿{{ studentMonthlyTotal - studentMonthlyPaidTotal | number: '1.0-0' }}</strong>
+            </div>
+          </div>
+          <button class="btn-close-sm" (click)="closeStudentMonthlyModal()">ปิด</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>

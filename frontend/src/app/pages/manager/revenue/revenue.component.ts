@@ -79,6 +79,12 @@ export class RevenueComponent implements OnInit, OnDestroy {
   // Current logged-in user — used for "รายได้ของคุณ" KPI
   currentUser: IUser | null = null;
 
+  // ── Student monthly classes modal ────────────────────────────
+  // เปิดเมื่อคลิกชื่อเล่นเด็กในตาราง "ประวัติคลาสทั้งหมด"
+  showStudentMonthlyModal = false;
+  studentMonthlyTarget: { id: string; nickname: string } | null = null;
+  studentMonthlyClasses: IRevenueSchedule[] = [];
+
   // Palette for teacher slices
   private readonly TEACHER_COLORS = [
     '#ec4899', '#1e3f80', '#22c55e', '#f59e0b', '#8b5cf6',
@@ -586,6 +592,75 @@ export class RevenueComponent implements OnInit, OnDestroy {
           alert(err?.error?.message || 'ไม่สามารถยืนยันการชำระเงินได้');
         }
       });
+  }
+
+  // ── Student nickname helpers ─────────────────────────────────
+  /** หา "ชื่อเล่น" ของนักเรียนจาก studentId — fallback เป็นชื่อเดิมที่ backend ส่งมา
+   *  (st.name โดยปกติเป็น "FirstName LastName")
+   *  ถ้ามี "(ชื่อเล่น)" ใน fallback ให้ดึงตรงนั้น ไม่งั้นเอา word แรก */
+  getStudentNickname(studentId: string, fallback?: string): string {
+    const u = this.students.find(s => s._id === studentId);
+    if (u) {
+      const nick = (u.nickname || '').trim();
+      if (nick) return nick;
+      const first = (u.firstName || '').trim();
+      if (first) return first;
+    }
+    if (fallback) {
+      const m = fallback.match(/\(([^)]+)\)/);
+      if (m) return m[1].trim();
+      return fallback.split(/\s+/)[0] || fallback;
+    }
+    return '—';
+  }
+
+  /** เปิด modal รายการคลาสที่นักเรียนคนนี้เข้าเรียนทั้งหมดในเดือนที่เลือก */
+  openStudentMonthlyModal(studentId: string, fallbackName?: string): void {
+    if (!studentId) return;
+    const nickname = this.getStudentNickname(studentId, fallbackName);
+    this.studentMonthlyTarget = { id: studentId, nickname };
+    this.studentMonthlyClasses = this.allSchedules
+      .filter(s => s.attendedStudents?.some(st => st.studentId === studentId))
+      .slice()
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    this.showStudentMonthlyModal = true;
+  }
+
+  closeStudentMonthlyModal(): void {
+    this.showStudentMonthlyModal = false;
+    this.studentMonthlyTarget = null;
+    this.studentMonthlyClasses = [];
+  }
+
+  /** ข้อมูลการชำระเงินของนักเรียนคนนี้ในคลาสที่กำหนด */
+  getStudentEntry(s: IRevenueSchedule, studentId: string)
+    : { amount: number; status?: string; paymentId?: string | null } {
+    const e = s.attendedStudents?.find(st => st.studentId === studentId);
+    return { amount: e?.paymentAmount || 0, status: e?.paymentStatus, paymentId: e?.paymentId };
+  }
+
+  /** ชื่อเดือนเต็มในภาษาไทย เช่น "พฤษภาคม 2569" — ใช้บนหัว modal */
+  monthLabelTH(monthStr: string): string {
+    if (!monthStr) return '';
+    const [y, m] = monthStr.split('-').map(Number);
+    if (!y || !m) return '';
+    return new Date(y, m - 1, 1).toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
+  }
+
+  /** ยอดรวมค่าเรียน + จำนวนคลาสในชุดของนักเรียนที่เลือก (ใช้ใน modal footer) */
+  get studentMonthlyTotal(): number {
+    if (!this.studentMonthlyTarget) return 0;
+    const sid = this.studentMonthlyTarget.id;
+    return this.studentMonthlyClasses.reduce((sum, s) => sum + this.getStudentEntry(s, sid).amount, 0);
+  }
+
+  get studentMonthlyPaidTotal(): number {
+    if (!this.studentMonthlyTarget) return 0;
+    const sid = this.studentMonthlyTarget.id;
+    return this.studentMonthlyClasses.reduce((sum, s) => {
+      const e = this.getStudentEntry(s, sid);
+      return sum + (e.status === 'confirmed' ? e.amount : 0);
+    }, 0);
   }
 
   trackByExpenseId(_i: number, e: IExpense): string {

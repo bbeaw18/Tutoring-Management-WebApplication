@@ -1813,3 +1813,371 @@ tbody tr:hover { background: rgba(30,63,128,0.03); }
   font-size: 11.5px;
   font-weight: 700;
 }
+
+/* ═══════════════════════════════════════════════════════
+   Student link in table — คลิกชื่อเล่นเด็กเพื่อเปิด modal
+   ═══════════════════════════════════════════════════════ */
+.student-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 4px;
+  background: white;
+  border: 1.5px solid var(--brand-100, #dbeafe);
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: var(--font-th);
+  color: var(--gray-900);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  transition: all var(--dur-fast, 120ms) var(--ease-out, ease);
+  box-shadow: 0 1px 3px rgba(30, 63, 128, 0.06);
+}
+.student-link:hover {
+  background: linear-gradient(135deg, var(--brand-50, #eff6ff), #fdf2f8);
+  border-color: var(--brand-300, #93c5fd);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(30, 63, 128, 0.12);
+}
+.student-link:active { transform: translateY(0); }
+.student-link-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand-500, #3b82f6), #ec4899);
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+  border: 1.5px solid white;
+  box-shadow: 0 2px 5px rgba(30, 63, 128, 0.20);
+}
+.student-link-name {
+  white-space: nowrap;
+}
+.student-link-chevron {
+  color: var(--text-tertiary, #94a3b8);
+  flex-shrink: 0;
+  transition: transform var(--dur-fast, 120ms) var(--ease-out, ease);
+}
+.student-link:hover .student-link-chevron {
+  color: var(--brand-600, #2557c2);
+  transform: translateX(2px);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Student Monthly Modal — รายการคลาสของเด็กในเดือนนั้น
+   ═══════════════════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+  animation: smFadeIn 0.15s ease;
+}
+@keyframes smFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal-box.student-monthly-modal {
+  background: white;
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: smSlideUp 0.2s ease;
+}
+@keyframes smSlideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.student-monthly-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #eff6ff 0%, #fdf2f8 100%);
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+}
+.student-monthly-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+.student-monthly-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand-500, #3b82f6), #ec4899);
+  color: white;
+  font-size: 18px;
+  font-weight: 800;
+  flex-shrink: 0;
+  border: 2.5px solid white;
+  box-shadow: 0 4px 12px rgba(30, 63, 128, 0.25);
+}
+.student-monthly-header h2 {
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin: 0 0 3px;
+  background: linear-gradient(135deg, var(--brand-700, #1e3f80), #be185d);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.student-monthly-header .modal-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--text-tertiary, #94a3b8);
+  margin: 0;
+}
+.student-monthly-header .modal-subtitle strong {
+  color: var(--brand-700, #1e3f80);
+  font-weight: 700;
+}
+.student-monthly-sub-divider { color: var(--gray-400, #94a3b8); }
+
+.close-btn {
+  background: none;
+  border: none;
+  color: var(--text-tertiary, #94a3b8);
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 8px;
+  transition: background 0.12s ease;
+  flex-shrink: 0;
+}
+.close-btn:hover { background: #f1f5f9; color: var(--gray-900); }
+
+.student-monthly-body {
+  padding: 16px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.student-monthly-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 16px;
+  color: var(--text-tertiary, #94a3b8);
+  text-align: center;
+}
+.student-monthly-empty svg { color: var(--gray-300, #cbd5e1); }
+
+.student-monthly-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.student-monthly-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  transition: all 0.12s ease;
+}
+.student-monthly-item:hover {
+  background: white;
+  border-color: var(--brand-300, #93c5fd);
+  box-shadow: 0 2px 8px rgba(30, 63, 128, 0.08);
+}
+
+.sm-item-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: white;
+  border: 1.5px solid var(--brand-200, #bfdbfe);
+  color: var(--brand-700, #1e3f80);
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.sm-item-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sm-item-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.sm-item-subject {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--gray-900);
+  letter-spacing: -0.01em;
+}
+.sm-item-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-secondary, #475569);
+}
+.sm-item-date svg { color: var(--brand-500, #3b82f6); }
+.sm-item-time {
+  font-weight: 500;
+  color: var(--text-tertiary, #94a3b8);
+}
+.sm-item-teacher {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--text-tertiary, #94a3b8);
+}
+.sm-item-teacher svg { color: var(--text-tertiary, #94a3b8); }
+
+.sm-item-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.sm-item-status.badge-completed {
+  background: #dcfce7; color: #166534; border-color: #86efac;
+}
+.sm-item-status.badge-pending {
+  background: #fef9c3; color: #854d0e; border-color: #fde047;
+}
+
+.sm-item-finance {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.sm-item-amount {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--gray-900);
+  letter-spacing: -0.01em;
+}
+.sm-item-pay-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.sm-pay-confirmed {
+  background: #ecfdf5; color: #047857; border-color: #a7f3d0;
+}
+.sm-pay-pending {
+  background: #fffbeb; color: #92400e; border-color: #fde68a;
+}
+.sm-pay-unpaid {
+  background: #fef2f2; color: #b91c1c; border-color: #fca5a5;
+}
+
+.student-monthly-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px dashed #e2e8f0;
+  flex-wrap: wrap;
+}
+.sm-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.sm-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.sm-summary-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-tertiary, #94a3b8);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.sm-summary-item strong {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--gray-900);
+}
+.sm-summary-total { color: var(--brand-700, #1e3f80) !important; }
+.sm-summary-paid strong   { color: #047857 !important; }
+.sm-summary-unpaid strong { color: #b91c1c !important; }
+
+.btn-close-sm {
+  padding: 8px 18px;
+  background: white;
+  color: var(--text-secondary, #475569);
+  border: 1px solid var(--gray-200, #e2e8f0);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-th);
+  transition: all 0.12s ease;
+  flex-shrink: 0;
+}
+.btn-close-sm:hover {
+  background: var(--gray-50, #f8fafc);
+  border-color: var(--gray-300, #cbd5e1);
+}
+
+/* Responsive — student monthly */
+@media (max-width: 560px) {
+  .student-monthly-item {
+    flex-wrap: wrap;
+  }
+  .sm-item-finance {
+    align-items: flex-start;
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  .sm-summary { gap: 12px; }
+}
