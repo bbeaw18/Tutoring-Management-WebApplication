@@ -1869,6 +1869,89 @@ tbody tr:hover { background: rgba(30,63,128,0.03); }
   transform: translateX(2px);
 }
 
+/* ── Student grid (แทนตารางรายคลาส) ── */
+.students-grid-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0 8px;
+}
+.students-grid-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #eff6ff, #fdf2f8);
+  border: 1px solid var(--brand-100, #dbeafe);
+  border-radius: 12px;
+  color: var(--brand-700, #1e3f80);
+  font-size: 12px;
+  font-weight: 600;
+  align-self: flex-start;
+}
+.students-grid-hint svg { color: var(--brand-500, #3b82f6); flex-shrink: 0; }
+
+.students-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+.students-grid-empty {
+  margin: 24px 0;
+  text-align: center;
+  color: var(--text-tertiary, #94a3b8);
+  font-size: 13px;
+}
+
+/* ── Variant สำหรับ pill ใน grid (ใหญ่กว่าใน table) ── */
+.student-link.student-link-large {
+  padding: 10px 14px 10px 6px;
+  font-size: var(--text-base, 14px);
+  border-radius: 14px;
+  justify-content: flex-start;
+  width: 100%;
+}
+.student-link.student-link-large .student-link-avatar {
+  width: 34px;
+  height: 34px;
+  font-size: 14px;
+}
+.student-link.student-link-large .student-link-name {
+  flex: 1;
+  text-align: left;
+}
+.student-link.student-link-large .student-link-chevron { width: 13px; height: 13px; }
+
+/* ── ปุ่มยืนยันการชำระเงินใน student-monthly modal ── */
+.sm-confirm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-th);
+  margin-top: 2px;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.30);
+  transition: all 0.12s ease;
+  white-space: nowrap;
+}
+.sm-confirm-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.40);
+  filter: brightness(1.05);
+}
+.sm-confirm-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.sm-confirm-btn svg { flex-shrink: 0; }
+
 /* ═══════════════════════════════════════════════════════
    Student Monthly Modal — รายการคลาสของเด็กในเดือนนั้น
    ═══════════════════════════════════════════════════════ */

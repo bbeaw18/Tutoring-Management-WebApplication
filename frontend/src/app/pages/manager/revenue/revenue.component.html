@@ -423,101 +423,27 @@
       </table>
     </div>
 
-    <!-- ── Per-Student Payment Table (โหมด all/paid/unpaid) ── -->
-    <div *ngIf="filteredSchedules.length > 0 && !showTeacherIncomeColumn" class="payments-table">
-      <table>
-        <thead>
-          <tr>
-            <th>วันที่</th>
-            <th>วิชา / ครู</th>
-            <th>นักเรียน</th>
-            <th>ราคา</th>
-            <th>สถานะการชำระเงิน</th>
-            <th>การดำเนินการ</th>
-          </tr>
-        </thead>
-        <tbody>
-          <ng-container *ngFor="let s of filteredSchedules">
-            <!-- ถ้าไม่มีนักเรียนเช็คชื่อ — แสดง 1 row บอก "ไม่มีคนเข้าเรียน" -->
-            <tr *ngIf="!s.attendedStudents || s.attendedStudents.length === 0" class="row-no-attendance">
-              <td>{{ formatDate(s.date) }}<br><span class="time-text">{{ s.startTime }}–{{ s.endTime }}</span></td>
-              <td>
-                <div class="course-cell">{{ s.courseName }}</div>
-                <div class="teacher-cell">{{ s.teacherName }}</div>
-              </td>
-              <td colspan="4" class="empty-attendance">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                ไม่มีนักเรียนเข้าเรียน
-              </td>
-            </tr>
-
-            <!-- 1 row per student -->
-            <tr *ngFor="let st of s.attendedStudents"
-                [class.row-paid]="st.paymentStatus === 'confirmed'"
-                [class.row-pending]="st.paymentStatus === 'pending'"
-                [class.row-unpaid]="st.paymentStatus === 'unpaid'">
-              <td>{{ formatDate(s.date) }}<br><span class="time-text">{{ s.startTime }}–{{ s.endTime }}</span></td>
-              <td>
-                <div class="course-cell">{{ s.courseName }}</div>
-                <div class="teacher-cell">{{ s.teacherName }}</div>
-              </td>
-              <td>
-                <button class="student-link" type="button"
-                        (click)="openStudentMonthlyModal(st.studentId, st.name)"
-                        [title]="'ดูคลาสทั้งหมดของน้อง' + getStudentNickname(st.studentId, st.name) + ' ในเดือนนี้'">
-                  <span class="student-link-avatar">{{ (getStudentNickname(st.studentId, st.name) || '?').charAt(0) }}</span>
-                  <span class="student-link-name">น้อง{{ getStudentNickname(st.studentId, st.name) }}</span>
-                  <svg class="student-link-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </button>
-              </td>
-              <td class="currency">
-                <ng-container *ngIf="isPriceHourlyForSchedule(s) && getCoursePriceRate(s) > 0; else priceFlat">
-                  <div class="rev-formula">
-                    <span class="rev-rate">ชม.ละ ฿{{ getCoursePriceRate(s) | number: '1.0-0' }}</span>
-                    <span class="rev-x">×</span>
-                    <span class="rev-hours">{{ formatHours(getScheduleHours(s)) }}</span>
-                    <span class="rev-eq">=</span>
-                    <strong class="rev-total">฿{{ st.paymentAmount | number: '1.0-0' }}</strong>
-                  </div>
-                </ng-container>
-                <ng-template #priceFlat>
-                  ฿{{ st.paymentAmount | number: '1.0-0' }}
-                </ng-template>
-              </td>
-              <td>
-                <!-- สถานะการชำระเงิน -->
-                <span *ngIf="st.paymentStatus === 'confirmed'" class="badge badge-paid-rev">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  ชำระเงินสำเร็จ
-                </span>
-                <span *ngIf="st.paymentStatus === 'pending'" class="badge badge-pending-rev pulse">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  รอ Manager ยืนยัน
-                </span>
-                <span *ngIf="st.paymentStatus === 'unpaid' || !st.paymentStatus" class="badge badge-unpaid-rev">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                  ค้างชำระ
-                </span>
-              </td>
-              <td>
-                <!-- ปุ่มยืนยัน — แสดงเฉพาะเมื่อ status = pending -->
-                <button *ngIf="st.paymentStatus === 'pending'"
-                        class="btn-confirm-payment"
-                        [disabled]="confirmingPaymentId === st.paymentId"
-                        (click)="confirmStudentPayment(st)">
-                  <svg *ngIf="confirmingPaymentId !== st.paymentId" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  <span *ngIf="confirmingPaymentId !== st.paymentId">ยืนยันการชำระเงิน</span>
-                  <span *ngIf="confirmingPaymentId === st.paymentId">กำลังยืนยัน...</span>
-                </button>
-                <span *ngIf="st.paymentStatus === 'confirmed'" class="text-confirmed">— ยืนยันแล้ว —</span>
-                <span *ngIf="st.paymentStatus === 'unpaid' || !st.paymentStatus" class="text-waiting">รอนักเรียนแจ้งโอน</span>
-              </td>
-            </tr>
-          </ng-container>
-        </tbody>
-      </table>
+    <!-- ── Per-Student Grid (โหมด all/paid/unpaid) — แสดงเฉพาะชื่อเล่น คลิกเพื่อดูคลาส ── -->
+    <div *ngIf="filteredSchedules.length > 0 && !showTeacherIncomeColumn" class="students-grid-wrap">
+      <div class="students-grid-hint">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        คลิกที่ชื่อเด็กเพื่อดูคลาสทั้งหมดของเด็กคนนั้นในเดือนนี้
+      </div>
+      <div class="students-grid">
+        <button *ngFor="let s of uniqueStudentsInFilter" type="button"
+                class="student-link student-link-large"
+                (click)="openStudentMonthlyModal(s.studentId)"
+                [title]="'ดูคลาสทั้งหมดของน้อง' + s.nickname + ' ในเดือนนี้'">
+          <span class="student-link-avatar">{{ (s.nickname || '?').charAt(0) }}</span>
+          <span class="student-link-name">น้อง{{ s.nickname }}</span>
+          <svg class="student-link-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+      </div>
+      <p class="students-grid-empty" *ngIf="uniqueStudentsInFilter.length === 0">
+        ยังไม่มีนักเรียนเข้าเรียนในช่วงนี้
+      </p>
     </div>
 
   </div>
@@ -582,6 +508,14 @@
                   <ng-container *ngSwitchDefault>ค้างชำระ</ng-container>
                 </ng-container>
               </span>
+              <button *ngIf="getStudentEntry(s, studentMonthlyTarget.id).status === 'pending'"
+                      class="sm-confirm-btn"
+                      [disabled]="confirmingPaymentId === getStudentEntry(s, studentMonthlyTarget.id).paymentId"
+                      (click)="confirmStudentPayment({ paymentId: getStudentEntry(s, studentMonthlyTarget.id).paymentId, paymentStatus: 'pending', name: 'น้อง' + studentMonthlyTarget.nickname })">
+                <svg *ngIf="confirmingPaymentId !== getStudentEntry(s, studentMonthlyTarget.id).paymentId" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span *ngIf="confirmingPaymentId !== getStudentEntry(s, studentMonthlyTarget.id).paymentId">ยืนยัน</span>
+                <span *ngIf="confirmingPaymentId === getStudentEntry(s, studentMonthlyTarget.id).paymentId">กำลังยืนยัน…</span>
+              </button>
             </div>
           </div>
         </div>

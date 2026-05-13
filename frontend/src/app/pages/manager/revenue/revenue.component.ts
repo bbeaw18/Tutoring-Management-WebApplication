@@ -594,6 +594,31 @@ export class RevenueComponent implements OnInit, OnDestroy {
       });
   }
 
+  // ── Deduped student list (ตาราง "ประวัติคลาสทั้งหมด" → กริดชื่อเล่นเด็ก) ──
+  /** รายชื่อนักเรียนที่มีในรอบการกรอง — แสดงครั้งละ 1 คน ไม่ซ้ำ
+   *  ใช้แทนตารางรายคลาสในหน้า revenue เพื่อให้เห็นแค่ชื่อเล่นเด็ก
+   *  เรียงตามชื่อเล่น */
+  get uniqueStudentsInFilter(): { studentId: string; nickname: string; classCount: number }[] {
+    const seen = new Map<string, { nickname: string; classCount: number }>();
+    for (const s of this.filteredSchedules) {
+      for (const st of s.attendedStudents || []) {
+        if (!st.studentId) continue;
+        const cur = seen.get(st.studentId);
+        if (cur) {
+          cur.classCount++;
+        } else {
+          seen.set(st.studentId, {
+            nickname: this.getStudentNickname(st.studentId, st.name),
+            classCount: 1
+          });
+        }
+      }
+    }
+    return Array.from(seen.entries())
+      .map(([studentId, v]) => ({ studentId, nickname: v.nickname, classCount: v.classCount }))
+      .sort((a, b) => a.nickname.localeCompare(b.nickname, 'th'));
+  }
+
   // ── Student nickname helpers ─────────────────────────────────
   /** หา "ชื่อเล่น" ของนักเรียนจาก studentId — fallback เป็นชื่อเดิมที่ backend ส่งมา
    *  (st.name โดยปกติเป็น "FirstName LastName")
