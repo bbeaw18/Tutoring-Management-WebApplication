@@ -775,7 +775,7 @@
               ดูทั้งชุด ({{ getSeriesCount(course) }} คลาส)
             </button>
             <button class="btn-edit-course" (click)="openEditModal(course)"
-              *ngIf="!isSeriesCourse(course) && course.status !== 'cancelled' && course.status !== 'completed'">
+              *ngIf="!isSeriesCourse(course) && !isFinalStatus(course)">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -783,9 +783,9 @@
               แก้ไข
             </button>
             <button class="btn-cancel-course" (click)="cancelCourse(getId(course))"
-              *ngIf="!isSeriesCourse(course) && course.status !== 'cancelled' && course.status !== 'completed'">ยกเลิก</button>
+              *ngIf="!isSeriesCourse(course) && !isFinalStatus(course)">ยกเลิก</button>
             <button class="btn-delete-course" (click)="permanentDelete(getId(course))"
-              *ngIf="!isSeriesCourse(course) && course.status === 'cancelled'">
+              *ngIf="!isSeriesCourse(course) && resolveStatus(course) === 'cancelled'">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <polyline points="3 6 5 6 21 6"/>
                 <path d="M19 6l-1 14H6L5 6"/>
@@ -995,7 +995,20 @@
       <div class="modal-body series-modal-body">
         <div class="series-list">
           <div class="series-item" *ngFor="let c of seriesModalCourses; let i = index"
-               [class.series-item-current]="getId(c) === getId(seriesModalAnchor)">
+               [class.series-item-current]="getId(c) === getId(seriesModalAnchor)"
+               [class.is-selected]="isSelected(getId(c))">
+            <label class="series-item-select" *ngIf="canSelectSeriesItem(c)"
+                   (click)="$event.stopPropagation()"
+                   [title]="isSelected(getId(c)) ? 'ยกเลิกการเลือก' : 'เลือกเพื่อยกเลิกพร้อมกัน'">
+              <input type="checkbox"
+                     [checked]="isSelected(getId(c))"
+                     (change)="toggleSelect(getId(c))" />
+              <span class="series-item-select-box">
+                <svg *ngIf="isSelected(getId(c))" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </span>
+            </label>
             <div class="series-item-number">{{ i + 1 }}</div>
             <div class="series-item-main">
               <div class="series-item-date">
@@ -1023,7 +1036,7 @@
             </div>
             <div class="series-item-actions">
               <button class="series-item-btn series-item-btn-edit"
-                      *ngIf="c.status !== 'cancelled' && c.status !== 'completed'"
+                      *ngIf="!isFinalStatus(c)"
                       (click)="closeSeriesModal(); openEditModal(c)"
                       title="แก้ไขคลาสนี้">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -1032,7 +1045,7 @@
                 </svg>
               </button>
               <button class="series-item-btn series-item-btn-cancel"
-                      *ngIf="c.status !== 'cancelled' && c.status !== 'completed'"
+                      *ngIf="!isFinalStatus(c)"
                       (click)="cancelCourse(getId(c))"
                       title="ยกเลิกคลาสนี้">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -1048,9 +1061,34 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
             </svg>
-            <span>ทุกคลาสในชุดนี้ถูกสร้างพร้อมกันจากการนัดสอนแบบทำซ้ำรายสัปดาห์ — แก้ไข/ยกเลิกแต่ละคลาสได้แยกกัน</span>
+            <span>เลือกหลายคลาสด้วย checkbox ทางซ้ายแล้วยกเลิกพร้อมกัน หรือกด "ยกเลิกทั้งชุด" เพื่อยกเลิกทุกคลาสที่ยังไม่จบในชุดนี้</span>
           </div>
-          <button class="btn-close-series" (click)="closeSeriesModal()">ปิด</button>
+          <div class="series-modal-footer-actions">
+            <button class="btn-select-all-series"
+                    type="button"
+                    *ngIf="seriesCancellableCount > 0 && selectionCount < seriesCancellableCount"
+                    (click)="selectAllSeriesCancellable()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 11 12 14 22 4"/>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+              เลือกทั้งหมด ({{ seriesCancellableCount }})
+            </button>
+            <button class="btn-cancel-series"
+                    type="button"
+                    *ngIf="seriesCancellableCount > 0"
+                    [disabled]="bulkCancelling"
+                    (click)="bulkCancelSeries()">
+              <svg *ngIf="!bulkCancelling" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+              </svg>
+              <svg *ngIf="bulkCancelling" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="cm-bulk-spin">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+              </svg>
+              {{ bulkCancelling ? 'กำลังยกเลิก...' : 'ยกเลิกทั้งชุด (' + seriesCancellableCount + ')' }}
+            </button>
+            <button class="btn-close-series" type="button" (click)="closeSeriesModal()">ปิด</button>
+          </div>
         </div>
       </div>
     </div>

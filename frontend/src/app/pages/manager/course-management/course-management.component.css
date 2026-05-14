@@ -2254,3 +2254,122 @@
 @media (prefers-reduced-motion: reduce) {
   .status-badge { transition: none !important; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   Series modal — checkbox + bulk-cancel-series action
+   ═══════════════════════════════════════════════════════ */
+
+/* Per-item checkbox inside the series modal. Mirrors .cm-select on cards. */
+.series-item { position: relative; }
+.series-item.is-selected {
+  background: linear-gradient(180deg, rgba(236, 72, 153, 0.06), transparent 80%);
+  border-color: #fbcfe8;
+}
+.series-item-select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-right: var(--sp-2);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.series-item-select input[type="checkbox"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  margin: 0;
+}
+.series-item-select-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--gray-300);
+  border-radius: 6px;
+  background: #fff;
+  color: #fff;
+  transition:
+    background-color 180ms var(--ease-out),
+    border-color     180ms var(--ease-out);
+}
+.series-item-select:hover .series-item-select-box {
+  border-color: var(--accent-500);
+}
+.series-item.is-selected .series-item-select-box {
+  background: var(--accent-500);
+  border-color: var(--accent-500);
+}
+
+/* Footer actions row */
+.series-modal-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.btn-select-all-series,
+.btn-cancel-series {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  min-height: 36px;
+  border-radius: var(--r-lg);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 200ms var(--ease-out),
+    border-color     200ms var(--ease-out),
+    transform        160ms var(--ease-out);
+}
+
+.btn-select-all-series {
+  background: #fff;
+  color: var(--brand-700);
+  border: 1.5px solid var(--brand-200);
+}
+.btn-select-all-series:hover {
+  background: var(--brand-50);
+  border-color: var(--brand-400);
+}
+
+.btn-cancel-series {
+  background: linear-gradient(135deg, var(--danger-600), var(--danger-500));
+  color: #fff;
+  border: 1.5px solid transparent;
+  box-shadow: 0 2px 8px rgba(244, 63, 94, 0.25);
+}
+.btn-cancel-series:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(244, 63, 94, 0.35);
+  filter: brightness(1.04);
+}
+.btn-cancel-series:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 480px) {
+  .series-modal-footer-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+  .btn-select-all-series,
+  .btn-cancel-series,
+  .btn-close-series { flex: 1; min-height: 40px; justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-cancel-series,
+  .series-item-select-box { transition: none !important; }
+}
