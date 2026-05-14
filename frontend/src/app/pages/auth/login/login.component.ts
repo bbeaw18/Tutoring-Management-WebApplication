@@ -1,9 +1,10 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, ElementRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import { gsap } from 'gsap';
 import { AuthService } from '../../../services/auth.service';
 import { IAuthResponse, IOtpVerifyResponse } from '../../../interfaces/user.interface';
 
@@ -14,7 +15,7 @@ import { IAuthResponse, IOtpVerifyResponse } from '../../../interfaces/user.inte
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css']
 })
-export class LoginComponent implements OnInit, OnDestroy {
+export class LoginComponent implements OnInit, OnDestroy, AfterViewInit {
   currentStep: 'login' | 'otp' = 'login';
   loginForm!: FormGroup;
   otpForm!: FormGroup;
@@ -39,12 +40,100 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
+  // Animation hooks (Phase 0 v2)
+  private reducedMotion = false;
+  private heroTl?: gsap.core.Timeline;
+  private mouseMoveCleanup?: () => void;
+
   constructor(
     private formBuilder: FormBuilder,
     private authService: AuthService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private host: ElementRef<HTMLElement>,
+    private zone: NgZone
   ) {}
+
+  ngAfterViewInit(): void {
+    this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (this.reducedMotion) return;
+    this.zone.runOutsideAngular(() => {
+      this.runHeroTimeline();
+      this.runFormEntrance();
+      this.bindInteractions();
+    });
+  }
+
+  private runHeroTimeline(): void {
+    const root = this.host.nativeElement;
+    const title = root.querySelectorAll<SVGTextElement>('.board-title text');
+    const eqParts = root.querySelectorAll<SVGTextElement>('.board-eq .eq-part');
+    const bonds = root.querySelectorAll<SVGLineElement>('.board-mol .bond');
+    const atoms = root.querySelectorAll<SVGGElement>('.board-mol .atom');
+    const orbit = root.querySelector<SVGEllipseElement>('.board-mol .orbit');
+    if (!eqParts.length) return;
+
+    this.heroTl = gsap.timeline({ delay: 0.25 });
+    this.heroTl
+      .to(title, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' })
+      .to(eqParts, { opacity: 1, y: 0, duration: 0.5, stagger: 0.07, ease: 'power2.out' }, '-=0.35')
+      .to(bonds, { strokeDashoffset: 0, duration: 0.6, stagger: 0.2, ease: 'power2.out' }, '-=0.4')
+      .to(atoms, { opacity: 1, scale: 1, duration: 0.55, stagger: 0.12, ease: 'power3.out' }, '-=0.5');
+
+    if (orbit) {
+      gsap.to(orbit, { opacity: 0.4, duration: 0.6, delay: 1.6, ease: 'power2.out' });
+      gsap.to(orbit, {
+        rotate: 360, duration: 24, ease: 'none', repeat: -1,
+        transformOrigin: '60px 0px'
+      });
+    }
+  }
+
+  private runFormEntrance(): void {
+    const items = this.host.nativeElement.querySelectorAll<HTMLElement>('[data-anim]');
+    if (!items.length) return;
+    gsap.fromTo(items,
+      { opacity: 0, y: 14 },
+      { opacity: 1, y: 0, duration: 0.45, stagger: 0.07, ease: 'power3.out', delay: 0.15 });
+  }
+
+  private bindInteractions(): void {
+    const root = this.host.nativeElement;
+
+    const onMove = (e: MouseEvent) => {
+      const t = e.target as HTMLElement;
+      const btn = t.closest('.cta:not(.cta-ghost):not(:disabled)') as HTMLElement | null;
+      if (!btn) return;
+      const r = btn.getBoundingClientRect();
+      const dx = (e.clientX - (r.left + r.width / 2)) / (r.width / 2);
+      const dy = (e.clientY - (r.top + r.height / 2)) / (r.height / 2);
+      gsap.to(btn, { x: dx * 4, y: dy * 2.5, duration: 0.4, ease: 'power3.out' });
+    };
+    const onOut = (e: Event) => {
+      const t = e.target as HTMLElement;
+      const btn = t.closest?.('.cta') as HTMLElement | null;
+      if (!btn) return;
+      gsap.to(btn, { x: 0, y: 0, duration: 0.5, ease: 'power3.out' });
+    };
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as HTMLElement;
+      const btn = t.closest('.cta:not(.cta-ghost)') as HTMLElement | null;
+      if (!btn) return;
+      btn.classList.remove('is-rippling');
+      void btn.offsetWidth;
+      btn.classList.add('is-rippling');
+      window.setTimeout(() => btn.classList.remove('is-rippling'), 700);
+    };
+
+    root.addEventListener('mousemove', onMove);
+    root.addEventListener('mouseleave', onOut, true);
+    root.addEventListener('pointerdown', onDown);
+    this.mouseMoveCleanup = () => {
+      root.removeEventListener('mousemove', onMove);
+      root.removeEventListener('mouseleave', onOut, true);
+      root.removeEventListener('pointerdown', onDown);
+    };
+  }
 
   ngOnInit(): void {
     this.initializeForm();
@@ -124,6 +213,9 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     clearInterval(this.otpCountdownInterval);
+    this.heroTl?.kill();
+    this.mouseMoveCleanup?.();
+    gsap.killTweensOf(this.host.nativeElement.querySelectorAll('*'));
   }
 
   initializeForm(): void {

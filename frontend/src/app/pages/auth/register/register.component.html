@@ -1,496 +1,577 @@
-<div class="auth-layout">
-  <!-- Left Brand Panel -->
-  <div class="brand-panel">
-    <div class="brand-orbs">
-      <div class="orb orb-1"></div>
-      <div class="orb orb-2"></div>
-      <div class="orb orb-3"></div>
+<div class="auth-shell" #authShell>
+  <!-- ───────────── HERO PANEL ───────────── -->
+  <aside class="hero-panel" aria-hidden="false">
+    <div class="hero-grain" aria-hidden="true"></div>
+    <div class="hero-motes" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span>
     </div>
-    <div class="brand-content">
-      <div class="brand-logo">
-        <div class="logo-icon">
-          <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="48" height="48" rx="14" fill="white" fill-opacity="0.15"/>
-            <polygon points="24,10 42,20 24,30 6,20" fill="white" opacity="0.95"/>
-            <path d="M15,24 L15,35 C15,35 19,41 24,41 C29,41 33,35 33,35 L33,24 L24,30 Z" fill="white" opacity="0.8"/>
-            <line x1="42" y1="20" x2="42" y2="32" stroke="white" stroke-width="2" stroke-linecap="round"/>
-            <circle cx="42" cy="34" r="2.5" fill="#f9a8d4"/>
-          </svg>
-        </div>
-        <div class="brand-name-wrap">
-          <span class="brand-name">KMS</span>
-          <span class="brand-tagline">Know More Sci</span>
-        </div>
+
+    <header class="hero-mark">
+      <div class="mark-glyph" aria-hidden="true">
+        <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
+          <polygon points="24,10 42,20 24,30 6,20" fill="currentColor" opacity="0.95"/>
+          <path d="M15,24 L15,35 C15,35 19,41 24,41 C29,41 33,35 33,35 L33,24 L24,30 Z" fill="currentColor" opacity="0.78"/>
+          <line x1="42" y1="20" x2="42" y2="32" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="42" cy="34" r="2.6" fill="var(--hero-accent)"/>
+        </svg>
       </div>
-      <h1 class="brand-title">เริ่มต้น<br/>การเรียนรู้<br/>ของคุณ</h1>
-      <p class="brand-subtitle">สมัครเพื่อเข้าเรียนกับทีมครูวิทยาศาสตร์ Know More Sci</p>
-      <div class="brand-features">
-        <div class="feature-item">
-          <div class="feature-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>
-            </svg>
-          </div>
-          <span>ชำระเงินผ่าน PromptPay และ QR Code</span>
-        </div>
-        <div class="feature-item">
-          <div class="feature-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-          </div>
-          <span>ดูตารางเรียนและนัดหมายได้ทันที</span>
-        </div>
-        <div class="feature-item">
-          <div class="feature-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-          </div>
-          <span>ติดต่อ Manager ผ่าน LINE ได้ตลอดเวลา</span>
-        </div>
+      <div class="mark-text">
+        <span class="mark-name">KMS</span>
+        <span class="mark-tagline">Know More Sci · Bangkok</span>
       </div>
+    </header>
+
+    <figure class="hero-board" #heroBoard aria-label="ภาพประกอบห้องเรียนวิทยาศาสตร์">
+      <svg viewBox="0 0 380 260" xmlns="http://www.w3.org/2000/svg" class="board-svg">
+        <defs>
+          <linearGradient id="board-fill-r" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1a2b4d"/>
+            <stop offset="100%" stop-color="#0f1d36"/>
+          </linearGradient>
+          <pattern id="board-grid-r" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          </pattern>
+          <filter id="chalk-soft-r" x="-10%" y="-10%" width="120%" height="120%">
+            <feGaussianBlur stdDeviation="0.4"/>
+          </filter>
+        </defs>
+        <rect x="14" y="14" width="352" height="232" rx="14" fill="url(#board-fill-r)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        <rect x="14" y="14" width="352" height="232" rx="14" fill="url(#board-grid-r)"/>
+        <rect x="14" y="234" width="352" height="12" rx="3" fill="#7a5436" opacity="0.85"/>
+        <rect x="14" y="234" width="352" height="3" fill="#a07246" opacity="0.6"/>
+
+        <g class="board-title" filter="url(#chalk-soft-r)">
+          <text x="34" y="58" font-family="var(--font-th)" font-size="18" font-weight="500"
+                fill="rgba(255,255,255,0.85)" letter-spacing="0.04em">เริ่มต้น · เรียนรู้</text>
+        </g>
+
+        <g class="board-eq" font-family="var(--font-en)" font-size="28" font-weight="600"
+           fill="rgba(255,255,255,0.92)" filter="url(#chalk-soft-r)">
+          <text x="40" y="118" class="eq-part">E</text>
+          <text x="58" y="118" class="eq-part">=</text>
+          <text x="78" y="118" class="eq-part">m</text>
+          <text x="100" y="118" class="eq-part">c</text>
+          <text x="116" y="108" class="eq-part eq-sub" font-size="16">2</text>
+          <text x="148" y="118" class="eq-part" fill="var(--hero-accent)">·</text>
+          <text x="162" y="118" class="eq-part">π</text>
+          <text x="182" y="118" class="eq-part">≈</text>
+          <text x="206" y="118" class="eq-part">3.14</text>
+        </g>
+
+        <g class="board-mol" transform="translate(110 178)">
+          <line class="bond bond-1" x1="0" y1="0" x2="60" y2="0" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round"/>
+          <line class="bond bond-2" x1="60" y1="0" x2="120" y2="0" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round"/>
+          <g class="atom atom-h-1">
+            <circle cx="0" cy="0" r="13" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.55)" stroke-width="1.5"/>
+            <text x="0" y="5" font-family="var(--font-en)" font-size="13" font-weight="700" fill="rgba(255,255,255,0.95)" text-anchor="middle">H</text>
+          </g>
+          <g class="atom atom-o">
+            <circle cx="60" cy="0" r="17" fill="var(--hero-accent)" fill-opacity="0.22" stroke="var(--hero-accent)" stroke-width="1.6"/>
+            <text x="60" y="5" font-family="var(--font-en)" font-size="14" font-weight="700" fill="var(--hero-accent)" text-anchor="middle">O</text>
+          </g>
+          <g class="atom atom-h-2">
+            <circle cx="120" cy="0" r="13" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.55)" stroke-width="1.5"/>
+            <text x="120" y="5" font-family="var(--font-en)" font-size="13" font-weight="700" fill="rgba(255,255,255,0.95)" text-anchor="middle">H</text>
+          </g>
+          <ellipse class="orbit" cx="60" cy="0" rx="34" ry="9" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="2 4"/>
+        </g>
+      </svg>
+    </figure>
+
+    <div class="hero-copy">
+      <h1 class="hero-title">
+        <span class="hero-title-em">เริ่มต้น</span>
+        <span class="hero-title-em">การเรียนรู้</span>
+        <span class="hero-title-sub">Join Know More Sci</span>
+      </h1>
+      <p class="hero-lead">สมัครเพื่อเข้าเรียนกับทีมครูวิทยาศาสตร์ของ Know More Sci ใช้เวลาประมาณ 2 นาที</p>
+      <ul class="hero-points" role="list">
+        <li><span class="dot"></span>เรียนกับครูผู้สอนตัวจริง รายชื่อโปร่งใส</li>
+        <li><span class="dot"></span>ตารางเรียน · นัดหมาย · แจ้งเตือนอัตโนมัติ</li>
+        <li><span class="dot"></span>ชำระเงินผ่าน PromptPay และมีใบเสร็จทุกครั้ง</li>
+      </ul>
     </div>
-    <div class="brand-footer">© 2025 Know More Sci Platform</div>
-  </div>
 
-  <!-- Right Form Panel -->
-  <div class="form-panel">
-    <div class="form-inner">
+    <footer class="hero-credit">
+      <span>© 2025 Know More Sci</span>
+      <span class="credit-dot">·</span>
+      <span>Bangkok, Thailand</span>
+    </footer>
+  </aside>
 
-      <!-- Step Progress Bar -->
-      <div class="step-progress">
+  <!-- ───────────── FORM PANEL ───────────── -->
+  <main class="form-panel">
+    <div class="form-shell" #formShell>
+
+      <!-- Top-level step progress -->
+      <div class="step-progress" data-anim="head" aria-hidden="true">
         <div class="step-track">
           <div class="step-fill" [style.width.%]="getStepProgress()"></div>
         </div>
         <div class="step-items">
           <div class="step-item" [class.active]="currentStep === 'role'" [class.done]="currentStep !== 'role'">
             <div class="step-dot">
-              <svg *ngIf="currentStep !== 'role'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <svg *ngIf="currentStep !== 'role'" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
               <span *ngIf="currentStep === 'role'">1</span>
             </div>
             <span class="step-lbl">ประเภท</span>
           </div>
           <div class="step-item" [class.active]="currentStep === 'form'" [class.done]="currentStep === 'totp'">
             <div class="step-dot">
-              <svg *ngIf="currentStep === 'totp'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <svg *ngIf="currentStep === 'totp'" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
               <span *ngIf="currentStep !== 'totp'">2</span>
             </div>
             <span class="step-lbl">ข้อมูล</span>
           </div>
           <div class="step-item" [class.active]="currentStep === 'totp'">
             <div class="step-dot"><span>3</span></div>
-            <span class="step-lbl">OTP</span>
+            <span class="step-lbl">2FA</span>
           </div>
         </div>
       </div>
 
-      <!-- ── Step 1: Role Selection ────────────────────────────────── -->
-      <div *ngIf="currentStep === 'role'" class="form-card">
-        <div class="form-header">
-          <h2 class="form-title">สมัครสมาชิกใหม่</h2>
-          <p class="form-desc">เลือกประเภทบัญชีที่ต้องการ</p>
-        </div>
+      <!-- ─── Step 1: Role ─── -->
+      <section *ngIf="currentStep === 'role'" class="form-card" aria-labelledby="roleHeading">
+        <header class="form-head" data-anim="head">
+          <p class="form-eyebrow">สมัครสมาชิก · Register</p>
+          <h2 id="roleHeading" class="form-title">สมัครสมาชิกใหม่</h2>
+          <p class="form-sub">เลือกประเภทบัญชีที่ต้องการก่อนเริ่มต้น</p>
+        </header>
 
-        <div class="role-grid">
+        <div class="role-grid" data-anim="field">
           <button type="button" class="role-card" (click)="selectRole('student')">
-            <div class="role-icon-wrap student">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <div class="role-icon role-icon-student" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
                 <path d="M6 12v5c3 3 9 3 12 0v-5"/>
               </svg>
             </div>
-            <div class="role-info">
+            <div class="role-body">
               <h3>นักเรียน</h3>
-              <p>เข้าเรียนคอร์สและแบบฝึกหัด พร้อมติดตามความก้าวหน้า</p>
+              <p>เข้าเรียนคอร์ส · ติดตามตารางเรียน · ชำระเงิน</p>
             </div>
-            <div class="role-arrow">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-            </div>
+            <svg class="role-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
 
           <button type="button" class="role-card" (click)="selectRole('teacher')">
-            <div class="role-icon-wrap teacher">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <div class="role-icon role-icon-teacher" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                 <circle cx="9" cy="7" r="4"/>
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
               </svg>
             </div>
-            <div class="role-info">
+            <div class="role-body">
               <h3>ครูผู้สอน</h3>
-              <p>สอนและจัดการคอร์ส รอการอนุมัติจาก Manager</p>
+              <p>สอนคอร์ส · จัดการตารางสอน · รับค่าตอบแทน</p>
+              <span class="role-tag">รอการอนุมัติจาก Manager</span>
             </div>
-            <div class="role-arrow">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-            </div>
+            <svg class="role-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
         </div>
 
-        <div class="info-note">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span>ครูผู้สอนจะต้องรอการอนุมัติจาก Manager ก่อนเข้าใช้งาน</span>
-        </div>
+        <p class="form-link-row" data-anim="field">มีบัญชีอยู่แล้ว? <a routerLink="/login">เข้าสู่ระบบ</a></p>
+      </section>
 
-        <div class="form-link-row">
-          <p>มีบัญชีอยู่แล้ว? <a routerLink="/login">เข้าสู่ระบบ</a></p>
-        </div>
-      </div>
-
-      <!-- ── Step 2: Registration Form ─────────────────────────────── -->
-      <div *ngIf="currentStep === 'form'" class="form-card">
-        <div class="form-header">
-          <button type="button" class="back-btn" (click)="goBackToRole()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      <!-- ─── Step 2: Form ─── -->
+      <section *ngIf="currentStep === 'form'" class="form-card" aria-labelledby="formHeading">
+        <header class="form-head" data-anim="head">
+          <button type="button" class="back-link" (click)="goBackToRole()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
             ย้อนกลับ
           </button>
-          <h2 class="form-title">
+          <p class="form-eyebrow">
+            <span *ngIf="selectedRole === 'student'">นักเรียน · Student</span>
+            <span *ngIf="selectedRole === 'teacher'">ครูผู้สอน · Teacher</span>
+          </p>
+          <h2 id="formHeading" class="form-title">
             <span *ngIf="selectedRole === 'student'">สมัครเป็นนักเรียน</span>
             <span *ngIf="selectedRole === 'teacher'">สมัครเป็นครูผู้สอน</span>
           </h2>
-          <p class="form-desc">กรอกข้อมูลส่วนตัวให้ครบถ้วน</p>
-        </div>
+          <p class="form-sub">กรอกข้อมูลให้ครบถ้วน — ขั้นตอนที่ {{ formSubStep }} จาก {{ totalFormSubSteps }}</p>
+        </header>
 
-        <!-- ── Sub-step Indicator ──────────────────────────── -->
-        <div class="rg-sub-stepper">
+        <!-- Sub-step indicator -->
+        <div class="sub-stepper" data-anim="field">
           <div *ngFor="let lbl of subStepLabels; let i = index"
-               class="rg-sub-step"
+               class="sub-step"
                [class.active]="formSubStep === i + 1"
                [class.done]="formSubStep > i + 1">
-            <div class="rg-sub-circle">
-              <svg *ngIf="formSubStep > i + 1" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <div class="sub-dot">
+              <svg *ngIf="formSubStep > i + 1" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               <span *ngIf="formSubStep <= i + 1">{{ i + 1 }}</span>
             </div>
-            <span class="rg-sub-lbl">{{ lbl }}</span>
-            <div *ngIf="i < subStepLabels.length - 1" class="rg-sub-line"></div>
+            <span class="sub-lbl">{{ lbl }}</span>
+            <div *ngIf="i < subStepLabels.length - 1" class="sub-line"></div>
           </div>
         </div>
 
-        <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="auth-form">
-          <div *ngIf="errorMessage" class="alert alert-error">
+        <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="auth-form" novalidate
+              [class.is-erroring]="!!errorMessage">
+
+          <div *ngIf="errorMessage" class="alert alert-error" role="alert" aria-live="assertive">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            {{ errorMessage }}
+            <span>{{ errorMessage }}</span>
           </div>
 
-          <!-- Section: Basic Info (Sub-step 1) -->
-          <div class="form-section" *ngIf="formSubStep === 1">
-            <h4 class="section-title">
-              <span class="section-num">01</span> ข้อมูลส่วนตัว
-            </h4>
+          <!-- Sub-step 1: Personal -->
+          <div class="section" *ngIf="formSubStep === 1" data-anim="field">
+            <div class="section-head">
+              <span class="section-num">01</span>
+              <h4>ข้อมูลส่วนตัว</h4>
+            </div>
 
-            <div class="form-row-2">
-              <div class="form-group">
-                <label for="firstName">ชื่อ</label>
-                <input type="text" id="firstName" formControlName="firstName" placeholder="ชื่อ"
-                  [class.error]="submitted && f['firstName'].invalid"/>
-                <div *ngIf="submitted && f['firstName'].invalid" class="error-text">กรุณากรอกชื่อ</div>
+            <div class="grid-2">
+              <div class="field" [class.has-value]="!!registerForm.value.firstName">
+                <div class="field-control">
+                  <input type="text" id="firstName" formControlName="firstName" placeholder=" "
+                         [class.is-error]="submitted && f['firstName'].invalid"/>
+                  <label for="firstName" class="field-label">ชื่อ</label>
+                  <span class="field-underline" aria-hidden="true"></span>
+                </div>
+                <div *ngIf="submitted && f['firstName'].invalid" class="field-error">กรุณากรอกชื่อ</div>
               </div>
-              <div class="form-group">
-                <label for="lastName">นามสกุล</label>
-                <input type="text" id="lastName" formControlName="lastName" placeholder="นามสกุล"
-                  [class.error]="submitted && f['lastName'].invalid"/>
-                <div *ngIf="submitted && f['lastName'].invalid" class="error-text">กรุณากรอกนามสกุล</div>
+              <div class="field" [class.has-value]="!!registerForm.value.lastName">
+                <div class="field-control">
+                  <input type="text" id="lastName" formControlName="lastName" placeholder=" "
+                         [class.is-error]="submitted && f['lastName'].invalid"/>
+                  <label for="lastName" class="field-label">นามสกุล</label>
+                  <span class="field-underline" aria-hidden="true"></span>
+                </div>
+                <div *ngIf="submitted && f['lastName'].invalid" class="field-error">กรุณากรอกนามสกุล</div>
               </div>
             </div>
 
-            <div class="form-group">
-              <label for="nickname">ชื่อเล่น</label>
-              <input type="text" id="nickname" formControlName="nickname" placeholder="ชื่อเล่น"
-                [class.error]="submitted && f['nickname'].invalid"/>
-              <div *ngIf="submitted && f['nickname'].invalid" class="error-text">กรุณากรอกชื่อเล่น</div>
+            <div class="field" [class.has-value]="!!registerForm.value.nickname">
+              <div class="field-control">
+                <input type="text" id="nickname" formControlName="nickname" placeholder=" "
+                       [class.is-error]="submitted && f['nickname'].invalid"/>
+                <label for="nickname" class="field-label">ชื่อเล่น</label>
+                <span class="field-underline" aria-hidden="true"></span>
+              </div>
+              <div *ngIf="submitted && f['nickname'].invalid" class="field-error">กรุณากรอกชื่อเล่น</div>
             </div>
 
-            <div class="form-row-2">
-              <div class="form-group">
-                <label for="age">อายุ</label>
-                <input type="number" id="age" formControlName="age" placeholder="อายุ"
-                  [class.error]="submitted && f['age'].invalid"/>
-                <div *ngIf="submitted && f['age'].invalid" class="error-text">
+            <div class="grid-2">
+              <div class="field" [class.has-value]="!!registerForm.value.age">
+                <div class="field-control">
+                  <input type="number" id="age" formControlName="age" placeholder=" "
+                         [class.is-error]="submitted && f['age'].invalid"/>
+                  <label for="age" class="field-label">อายุ</label>
+                  <span class="field-underline" aria-hidden="true"></span>
+                </div>
+                <div *ngIf="submitted && f['age'].invalid" class="field-error">
                   <span *ngIf="f['age'].hasError('required')">กรุณากรอกอายุ</span>
                   <span *ngIf="f['age'].hasError('min') || f['age'].hasError('max')">อายุ 1-120 ปี</span>
                 </div>
               </div>
-              <div class="form-group">
-                <label for="gender">เพศ</label>
-                <select id="gender" formControlName="gender" [class.error]="submitted && f['gender'].invalid">
-                  <option value="">-- เลือกเพศ --</option>
-                  <option value="male">ชาย</option>
-                  <option value="female">หญิง</option>
-                  <option value="other">อื่นๆ</option>
-                </select>
-                <div *ngIf="submitted && f['gender'].invalid" class="error-text">กรุณาเลือกเพศ</div>
+              <div class="field field-select" [class.has-value]="!!registerForm.value.gender">
+                <div class="field-control">
+                  <select id="gender" formControlName="gender"
+                          [class.is-error]="submitted && f['gender'].invalid">
+                    <option value="" disabled></option>
+                    <option value="male">ชาย</option>
+                    <option value="female">หญิง</option>
+                    <option value="other">อื่นๆ</option>
+                  </select>
+                  <label for="gender" class="field-label">เพศ</label>
+                  <span class="field-underline" aria-hidden="true"></span>
+                  <svg class="field-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div *ngIf="submitted && f['gender'].invalid" class="field-error">กรุณาเลือกเพศ</div>
               </div>
             </div>
 
-            <div class="rg-step-actions">
-              <button type="button" class="rg-btn rg-btn-next" (click)="goNextSubStep()">
-                ถัดไป
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            <div class="actions">
+              <button type="button" class="cta" (click)="goNextSubStep()">
+                <span class="cta-label">ถัดไป</span>
+                <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                <span class="cta-ripple" aria-hidden="true"></span>
               </button>
             </div>
           </div>
 
-          <!-- Section: Contact Info (Sub-step 2) -->
-          <div class="form-section" *ngIf="formSubStep === 2">
-            <h4 class="section-title">
-              <span class="section-num">02</span> ข้อมูลติดต่อ
-            </h4>
+          <!-- Sub-step 2: Contact -->
+          <div class="section" *ngIf="formSubStep === 2" data-anim="field">
+            <div class="section-head">
+              <span class="section-num">02</span>
+              <h4>ข้อมูลติดต่อ</h4>
+            </div>
 
-            <div class="form-group">
-              <label for="email">อีเมล</label>
-              <div class="input-wrapper">
-                <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                <input type="email" id="email" formControlName="email" placeholder="your@email.com"
-                  [class.error]="submitted && f['email'].invalid"/>
+            <div class="field" [class.has-value]="!!registerForm.value.email">
+              <div class="field-control">
+                <input type="email" id="email" formControlName="email" placeholder=" "
+                       [class.is-error]="submitted && f['email'].invalid" autocomplete="email"/>
+                <label for="email" class="field-label">อีเมล</label>
+                <span class="field-underline" aria-hidden="true"></span>
               </div>
-              <div *ngIf="submitted && f['email'].invalid" class="error-text">
+              <div *ngIf="submitted && f['email'].invalid" class="field-error">
                 <span *ngIf="f['email'].hasError('required')">กรุณากรอกอีเมล</span>
                 <span *ngIf="f['email'].hasError('email')">รูปแบบอีเมลไม่ถูกต้อง</span>
               </div>
             </div>
 
-            <div class="form-row-2">
-              <div class="form-group">
-                <label for="phone">เบอร์โทร</label>
-                <input type="tel" id="phone" formControlName="phone" placeholder="0xxxxxxxxx"
-                  [class.error]="submitted && f['phone'].invalid"/>
-                <div *ngIf="submitted && f['phone'].invalid" class="error-text">
+            <div class="grid-2">
+              <div class="field" [class.has-value]="!!registerForm.value.phone">
+                <div class="field-control">
+                  <input type="tel" id="phone" formControlName="phone" placeholder=" "
+                         inputmode="tel" autocomplete="tel"
+                         [class.is-error]="submitted && f['phone'].invalid"/>
+                  <label for="phone" class="field-label">เบอร์โทร</label>
+                  <span class="field-underline" aria-hidden="true"></span>
+                </div>
+                <div *ngIf="submitted && f['phone'].invalid" class="field-error">
                   <span *ngIf="f['phone'].hasError('required')">กรุณากรอกเบอร์โทร</span>
                   <span *ngIf="f['phone'].hasError('pattern')">เบอร์โทร 9-10 หลัก</span>
                 </div>
               </div>
-              <div class="form-group">
-                <label for="lineId">ไอดีไลน์</label>
-                <input type="text" id="lineId" formControlName="lineId" placeholder="Line ID"
-                  [class.error]="submitted && f['lineId'].invalid"/>
-                <div *ngIf="submitted && f['lineId'].invalid" class="error-text">กรุณากรอก Line ID</div>
+              <div class="field" [class.has-value]="!!registerForm.value.lineId">
+                <div class="field-control">
+                  <input type="text" id="lineId" formControlName="lineId" placeholder=" "
+                         [class.is-error]="submitted && f['lineId'].invalid"/>
+                  <label for="lineId" class="field-label">ไอดี LINE</label>
+                  <span class="field-underline" aria-hidden="true"></span>
+                </div>
+                <div *ngIf="submitted && f['lineId'].invalid" class="field-error">กรุณากรอก LINE ID</div>
               </div>
             </div>
 
-            <!-- เลขบัตรประชาชน -->
-            <div class="form-group">
-              <label for="nationalId">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-2px;margin-right:4px">
-                  <rect x="2" y="5" width="20" height="14" rx="2"/>
-                  <circle cx="8" cy="12" r="2"/><path d="M14 10h4M14 14h3"/>
-                </svg>
-                เลขบัตรประชาชน
-              </label>
-              <input type="text" id="nationalId" formControlName="nationalId"
-                placeholder="เลข 13 หลัก (ไม่ต้องมีขีด)"
-                maxlength="13" inputmode="numeric"
-                [class.error]="submitted && f['nationalId'].invalid"/>
-              <div *ngIf="submitted && f['nationalId'].invalid" class="error-text">
+            <div class="field" [class.has-value]="!!registerForm.value.nationalId">
+              <div class="field-control">
+                <input type="text" id="nationalId" formControlName="nationalId" placeholder=" "
+                       maxlength="13" inputmode="numeric"
+                       [class.is-error]="submitted && f['nationalId'].invalid"/>
+                <label for="nationalId" class="field-label">เลขบัตรประชาชน (13 หลัก)</label>
+                <span class="field-underline" aria-hidden="true"></span>
+              </div>
+              <div *ngIf="submitted && f['nationalId'].invalid" class="field-error">
                 <span *ngIf="f['nationalId'].hasError('required')">กรุณากรอกเลขบัตรประชาชน</span>
-                <span *ngIf="f['nationalId'].hasError('pattern')">เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลัก</span>
+                <span *ngIf="f['nationalId'].hasError('pattern')">ต้องเป็นตัวเลข 13 หลัก</span>
               </div>
             </div>
 
-            <div class="rg-step-actions">
-              <button type="button" class="rg-btn rg-btn-prev" (click)="goPrevSubStep()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            <div class="actions actions-pair">
+              <button type="button" class="cta cta-ghost" (click)="goPrevSubStep()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
                 ย้อนกลับ
               </button>
-              <button type="button" class="rg-btn rg-btn-next" (click)="goNextSubStep()">
-                ถัดไป
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              <button type="button" class="cta" (click)="goNextSubStep()">
+                <span class="cta-label">ถัดไป</span>
+                <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                <span class="cta-ripple" aria-hidden="true"></span>
               </button>
             </div>
           </div>
 
-          <!-- Section: Student Specific (Sub-step 3) -->
-          <div class="form-section" *ngIf="formSubStep === 3 && selectedRole === 'student'">
-            <h4 class="section-title">
-              <span class="section-num">03</span> ข้อมูลการศึกษา
-            </h4>
-            <div class="form-group">
-              <label for="academicYear">ชั้นปี / ระดับชั้น</label>
-              <input type="text" id="academicYear" formControlName="academicYear"
-                placeholder="เช่น ปีที่ 1✅, ม.4✅, มัธยมศึกษาปีที่ 6❌"
-                [class.error]="submitted && f['academicYear'].invalid"/>
-              <div *ngIf="submitted && f['academicYear'].invalid" class="error-text">กรุณากรอกชั้นปี</div>
+          <!-- Sub-step 3a: Student -->
+          <div class="section" *ngIf="formSubStep === 3 && selectedRole === 'student'" data-anim="field">
+            <div class="section-head">
+              <span class="section-num">03</span>
+              <h4>ข้อมูลการศึกษา</h4>
             </div>
 
-            <div class="rg-step-actions">
-              <button type="button" class="rg-btn rg-btn-prev" (click)="goPrevSubStep()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            <div class="field" [class.has-value]="!!registerForm.value.academicYear">
+              <div class="field-control">
+                <input type="text" id="academicYear" formControlName="academicYear" placeholder=" "
+                       [class.is-error]="submitted && f['academicYear'].invalid"/>
+                <label for="academicYear" class="field-label">ชั้นปี / ระดับชั้น (เช่น ม.4 หรือ ปีที่ 1)</label>
+                <span class="field-underline" aria-hidden="true"></span>
+              </div>
+              <div *ngIf="submitted && f['academicYear'].invalid" class="field-error">กรุณากรอกชั้นปี</div>
+            </div>
+
+            <div class="actions actions-pair">
+              <button type="button" class="cta cta-ghost" (click)="goPrevSubStep()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
                 ย้อนกลับ
               </button>
-              <button type="button" class="rg-btn rg-btn-next" (click)="goNextSubStep()">
-                ถัดไป
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              <button type="button" class="cta" (click)="goNextSubStep()">
+                <span class="cta-label">ถัดไป</span>
+                <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                <span class="cta-ripple" aria-hidden="true"></span>
               </button>
             </div>
           </div>
 
-          <!-- Section: Teacher Specific (Sub-step 3) -->
-          <div class="form-section" *ngIf="formSubStep === 3 && selectedRole === 'teacher'">
-            <h4 class="section-title">
-              <span class="section-num">03</span> ข้อมูลอาจารย์
-            </h4>
-            <div class="form-group">
-              <label for="university">มหาวิทยาลัย (จบการศึกษา)</label>
-              <input type="text" id="university" formControlName="university" placeholder="ชื่อมหาวิทยาลัย"
-                [class.error]="submitted && f['university'].invalid"/>
-              <div *ngIf="submitted && f['university'].invalid" class="error-text">กรุณากรอกมหาวิทยาลัย</div>
-            </div>
-            <div class="form-group">
-              <label for="paymentChannel">ช่องทางรับเงิน</label>
-              <select id="paymentChannel" formControlName="paymentChannel"
-                [class.error]="submitted && f['paymentChannel'].invalid">
-                <option value="">-- เลือกช่องทาง --</option>
-                <optgroup *ngFor="let g of paymentGroups" [label]="g.group">
-                  <option *ngFor="let opt of g.items" [value]="opt.value">{{ opt.label }}</option>
-                </optgroup>
-              </select>
-              <div *ngIf="submitted && f['paymentChannel'].invalid" class="error-text">กรุณาเลือกช่องทางรับเงิน</div>
+          <!-- Sub-step 3b: Teacher -->
+          <div class="section" *ngIf="formSubStep === 3 && selectedRole === 'teacher'" data-anim="field">
+            <div class="section-head">
+              <span class="section-num">03</span>
+              <h4>ข้อมูลการสอน</h4>
             </div>
 
-            <!-- ข้อมูลบัญชีธนาคาร -->
-            <div class="bank-info-box">
-              <div class="bank-info-header">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-2px;margin-right:6px">
+            <div class="field" [class.has-value]="!!registerForm.value.university">
+              <div class="field-control">
+                <input type="text" id="university" formControlName="university" placeholder=" "
+                       [class.is-error]="submitted && f['university'].invalid"/>
+                <label for="university" class="field-label">มหาวิทยาลัย (จบการศึกษา)</label>
+                <span class="field-underline" aria-hidden="true"></span>
+              </div>
+              <div *ngIf="submitted && f['university'].invalid" class="field-error">กรุณากรอกมหาวิทยาลัย</div>
+            </div>
+
+            <div class="field field-select" [class.has-value]="!!registerForm.value.paymentChannel">
+              <div class="field-control">
+                <select id="paymentChannel" formControlName="paymentChannel"
+                        [class.is-error]="submitted && f['paymentChannel'].invalid">
+                  <option value="" disabled></option>
+                  <optgroup *ngFor="let g of paymentGroups" [label]="g.group">
+                    <option *ngFor="let opt of g.items" [value]="opt.value">{{ opt.label }}</option>
+                  </optgroup>
+                </select>
+                <label for="paymentChannel" class="field-label">ช่องทางรับเงิน</label>
+                <span class="field-underline" aria-hidden="true"></span>
+                <svg class="field-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+              <div *ngIf="submitted && f['paymentChannel'].invalid" class="field-error">กรุณาเลือกช่องทางรับเงิน</div>
+            </div>
+
+            <!-- Bank info — receipt-style panel -->
+            <div class="bank-panel">
+              <div class="bank-head">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                   <line x1="3" y1="22" x2="21" y2="22"/>
                   <rect x="5" y="11" width="4" height="11"/><rect x="10" y="7" width="4" height="15"/><rect x="15" y="3" width="4" height="19"/>
                   <polyline points="3 7 12 2 21 7"/>
                 </svg>
-                ข้อมูลบัญชีธนาคาร
+                <span>บัญชีธนาคารสำหรับรับค่าตอบแทน</span>
               </div>
-              <p class="bank-info-note">ใช้สำหรับรับค่าตอบแทนการสอน — ชื่อบัญชีต้องตรงกับชื่อ-นามสกุลที่กรอกไว้</p>
-              <div class="form-row-2">
-                <div class="form-group">
-                  <label for="bankAccountNumber">เลขบัญชีธนาคาร</label>
-                  <input type="text" id="bankAccountNumber" formControlName="bankAccountNumber"
-                    placeholder="เลข 10-15 หลัก" maxlength="15" inputmode="numeric"
-                    [class.error]="submitted && f['bankAccountNumber']?.invalid"/>
-                  <div *ngIf="submitted && f['bankAccountNumber']?.invalid" class="error-text">
+              <p class="bank-note">ชื่อบัญชีต้องตรงกับชื่อ-นามสกุลที่กรอกไว้ในขั้นตอนแรก</p>
+
+              <div class="grid-2">
+                <div class="field" [class.has-value]="!!registerForm.value.bankAccountNumber">
+                  <div class="field-control">
+                    <input type="text" id="bankAccountNumber" formControlName="bankAccountNumber" placeholder=" "
+                           maxlength="15" inputmode="numeric"
+                           [class.is-error]="submitted && f['bankAccountNumber']?.invalid"/>
+                    <label for="bankAccountNumber" class="field-label">เลขบัญชี (10-15 หลัก)</label>
+                    <span class="field-underline" aria-hidden="true"></span>
+                  </div>
+                  <div *ngIf="submitted && f['bankAccountNumber']?.invalid" class="field-error">
                     <span *ngIf="f['bankAccountNumber']?.hasError('required')">กรุณากรอกเลขบัญชี</span>
                     <span *ngIf="f['bankAccountNumber']?.hasError('pattern')">เลขบัญชี 10-15 หลัก</span>
                   </div>
                 </div>
-                <div class="form-group">
-                  <label for="bankAccountName">ชื่อบัญชี (ต้องตรงกับชื่อ-นามสกุล)</label>
-                  <input type="text" id="bankAccountName" formControlName="bankAccountName"
-                    placeholder="ชื่อ นามสกุล (ภาษาไทยหรืออังกฤษ)"
-                    [class.error]="submitted && (f['bankAccountName']?.invalid || registerForm.hasError('bankAccountNameMismatch'))"/>
-                  <div *ngIf="submitted && f['bankAccountName']?.invalid" class="error-text">กรุณากรอกชื่อบัญชี</div>
-                  <div *ngIf="submitted && !f['bankAccountName']?.invalid && registerForm.hasError('bankAccountNameMismatch')" class="error-text">
-                    ชื่อบัญชีต้องตรงกับ "{{ f['firstName']?.value }} {{ f['lastName']?.value }}"
+                <div class="field" [class.has-value]="!!registerForm.value.bankAccountName">
+                  <div class="field-control">
+                    <input type="text" id="bankAccountName" formControlName="bankAccountName" placeholder=" "
+                           [class.is-error]="submitted && (f['bankAccountName']?.invalid || registerForm.hasError('bankAccountNameMismatch'))"/>
+                    <label for="bankAccountName" class="field-label">ชื่อบัญชี (ตรงกับชื่อ-นามสกุล)</label>
+                    <span class="field-underline" aria-hidden="true"></span>
+                  </div>
+                  <div *ngIf="submitted && f['bankAccountName']?.invalid" class="field-error">กรุณากรอกชื่อบัญชี</div>
+                  <div *ngIf="submitted && !f['bankAccountName']?.invalid && registerForm.hasError('bankAccountNameMismatch')" class="field-error">
+                    ต้องตรงกับ "{{ f['firstName']?.value }} {{ f['lastName']?.value }}"
                   </div>
                 </div>
               </div>
             </div>
 
-            <div class="rg-step-actions">
-              <button type="button" class="rg-btn rg-btn-prev" (click)="goPrevSubStep()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            <div class="actions actions-pair">
+              <button type="button" class="cta cta-ghost" (click)="goPrevSubStep()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
                 ย้อนกลับ
               </button>
-              <button type="button" class="rg-btn rg-btn-next" (click)="goNextSubStep()">
-                ถัดไป
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              <button type="button" class="cta" (click)="goNextSubStep()">
+                <span class="cta-label">ถัดไป</span>
+                <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                <span class="cta-ripple" aria-hidden="true"></span>
               </button>
             </div>
           </div>
 
-          <!-- Section: Password (Sub-step 4) -->
-          <div class="form-section" *ngIf="formSubStep === 4">
-            <h4 class="section-title">
+          <!-- Sub-step 4: Password -->
+          <div class="section" *ngIf="formSubStep === 4" data-anim="field">
+            <div class="section-head">
               <span class="section-num">04</span>
-              รหัสผ่าน
-            </h4>
-            <div class="form-row-2">
-              <div class="form-group">
-                <label for="password">รหัสผ่าน</label>
-                <div class="input-wrapper">
-                  <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                  <input [type]="showPassword ? 'text' : 'password'" id="password" formControlName="password"
-                    placeholder="อย่างน้อย 6 ตัวอักษร"
-                    [class.error]="submitted && f['password'].invalid"/>
-                  <button type="button" class="eye-btn" (click)="showPassword = !showPassword" tabindex="-1">
-                    <svg *ngIf="!showPassword" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    <svg *ngIf="showPassword" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              <h4>ตั้งรหัสผ่าน</h4>
+            </div>
+
+            <div class="grid-2">
+              <div class="field has-trailing" [class.has-value]="!!registerForm.value.password">
+                <div class="field-control">
+                  <input [type]="showPassword ? 'text' : 'password'" id="password" formControlName="password" placeholder=" "
+                         [class.is-error]="submitted && f['password'].invalid"/>
+                  <label for="password" class="field-label">รหัสผ่าน (อย่างน้อย 6 ตัว)</label>
+                  <button type="button" class="field-trailing" (click)="showPassword = !showPassword" tabindex="-1"
+                          [attr.aria-label]="showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'">
+                    <svg *ngIf="!showPassword" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg *ngIf="showPassword" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                   </button>
+                  <span class="field-underline" aria-hidden="true"></span>
                 </div>
-                <div *ngIf="submitted && f['password'].invalid" class="error-text">
+                <div *ngIf="submitted && f['password'].invalid" class="field-error">
                   <span *ngIf="f['password'].hasError('required')">กรุณากรอกรหัสผ่าน</span>
                   <span *ngIf="f['password'].hasError('minlength')">อย่างน้อย 6 ตัวอักษร</span>
                 </div>
               </div>
-              <div class="form-group">
-                <label for="confirmPassword">ยืนยันรหัสผ่าน</label>
-                <input type="password" id="confirmPassword" formControlName="confirmPassword"
-                  placeholder="ยืนยันรหัสผ่าน"
-                  [class.error]="submitted && (f['confirmPassword'].invalid || registerForm.hasError('passwordMismatch'))"/>
-                <div *ngIf="submitted && (f['confirmPassword'].invalid || registerForm.hasError('passwordMismatch'))" class="error-text">
+              <div class="field" [class.has-value]="!!registerForm.value.confirmPassword">
+                <div class="field-control">
+                  <input type="password" id="confirmPassword" formControlName="confirmPassword" placeholder=" "
+                         [class.is-error]="submitted && (f['confirmPassword'].invalid || registerForm.hasError('passwordMismatch'))"/>
+                  <label for="confirmPassword" class="field-label">ยืนยันรหัสผ่าน</label>
+                  <span class="field-underline" aria-hidden="true"></span>
+                </div>
+                <div *ngIf="submitted && (f['confirmPassword'].invalid || registerForm.hasError('passwordMismatch'))" class="field-error">
                   <span *ngIf="f['confirmPassword'].hasError('required')">กรุณายืนยันรหัสผ่าน</span>
                   <span *ngIf="registerForm.hasError('passwordMismatch')">รหัสผ่านไม่ตรงกัน</span>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div *ngIf="formSubStep === 4" class="rg-step-actions">
-            <button type="button" class="rg-btn rg-btn-prev" (click)="goPrevSubStep()" [disabled]="loading">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-              ย้อนกลับ
-            </button>
-            <button type="submit" class="rg-btn rg-btn-submit" [disabled]="loading">
-              <div *ngIf="loading" class="spinner-sm"></div>
-              <span *ngIf="!loading">ถัดไป — ตั้งค่า 2FA</span>
-              <span *ngIf="loading">กำลังดำเนินการ...</span>
-            </button>
+            <div class="actions actions-pair">
+              <button type="button" class="cta cta-ghost" (click)="goPrevSubStep()" [disabled]="loading">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                ย้อนกลับ
+              </button>
+              <button type="submit" class="cta" [disabled]="loading">
+                <span class="cta-label" *ngIf="!loading">ถัดไป — ตั้งค่า 2FA</span>
+                <span class="cta-label cta-loading" *ngIf="loading">
+                  <span class="cta-skeleton"></span>
+                  <span>กำลังดำเนินการ…</span>
+                </span>
+                <svg *ngIf="!loading" class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                <span class="cta-ripple" aria-hidden="true"></span>
+              </button>
+            </div>
           </div>
         </form>
 
-        <div class="form-link-row">
-          <p>มีบัญชีอยู่แล้ว? <a routerLink="/login">เข้าสู่ระบบ</a></p>
-        </div>
-      </div>
+        <p class="form-link-row" data-anim="field">มีบัญชีอยู่แล้ว? <a routerLink="/login">เข้าสู่ระบบ</a></p>
+      </section>
 
-      <!-- ── Step 3: TOTP Setup ─────────────────────────────────────── -->
-      <div *ngIf="currentStep === 'totp'" class="form-card">
-        <div class="form-header">
-          <div class="totp-icon-wrap">
-            <div class="totp-shield">
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                <path d="M9 12l2 2 4-4"/>
-              </svg>
-            </div>
-          </div>
-          <h2 class="form-title text-center">ตั้งค่า Google Authenticator</h2>
-          <p class="form-desc text-center">สแกน QR Code ด้านล่างด้วยแอป Google Authenticator</p>
+      <!-- ─── Step 3: TOTP setup ─── -->
+      <section *ngIf="currentStep === 'totp'" class="form-card totp-card" aria-labelledby="totpHeading">
+        <div class="otp-shield" aria-hidden="true">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M9 12l2 2 4-4"/>
+          </svg>
         </div>
+        <header class="form-head form-head-center">
+          <p class="form-eyebrow">Two-factor · 2FA</p>
+          <h2 id="totpHeading" class="form-title">ตั้งค่า Google Authenticator</h2>
+          <p class="form-sub">สแกน QR Code ด้านล่างเพื่อเปิดใช้งานการยืนยันสองชั้น</p>
+        </header>
 
-        <div *ngIf="errorMessage" class="alert alert-error">
+        <div *ngIf="errorMessage" class="alert alert-error" role="alert" aria-live="assertive">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          {{ errorMessage }}
+          <span>{{ errorMessage }}</span>
         </div>
 
-        <!-- QR Code -->
-        <div *ngIf="totpQrCode" class="qr-container">
+        <div *ngIf="totpQrCode" class="qr-block">
           <div class="qr-frame">
             <img [src]="totpQrCode" alt="Google Authenticator QR Code" class="qr-image"/>
           </div>
-          <div class="qr-steps">
-            <div class="qr-step">
-              <div class="qr-step-num">1</div>
-              <span>เปิดแอป <strong>Google Authenticator</strong></span>
-            </div>
-            <div class="qr-step">
-              <div class="qr-step-num">2</div>
-              <span>กด <strong>+ เพิ่มบัญชี</strong> และสแกน QR Code</span>
-            </div>
-            <div class="qr-step">
-              <div class="qr-step-num">3</div>
-              <span>ป้อนรหัส <strong>6 หลัก</strong> ที่ได้จากแอป</span>
-            </div>
-          </div>
+          <ol class="qr-steps" role="list">
+            <li><span class="qr-num">1</span><span>เปิดแอป <strong>Google Authenticator</strong></span></li>
+            <li><span class="qr-num">2</span><span>กด <strong>+ เพิ่มบัญชี</strong> และสแกน QR</span></li>
+            <li><span class="qr-num">3</span><span>ป้อนรหัส <strong>6 หลัก</strong> ด้านล่าง</span></li>
+          </ol>
         </div>
 
         <form [formGroup]="totpForm" (ngSubmit)="verifyTotp()" class="auth-form">
-          <div class="otp-input-group">
+          <div class="otp-input-row">
             <input
               type="text"
               id="otp"
@@ -499,33 +580,30 @@
               maxlength="6"
               inputmode="numeric"
               class="otp-input"
-              [class.error]="totpSubmitted && otpf['otp'].invalid"
+              [class.is-error]="totpSubmitted && otpf['otp'].invalid"
               autocomplete="one-time-code"
             />
           </div>
-          <div *ngIf="totpSubmitted && otpf['otp'].invalid" class="error-text" style="justify-content: center;">
+          <div *ngIf="totpSubmitted && otpf['otp'].invalid" class="field-error otp-error" role="alert">
             <span *ngIf="otpf['otp'].hasError('required')">กรุณาป้อนรหัส OTP</span>
             <span *ngIf="otpf['otp'].hasError('pattern')">รหัส OTP ต้องเป็นตัวเลข 6 หลัก</span>
           </div>
 
-          <button type="submit" class="btn btn-primary btn-block submit-btn" [disabled]="loading">
-            <div *ngIf="loading" class="spinner"></div>
-            <span *ngIf="!loading">ยืนยันและเสร็จสิ้น</span>
-            <span *ngIf="loading">กำลังยืนยัน...</span>
+          <button type="submit" class="cta" [disabled]="loading">
+            <span class="cta-label" *ngIf="!loading">ยืนยันและเสร็จสิ้น</span>
+            <span class="cta-label cta-loading" *ngIf="loading">
+              <span class="cta-skeleton"></span>
+              <span>กำลังยืนยัน…</span>
+            </span>
+            <span class="cta-ripple" aria-hidden="true"></span>
           </button>
 
-          <button type="button" class="btn btn-ghost btn-block" (click)="goBackToForm()" [disabled]="loading">
+          <button type="button" class="cta cta-ghost" (click)="goBackToForm()" [disabled]="loading">
             ← ย้อนกลับ
           </button>
         </form>
-      </div>
+      </section>
 
     </div>
-  </div>
-
-  <!-- Offline banner: add isOffline = false to .ts and bind *ngIf="isOffline" to activate -->
-  <div class="offline-banner" role="alert" aria-live="polite" style="display:none">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
-    <span>ไม่มีการเชื่อมต่ออินเทอร์เน็ต กรุณาตรวจสอบเครือข่ายแล้วลองใหม่</span>
-  </div>
+  </main>
 </div>

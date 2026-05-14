@@ -2,7 +2,10 @@
 .dashboard-layout {
   display: flex;
   min-height: 100vh;
-  background: var(--gray-50);
+  background:
+    radial-gradient(circle at 100% 0%, oklch(96% 0.024 280) 0%, transparent 40%),
+    radial-gradient(circle at 0% 100%, oklch(97% 0.018 340) 0%, transparent 38%),
+    oklch(98.5% 0.006 250);
 }
 
 /* ── Content Area ─────────────────────────────────────────────────────── */
@@ -33,9 +36,8 @@
   top: var(--header-h);
   z-index: 90;
   margin: 0;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  border-bottom: 1px solid rgba(217, 119, 6, 0.3);
-  box-shadow: 0 2px 12px rgba(245, 158, 11, 0.3);
+  background: oklch(96% 0.05 75);
+  border-bottom: 1px solid oklch(88% 0.08 75);
 }
 
 .banner-content {
@@ -47,9 +49,14 @@
 }
 
 .banner-icon {
-  font-size: 1.25rem;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
-  animation: pulse 2s ease-in-out infinite;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: oklch(92% 0.10 75);
+  color: oklch(48% 0.14 60);
 }
 
 .banner-text {
@@ -59,21 +66,16 @@
 }
 
 .banner-text strong {
-  color: #fff;
-  font-size: 0.9rem;
+  color: oklch(38% 0.14 60);
+  font-size: 0.875rem;
   font-weight: 700;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.005em;
 }
 
 .banner-text span {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.8rem;
+  color: oklch(50% 0.10 60);
+  font-size: 0.8125rem;
   font-weight: 400;
-}
-
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); }
 }
 
 /* ── Responsive: iPad (≤1024px) ──────────────────────────────────────── */

@@ -31,20 +31,18 @@
 .hero-orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(50px);
-  opacity: 0.25;
+  filter: blur(80px);
+  opacity: 0.10;
 }
 .hero-orb-1 {
   width: 320px; height: 320px;
-  background: radial-gradient(circle, #6e95de, transparent 70%);
+  background: radial-gradient(circle, oklch(82% 0.12 280), transparent 70%);
   top: -80px; right: -60px;
-  animation: orbFloat 10s ease-in-out infinite;
 }
 .hero-orb-2 {
   width: 200px; height: 200px;
-  background: radial-gradient(circle, #f9a8d4, transparent 70%);
+  background: radial-gradient(circle, oklch(82% 0.10 340), transparent 70%);
   bottom: -40px; left: 20%;
-  animation: orbFloat 8s ease-in-out infinite reverse;
 }
 
 .hero-content {
@@ -215,8 +213,8 @@
   transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
 }
 .stat-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .stat-icon-wrap {
@@ -250,31 +248,30 @@
   pointer-events: none;
 }
 
-/* Stat color variants */
-.stat-brand  { border-top: 3px solid var(--brand-500); }
+/* Stat color variants — color in icon + value only, no top border (avoid stripe feel) */
 .stat-brand  .stat-icon-wrap { background: var(--brand-50); color: var(--brand-600); }
 .stat-brand  .stat-value { color: var(--brand-700); }
 .stat-brand  .stat-glow { background: var(--brand-500); }
 
-.stat-success { border-top: 3px solid var(--success-500); }
 .stat-success .stat-icon-wrap { background: var(--success-50); color: var(--success-600); }
 .stat-success .stat-value { color: var(--success-700); }
 .stat-success .stat-glow { background: var(--success-500); }
 
-.stat-warning { border-top: 3px solid var(--warning-500); }
 .stat-warning .stat-icon-wrap { background: var(--warning-50); color: var(--warning-600); }
 .stat-warning .stat-value { color: var(--warning-600); }
 .stat-warning .stat-glow { background: var(--warning-500); }
 
-.stat-danger { border-top: 3px solid var(--danger-500); }
-.stat-danger .stat-icon-wrap { background: var(--danger-50); color: var(--danger-600); }
-.stat-danger .stat-value { color: var(--danger-600); }
-.stat-danger .stat-glow { background: var(--danger-500); }
+.stat-danger  .stat-icon-wrap { background: var(--danger-50); color: var(--danger-600); }
+.stat-danger  .stat-value { color: var(--danger-600); }
+.stat-danger  .stat-glow { background: var(--danger-500); }
 
-.stat-info { border-top: 3px solid var(--brand-400); }
-.stat-info  .stat-icon-wrap { background: var(--brand-100); color: var(--brand-600); }
-.stat-info  .stat-value { color: var(--brand-600); }
-.stat-info  .stat-glow { background: var(--brand-400); }
+.stat-info    .stat-icon-wrap { background: var(--brand-100); color: var(--brand-600); }
+.stat-info    .stat-value { color: var(--brand-600); }
+.stat-info    .stat-glow { background: var(--brand-400); }
+
+/* First stat = primary, larger */
+.stats-row .stat-card:first-child .stat-value { font-size: 2.25rem; }
+.stats-row .stat-card:first-child .stat-icon-wrap { width: 56px; height: 56px; border-radius: var(--r-2xl); }
 
 /* ══ Two-column Content ══════════════════════════════════════════ */
 .content-cols {
@@ -298,7 +295,7 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--sp-4) var(--sp-5);
-  background: linear-gradient(135deg, var(--gray-50) 0%, var(--brand-50) 100%);
+  background: var(--gray-50);
   border-bottom: 1px solid var(--border-light);
 }
 .panel-title {
@@ -389,19 +386,19 @@
 
 /* Action tile color themes */
 .action-brand .action-icon { background: var(--brand-50); color: var(--brand-600); }
-.action-brand:hover { border-left: 3px solid var(--brand-500); }
+.action-brand:hover { background: var(--brand-50); }
 
 .action-info .action-icon { background: var(--brand-100); color: var(--brand-500); }
-.action-info:hover { border-left: 3px solid var(--brand-400); }
+.action-info:hover  { background: var(--brand-100); }
 
 .action-success .action-icon { background: var(--success-50); color: var(--success-600); }
-.action-success:hover { border-left: 3px solid var(--success-500); }
+.action-success:hover { background: var(--success-50); }
 
 .action-warning .action-icon { background: var(--warning-50); color: var(--warning-600); }
-.action-warning:hover { border-left: 3px solid var(--warning-500); }
+.action-warning:hover { background: var(--warning-50); }
 
 .action-danger .action-icon { background: var(--danger-50); color: var(--danger-600); }
-.action-danger:hover { border-left: 3px solid var(--danger-500); }
+.action-danger:hover  { background: var(--danger-50); }
 
 /* ══ Side Stack ══════════════════════════════════════════════════ */
 .side-stack {
@@ -541,6 +538,22 @@
 }
 .empty-title { font-size: var(--text-base); font-weight: 700; color: var(--gray-700); margin: 0; }
 .empty-sub   { font-size: var(--text-sm); color: var(--text-tertiary); margin: 0; }
+.empty-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--sp-3);
+  padding: 8px 18px;
+  background: var(--brand-50);
+  color: var(--brand-600);
+  border: 1px solid var(--brand-200);
+  border-radius: var(--r-full);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background var(--dur-base) var(--ease-out), color var(--dur-base);
+}
+.empty-cta:hover { background: var(--brand-100); color: var(--brand-700); }
 
 /* ══ Responsive ══════════════════════════════════════════════════ */
 @media (max-width: 1100px) {
@@ -599,12 +612,11 @@
   gap: var(--sp-5);
   padding: var(--sp-5) var(--sp-6);
   background:
-    linear-gradient(135deg, rgba(236, 72, 153, 0.08) 0%, rgba(30, 63, 128, 0.05) 100%),
-    var(--bg-raised);
-  border: 1px solid var(--border-subtle);
-  border-left: 4px solid var(--accent-500);
+    linear-gradient(135deg, rgba(236, 72, 153, 0.06) 0%, rgba(30, 63, 128, 0.04) 100%),
+    var(--bg-surface);
+  border: 1px solid oklch(90% 0.04 340);
   border-radius: var(--r-2xl);
-  box-shadow: 0 8px 24px rgba(30, 63, 128, 0.07);
+  box-shadow: 0 12px 32px -12px rgba(30, 63, 128, 0.16);
   overflow: hidden;
   animation: focusIn 520ms var(--ease-emphasized, cubic-bezier(0.2, 0, 0, 1)) both;
 }

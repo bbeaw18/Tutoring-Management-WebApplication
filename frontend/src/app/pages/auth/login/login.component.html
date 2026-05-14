@@ -1,208 +1,279 @@
-<div class="auth-layout">
-  <!-- Left Panel — Brand / Art -->
-  <div class="brand-panel">
-    <div class="brand-orbs">
-      <div class="orb orb-1"></div>
-      <div class="orb orb-2"></div>
-      <div class="orb orb-3"></div>
+<div class="auth-shell" #authShell>
+  <!-- ───────────── HERO PANEL — Editorial Tutoring Hall ───────────── -->
+  <aside class="hero-panel" aria-hidden="false">
+    <div class="hero-grain" aria-hidden="true"></div>
+    <div class="hero-motes" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span>
     </div>
-    <div class="brand-content">
-      <div class="brand-logo">
-        <div class="logo-icon">
-          <!-- KMS Graduation Cap Logo -->
-          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="48" height="48" rx="14" fill="white" fill-opacity="0.15"/>
-            <polygon points="24,10 42,20 24,30 6,20" fill="white" opacity="0.95"/>
-            <path d="M15,24 L15,35 C15,35 19,41 24,41 C29,41 33,35 33,35 L33,24 L24,30 Z" fill="white" opacity="0.8"/>
-            <line x1="42" y1="20" x2="42" y2="32" stroke="white" stroke-width="2" stroke-linecap="round"/>
-            <circle cx="42" cy="34" r="2.5" fill="#f9a8d4"/>
-          </svg>
-        </div>
-        <div class="brand-name-wrap">
-          <span class="brand-name">KMS</span>
-          <span class="brand-tagline">Know More Sci</span>
-        </div>
+
+    <header class="hero-mark">
+      <div class="mark-glyph" aria-hidden="true">
+        <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
+          <polygon points="24,10 42,20 24,30 6,20" fill="currentColor" opacity="0.95"/>
+          <path d="M15,24 L15,35 C15,35 19,41 24,41 C29,41 33,35 33,35 L33,24 L24,30 Z" fill="currentColor" opacity="0.78"/>
+          <line x1="42" y1="20" x2="42" y2="32" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="42" cy="34" r="2.6" fill="var(--hero-accent)"/>
+        </svg>
       </div>
-      <h1 class="brand-title">รู้มากกว่า<br/>เรียนดีกว่า<br/>Know More Sci</h1>
-      <p class="brand-subtitle">ระบบจัดการคลาส นัดหมาย และชำระเงิน สำหรับ Know More Sci</p>
-      <div class="brand-features">
-        <div class="feature-item">
-          <div class="feature-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>
-            </svg>
-          </div>
-          <span>ชำระเงินผ่าน PromptPay และ QR Code</span>
-        </div>
-        <div class="feature-item">
-          <div class="feature-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-          </div>
-          <span>ดูตารางเรียนและนัดหมายได้ทันที</span>
-        </div>
-        <div class="feature-item">
-          <div class="feature-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-          </div>
-          <span>ติดต่อ Manager ผ่าน LINE ได้ตลอดเวลา</span>
-        </div>
+      <div class="mark-text">
+        <span class="mark-name">KMS</span>
+        <span class="mark-tagline">Know More Sci · Bangkok</span>
       </div>
-    </div>
-    <div class="brand-footer">
-      <span>© 2025 Know More Sci Platform</span>
-    </div>
-  </div>
+    </header>
 
-  <!-- Right Panel — Form -->
-  <div class="form-panel">
-    <div class="form-inner">
+    <!-- Animated science chalkboard / blackboard -->
+    <figure class="hero-board" #heroBoard aria-label="ภาพประกอบห้องเรียนวิทยาศาสตร์">
+      <svg viewBox="0 0 380 260" xmlns="http://www.w3.org/2000/svg" class="board-svg">
+        <!-- Paper / board frame -->
+        <defs>
+          <linearGradient id="board-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1a2b4d"/>
+            <stop offset="100%" stop-color="#0f1d36"/>
+          </linearGradient>
+          <pattern id="board-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          </pattern>
+          <filter id="chalk-soft" x="-10%" y="-10%" width="120%" height="120%">
+            <feGaussianBlur stdDeviation="0.4"/>
+          </filter>
+        </defs>
 
-      <!-- Step 1: Login Form -->
-      <div *ngIf="currentStep === 'login'" class="form-card">
-        <div class="form-header">
-          <div class="form-logo mobile-only">
-            <div class="logo-icon-sm">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 3 3 6 3s6-1 6-3v-5"/>
-              </svg>
-            </div>
-            <span>Know More Sci</span>
+        <!-- Board background -->
+        <rect x="14" y="14" width="352" height="232" rx="14" fill="url(#board-fill)"
+              stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        <rect x="14" y="14" width="352" height="232" rx="14" fill="url(#board-grid)"/>
+
+        <!-- Wood-toned tray -->
+        <rect x="14" y="234" width="352" height="12" rx="3" fill="#7a5436" opacity="0.85"/>
+        <rect x="14" y="234" width="352" height="3" fill="#a07246" opacity="0.6"/>
+
+        <!-- Chalk title: "วิทยาศาสตร์" (Thai handwritten path) -->
+        <g class="board-title" filter="url(#chalk-soft)">
+          <text x="34" y="58" font-family="var(--font-th)" font-size="18" font-weight="500"
+                fill="rgba(255,255,255,0.85)" letter-spacing="0.04em">รู้มากกว่า · เรียนดีกว่า</text>
+        </g>
+
+        <!-- Equation: 2H₂ + O₂ → 2H₂O -->
+        <g class="board-eq" font-family="var(--font-en)" font-size="28" font-weight="600"
+           fill="rgba(255,255,255,0.92)" filter="url(#chalk-soft)">
+          <text x="40" y="118" class="eq-part eq-1">2H</text>
+          <text x="84" y="128" class="eq-part eq-sub" font-size="16">2</text>
+          <text x="106" y="118" class="eq-part eq-2">+ O</text>
+          <text x="156" y="128" class="eq-part eq-sub" font-size="16">2</text>
+          <text x="180" y="118" class="eq-part eq-3" fill="var(--hero-accent)">→</text>
+          <text x="212" y="118" class="eq-part eq-4">2H</text>
+          <text x="256" y="128" class="eq-part eq-sub" font-size="16">2</text>
+          <text x="276" y="118" class="eq-part eq-5">O</text>
+        </g>
+
+        <!-- Molecule diagram (H-O-H) -->
+        <g class="board-mol" transform="translate(110 178)">
+          <!-- Bonds -->
+          <line class="bond bond-1" x1="0" y1="0" x2="60" y2="0"
+                stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round"/>
+          <line class="bond bond-2" x1="60" y1="0" x2="120" y2="0"
+                stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round"/>
+          <!-- Atoms -->
+          <g class="atom atom-h-1">
+            <circle cx="0" cy="0" r="13" fill="rgba(255,255,255,0.18)"
+                    stroke="rgba(255,255,255,0.55)" stroke-width="1.5"/>
+            <text x="0" y="5" font-family="var(--font-en)" font-size="13" font-weight="700"
+                  fill="rgba(255,255,255,0.95)" text-anchor="middle">H</text>
+          </g>
+          <g class="atom atom-o">
+            <circle cx="60" cy="0" r="17" fill="var(--hero-accent)" fill-opacity="0.22"
+                    stroke="var(--hero-accent)" stroke-width="1.6"/>
+            <text x="60" y="5" font-family="var(--font-en)" font-size="14" font-weight="700"
+                  fill="var(--hero-accent)" text-anchor="middle">O</text>
+          </g>
+          <g class="atom atom-h-2">
+            <circle cx="120" cy="0" r="13" fill="rgba(255,255,255,0.18)"
+                    stroke="rgba(255,255,255,0.55)" stroke-width="1.5"/>
+            <text x="120" y="5" font-family="var(--font-en)" font-size="13" font-weight="700"
+                  fill="rgba(255,255,255,0.95)" text-anchor="middle">H</text>
+          </g>
+          <!-- Subtle orbit -->
+          <ellipse class="orbit" cx="60" cy="0" rx="34" ry="9"
+                   fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="2 4"/>
+        </g>
+      </svg>
+    </figure>
+
+    <div class="hero-copy">
+      <h1 class="hero-title">
+        <span class="hero-title-em">รู้มากกว่า</span>
+        <span class="hero-title-em">เรียนดีกว่า</span>
+        <span class="hero-title-sub">Know&nbsp;More&nbsp;Sci</span>
+      </h1>
+      <p class="hero-lead">ระบบจัดการคลาส · นัดหมาย · ชำระเงิน สำหรับนักเรียนและทีมครูวิทยาศาสตร์</p>
+      <ul class="hero-points" role="list">
+        <li><span class="dot"></span>ชำระผ่าน PromptPay และ QR ของธนาคาร</li>
+        <li><span class="dot"></span>ตารางเรียนและนัดหมายอัปเดตทันที</li>
+        <li><span class="dot"></span>ติดต่อ Manager ผ่าน LINE ได้ตลอดเวลา</li>
+      </ul>
+    </div>
+
+    <footer class="hero-credit">
+      <span>© 2025 Know More Sci</span>
+      <span class="credit-dot">·</span>
+      <span>Bangkok, Thailand</span>
+    </footer>
+  </aside>
+
+  <!-- ───────────── FORM PANEL ───────────── -->
+  <main class="form-panel">
+    <div class="form-shell" #formShell>
+
+      <!-- Step 1: Login -->
+      <section *ngIf="currentStep === 'login'" class="form-card" aria-labelledby="loginHeading">
+        <div class="form-mark-mobile">
+          <div class="mark-glyph mark-glyph-sm" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 48 48" fill="none">
+              <polygon points="24,10 42,20 24,30 6,20" fill="currentColor" opacity="0.95"/>
+              <path d="M15,24 L15,35 C15,35 19,41 24,41 C29,41 33,35 33,35 L33,24 L24,30 Z" fill="currentColor" opacity="0.78"/>
+            </svg>
           </div>
-          <h2 class="form-title">{{ greeting }}</h2>
-          <p class="form-desc">เข้าสู่ระบบเพื่อเริ่มต้นใช้งาน Know More Sci</p>
+          <span>Know More Sci</span>
         </div>
 
-        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form">
-          <div *ngIf="successMessage" class="alert alert-success">
+        <header class="form-head" data-anim="head">
+          <p class="form-eyebrow">เข้าสู่ระบบ · Sign in</p>
+          <h2 id="loginHeading" class="form-title">{{ greeting }}</h2>
+          <p class="form-sub">เข้าสู่ระบบเพื่อใช้งาน Know More Sci</p>
+        </header>
+
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form" novalidate
+              [class.is-erroring]="!!errorMessage">
+
+          <div *ngIf="successMessage" class="alert alert-success" role="status" aria-live="polite">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            {{ successMessage }}
+            <span>{{ successMessage }}</span>
           </div>
 
-          <div *ngIf="errorMessage" class="alert alert-error">
+          <div *ngIf="errorMessage" class="alert alert-error" role="alert" aria-live="assertive">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            {{ errorMessage }}
+            <span>{{ errorMessage }}</span>
           </div>
 
-          <div class="form-group">
-            <label for="email">อีเมล</label>
-            <div class="input-wrapper">
-              <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
-              </svg>
+          <!-- Email -->
+          <div class="field" [class.has-value]="!!loginForm.value.email" data-anim="field">
+            <div class="field-control">
               <input
                 type="email"
                 id="email"
                 formControlName="email"
-                placeholder="your@email.com"
-                [class.error]="submitted && f['email'].invalid"
+                placeholder=" "
+                [class.is-error]="submitted && f['email'].invalid"
                 autocomplete="email"
               />
+              <label for="email" class="field-label">อีเมล</label>
+              <span class="field-underline" aria-hidden="true"></span>
             </div>
-            <div *ngIf="submitted && f['email'].invalid" class="error-text">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+            <div *ngIf="submitted && f['email'].invalid" class="field-error" role="alert">
               <span *ngIf="f['email'].hasError('required')">กรุณากรอกอีเมล</span>
-              <span *ngIf="f['email'].hasError('email')">รูปแบบอีเมลไม่ถูกต้อง</span>
+              <span *ngIf="f['email'].hasError('email')">รูปแบบอีเมลไม่ถูกต้อง (เช่น name&#64;gmail.com)</span>
             </div>
           </div>
 
-          <div class="form-group">
-            <label for="password">รหัสผ่าน</label>
-            <div class="input-wrapper">
-              <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-              </svg>
+          <!-- Password -->
+          <div class="field has-trailing" [class.has-value]="!!loginForm.value.password" data-anim="field">
+            <div class="field-control">
               <input
                 [type]="showPassword ? 'text' : 'password'"
                 id="password"
                 formControlName="password"
-                placeholder="รหัสผ่านของคุณ"
-                [class.error]="submitted && f['password'].invalid"
+                placeholder=" "
+                [class.is-error]="submitted && f['password'].invalid"
                 autocomplete="current-password"
                 (keydown)="detectCapsLock($event)"
                 (keyup)="detectCapsLock($event)"
                 (input)="onPasswordInput(loginForm.value.password)"
               />
-              <button type="button" class="eye-btn" (click)="showPassword = !showPassword" tabindex="-1">
-                <svg *ngIf="!showPassword" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                <svg *ngIf="showPassword" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              <label for="password" class="field-label">รหัสผ่าน</label>
+              <button type="button" class="field-trailing" (click)="showPassword = !showPassword"
+                      tabindex="-1" [attr.aria-label]="showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'">
+                <svg *ngIf="!showPassword" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg *ngIf="showPassword" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
               </button>
+              <span class="field-underline" aria-hidden="true"></span>
             </div>
-            <div *ngIf="capsLockOn" class="login-caps-warn">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5l7 8h-4v6h-6v-6H5l7-8z"/></svg>
+
+            <div *ngIf="capsLockOn" class="field-hint hint-warn" role="status" aria-live="polite">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5l7 8h-4v6h-6v-6H5l7-8z"/></svg>
               เปิด Caps Lock อยู่
             </div>
-            <div *ngIf="loginForm.value.password && passwordStrength > 0" class="login-pw-meter">
-              <div class="login-pw-bars">
+
+            <div *ngIf="loginForm.value.password && passwordStrength > 0" class="pw-meter" aria-hidden="true">
+              <div class="pw-bars">
                 <span [class.on]="passwordStrength >= 1" [class.weak]="passwordStrength === 1"></span>
                 <span [class.on]="passwordStrength >= 2" [class.fair]="passwordStrength === 2"></span>
                 <span [class.on]="passwordStrength >= 3" [class.strong]="passwordStrength >= 3"></span>
               </div>
-              <span class="login-pw-lbl">
-                <ng-container [ngSwitch]="passwordStrength">
-                  <span *ngSwitchCase="1">รหัสผ่านอ่อน</span>
-                  <span *ngSwitchCase="2">รหัสผ่านปานกลาง</span>
-                  <span *ngSwitchCase="3">รหัสผ่านแข็งแรง</span>
-                </ng-container>
+              <span class="pw-label" [ngSwitch]="passwordStrength">
+                <span *ngSwitchCase="1">รหัสผ่านอ่อน</span>
+                <span *ngSwitchCase="2">รหัสผ่านปานกลาง</span>
+                <span *ngSwitchCase="3">รหัสผ่านแข็งแรง</span>
               </span>
             </div>
-            <div *ngIf="submitted && f['password'].invalid" class="error-text">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+
+            <div *ngIf="submitted && f['password'].invalid" class="field-error" role="alert">
               <span *ngIf="f['password'].hasError('required')">กรุณากรอกรหัสผ่าน</span>
               <span *ngIf="f['password'].hasError('minlength')">รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร</span>
             </div>
           </div>
 
           <!-- Remember + Forgot -->
-          <div class="login-row-aux">
-            <label class="login-remember">
+          <div class="row-aux" data-anim="field">
+            <label class="check">
               <input type="checkbox" [checked]="rememberMe" (change)="toggleRemember()"/>
-              <span class="login-remember-box">
+              <span class="check-box">
                 <svg *ngIf="rememberMe" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </span>
-              จดจำอีเมลของฉัน
+              <span class="check-label">จดจำอีเมล</span>
             </label>
-            <a routerLink="/forgot-password" class="login-forgot">ลืมรหัสผ่าน?</a>
+            <a routerLink="/forgot-password" class="link-forgot">ลืมรหัสผ่าน?</a>
           </div>
 
-          <button type="submit" class="btn btn-primary btn-block submit-btn" [disabled]="loading">
-            <div *ngIf="loading" class="spinner"></div>
-            <span *ngIf="!loading">เข้าสู่ระบบ</span>
-            <span *ngIf="loading">กำลังเข้าสู่ระบบ...</span>
+          <!-- Submit -->
+          <button type="submit" class="cta" #ctaBtn [disabled]="loading" data-anim="cta">
+            <span class="cta-label" *ngIf="!loading">เข้าสู่ระบบ</span>
+            <span class="cta-label cta-loading" *ngIf="loading">
+              <span class="cta-skeleton"></span>
+              <span>กำลังเข้าสู่ระบบ…</span>
+            </span>
+            <svg *ngIf="!loading" class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+            </svg>
+            <span class="cta-ripple" aria-hidden="true"></span>
           </button>
         </form>
 
-        <div class="form-link-row">
-          <p>ยังไม่มีบัญชี? <a routerLink="/register">สมัครสมาชิกฟรี</a></p>
-        </div>
-      </div>
+        <p class="form-link-row">ยังไม่มีบัญชี? <a routerLink="/register">สมัครสมาชิกฟรี</a></p>
+      </section>
 
-      <!-- Step 2: OTP Verification -->
-      <div *ngIf="currentStep === 'otp'" class="form-card otp-card">
-        <div class="otp-icon-wrap">
-          <div class="otp-shield">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              <path d="M9 12l2 2 4-4"/>
-            </svg>
-          </div>
+      <!-- Step 2: OTP -->
+      <section *ngIf="currentStep === 'otp'" class="form-card otp-card" aria-labelledby="otpHeading">
+        <div class="otp-shield" aria-hidden="true">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M9 12l2 2 4-4"/>
+          </svg>
         </div>
 
-        <div class="form-header text-center">
-          <h2 class="form-title">ยืนยันตัวตน 2FA</h2>
-          <p class="form-desc">ป้อนรหัส 6 หลักจากแอป Google Authenticator</p>
-        </div>
+        <header class="form-head form-head-center">
+          <p class="form-eyebrow">Two-factor · 2FA</p>
+          <h2 id="otpHeading" class="form-title">ยืนยันตัวตน</h2>
+          <p class="form-sub">ป้อนรหัส 6 หลักจากแอป Google Authenticator</p>
+        </header>
 
-        <form [formGroup]="otpForm" (ngSubmit)="verifyOtp()" class="auth-form">
-          <div *ngIf="errorMessage" class="alert alert-error">
+        <form [formGroup]="otpForm" (ngSubmit)="verifyOtp()" class="auth-form"
+              [class.is-erroring]="!!errorMessage">
+          <div *ngIf="errorMessage" class="alert alert-error" role="alert" aria-live="assertive">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            {{ errorMessage }}
+            <span>{{ errorMessage }}</span>
           </div>
 
-          <div class="otp-input-group">
+          <div class="otp-input-row">
             <input
               type="text"
               id="otp"
@@ -211,66 +282,65 @@
               maxlength="6"
               inputmode="numeric"
               class="otp-input"
-              [class.error]="otpSubmitted && otpf['otp'].invalid"
+              [class.is-error]="otpSubmitted && otpf['otp'].invalid"
               autocomplete="one-time-code"
               (input)="onOtpInput(otpForm.value.otp)"
             />
           </div>
-          <div class="login-otp-hint">
+
+          <div class="otp-hint">
             <ng-container *ngIf="otpCountdown > 0">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              รหัสจะรีเฟรชใน {{ otpCountdown }} วินาที
+              รหัสจะรีเฟรชใน <strong>{{ otpCountdown }}</strong> วินาที
             </ng-container>
-            <ng-container *ngIf="otpCountdown <= 0">
-              <span>เปิดแอป Google Authenticator เพื่อดูรหัสล่าสุด</span>
-            </ng-container>
+            <span *ngIf="otpCountdown <= 0">เปิดแอป Google Authenticator เพื่อดูรหัสล่าสุด</span>
           </div>
-          <div *ngIf="otpSubmitted && otpf['otp'].invalid" class="error-text" style="justify-content: center;">
+
+          <div *ngIf="otpSubmitted && otpf['otp'].invalid" class="field-error otp-error" role="alert">
             <span *ngIf="otpf['otp'].hasError('required')">กรุณาป้อนรหัส OTP</span>
             <span *ngIf="otpf['otp'].hasError('pattern')">รหัส OTP ต้องเป็นตัวเลข 6 หลัก</span>
           </div>
 
-          <button type="submit" class="btn btn-primary btn-block submit-btn" [disabled]="loading">
-            <div *ngIf="loading" class="spinner"></div>
-            <span *ngIf="!loading">ยืนยัน OTP</span>
-            <span *ngIf="loading">กำลังยืนยัน...</span>
+          <button type="submit" class="cta" #ctaBtn [disabled]="loading">
+            <span class="cta-label" *ngIf="!loading">ยืนยัน OTP</span>
+            <span class="cta-label cta-loading" *ngIf="loading">
+              <span class="cta-skeleton"></span>
+              <span>กำลังยืนยัน…</span>
+            </span>
+            <span class="cta-ripple" aria-hidden="true"></span>
           </button>
 
-          <button type="button" class="btn btn-ghost btn-block" (click)="goBackToLogin()" [disabled]="loading">
+          <button type="button" class="cta cta-ghost" (click)="goBackToLogin()" [disabled]="loading">
             ← ย้อนกลับ
           </button>
         </form>
+      </section>
+
+      <!-- Celebration burst — appears briefly after success -->
+      <div class="celebrate" *ngIf="successMessage" aria-hidden="true">
+        <span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span>
       </div>
-
     </div>
-  </div>
+  </main>
 
-  <!-- Offline banner: add isOffline = false to .ts and bind *ngIf="isOffline" to activate -->
-  <div class="offline-banner" role="alert" aria-live="polite" style="display:none">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
-    <span>ไม่มีการเชื่อมต่ออินเทอร์เน็ต กรุณาตรวจสอบเครือข่ายแล้วลองใหม่</span>
-  </div>
-
-  <!-- Pending Approval Modal — teacher waiting for manager confirmation -->
+  <!-- Pending-approval modal — preserved -->
   <div *ngIf="showPendingModal" class="pending-modal-overlay" (click)="closePendingModal()">
     <div class="pending-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="pendingModalTitle">
       <div class="pending-modal-icon">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <polyline points="12 6 12 12 16 14"/>
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
         </svg>
       </div>
       <h3 id="pendingModalTitle" class="pending-modal-title">รอการยืนยันจาก Manager</h3>
       <p class="pending-modal-desc">{{ pendingModalMessage }}</p>
       <div class="pending-modal-tip">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="16" x2="12" y2="12"/>
-          <line x1="12" y1="8" x2="12.01" y2="8"/>
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
         </svg>
-        <span>โปรดติดต่อ Manager เพื่อขออนุมัติการลงทะเบียน หลังจากได้รับการยืนยันจึงจะสามารถเข้าสู่ระบบได้</span>
+        <span>โปรดติดต่อ Manager เพื่อขออนุมัติการลงทะเบียน หลังจากได้รับการยืนยันจึงจะเข้าสู่ระบบได้</span>
       </div>
-      <button type="button" class="btn btn-primary btn-block" (click)="closePendingModal()">รับทราบ</button>
+      <button type="button" class="cta" (click)="closePendingModal()">รับทราบ</button>
     </div>
   </div>
 </div>

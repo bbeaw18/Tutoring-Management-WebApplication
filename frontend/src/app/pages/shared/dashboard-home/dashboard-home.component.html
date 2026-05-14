@@ -224,6 +224,10 @@
           </div>
           <p class="empty-title">ยังไม่มีกิจกรรม</p>
           <p class="empty-sub">ข้อมูลจะปรากฏที่นี่เมื่อมีกิจกรรม</p>
+          <a class="empty-cta" [routerLink]="currentUser?.role === 'student' ? '/dashboard/calendar' : (currentUser?.role === 'teacher' ? '/dashboard/teacher-calendar' : '/dashboard/manager-calendar')">
+            ดูปฏิทิน
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
         </div>
 
       </div>

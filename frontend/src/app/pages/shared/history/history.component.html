@@ -244,6 +244,7 @@
     </div>
     <div *ngIf="studentSchedules.length === 0" class="empty-state">
       ยังไม่มีการนัดเรียนในเดือนนี้
+      <a class="empty-cta" routerLink="/dashboard/calendar">ดูปฏิทิน →</a>
     </div>
     <div *ngIf="studentSchedules.length > 0" class="h-timeline">
       <div *ngFor="let g of sTimelineGroups" class="h-tl-group">
@@ -296,6 +297,7 @@
     </div>
     <div *ngIf="studentSchedules.length === 0" class="empty-state">
       ยังไม่มีการนัดเรียนในเดือนนี้
+      <a class="empty-cta" routerLink="/dashboard/calendar">ดูปฏิทิน →</a>
     </div>
     <div class="table-scroll" *ngIf="studentSchedules.length > 0">
       <table class="history-table">
@@ -435,6 +437,7 @@
     </div>
     <div *ngIf="filteredTeachingHistory.length === 0" class="empty-state">
       ยังไม่มีประวัติการสอน{{ selectedMonth ? 'ในเดือนนี้' : '' }}
+      <a class="empty-cta" routerLink="/dashboard/teacher-calendar">ดูปฏิทินสอน →</a>
     </div>
     <div class="table-scroll" *ngIf="filteredTeachingHistory.length > 0">
       <table class="history-table">

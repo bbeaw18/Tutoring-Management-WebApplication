@@ -123,8 +123,8 @@ interface MenuItem {
       left: 0; top: 0;
       z-index: var(--z-sidebar);
       overflow: hidden;
-      transition: width 280ms cubic-bezier(0.16, 1, 0.3, 1),
-                  transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
+      transition: width 360ms cubic-bezier(0.22, 1, 0.36, 1),
+                  transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
       border-right: 1px solid rgba(30, 63, 128, 0.12);
       box-shadow: 4px 0 32px rgba(0, 0, 0, 0.4);
     }
@@ -193,10 +193,7 @@ interface MenuItem {
     .brand-text {
       font-size: 18px;
       font-weight: 800;
-      background: linear-gradient(135deg, #fff 0%, #c8d9f4 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: #ffffff;
       letter-spacing: -0.03em;
       line-height: 1.1;
     }
@@ -359,19 +356,9 @@ interface MenuItem {
 
     .nav-link.active {
       color: white;
-      background: linear-gradient(135deg, rgba(30,63,128,0.50) 0%, rgba(13,32,80,0.30) 100%);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 12px rgba(30,63,128,0.3);
-      border: 1px solid rgba(30,63,128,0.35);
-    }
-
-    .nav-link.active::before {
-      content: '';
-      position: absolute;
-      left: 0; top: 20%; bottom: 20%;
-      width: 3px;
-      background: linear-gradient(180deg, #6e95de, #ec4899);
-      border-radius: 0 3px 3px 0;
-      box-shadow: 0 0 8px rgba(236,72,153,0.5);
+      background: rgba(30,63,128,0.32);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.06);
     }
 
     .nav-icon-wrap {
@@ -392,10 +379,10 @@ interface MenuItem {
     }
 
     .nav-link.active .nav-icon-wrap {
-      background: linear-gradient(135deg, rgba(30,63,128,0.55), rgba(236,72,153,0.25));
-      border-color: rgba(236,72,153,0.30);
-      color: white;
-      box-shadow: 0 4px 14px rgba(30,63,128,0.5), inset 0 1px 0 rgba(255,255,255,0.15);
+      background: rgba(236, 72, 153, 0.18);
+      border-color: rgba(236, 72, 153, 0.32);
+      color: #f9a8d4;
+      box-shadow: 0 4px 14px rgba(236, 72, 153, 0.18), inset 0 1px 0 rgba(255,255,255,0.06);
     }
 
     .nav-icon {

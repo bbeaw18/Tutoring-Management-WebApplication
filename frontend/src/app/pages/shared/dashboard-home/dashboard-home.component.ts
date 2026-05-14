@@ -1,9 +1,10 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, ElementRef, NgZone } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { Subject, forkJoin } from 'rxjs';
 import { takeUntil, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { gsap } from 'gsap';
 import { AuthService } from '../../../services/auth.service';
 import { CourseService } from '../../../services/course.service';
 import { PaymentService } from '../../../services/payment.service';
@@ -35,8 +36,10 @@ interface QuickAction {
   templateUrl: './dashboard-home.component.html',
   styleUrls: ['./dashboard-home.component.css']
 })
-export class DashboardHomeComponent implements OnInit, OnDestroy {
+export class DashboardHomeComponent implements OnInit, OnDestroy, AfterViewInit {
   private destroy$ = new Subject<void>();
+  private reducedMotion = false;
+  private countedStats = false;
 
   currentUser: IUser | null = null;
   greeting = '';
@@ -63,8 +66,42 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
     private paymentService: PaymentService,
     private notificationService: NotificationService,
     private scheduleService: ScheduleService,
-    private router: Router
+    private router: Router,
+    private host: ElementRef<HTMLElement>,
+    private zone: NgZone
   ) {}
+
+  ngAfterViewInit(): void {
+    this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  /** Counter animation for stat values — call after data load */
+  private animateStatCounters(): void {
+    if (this.reducedMotion || this.countedStats) return;
+    this.countedStats = true;
+    this.zone.runOutsideAngular(() => {
+      const nodes = this.host.nativeElement.querySelectorAll<HTMLElement>('.stat-value');
+      nodes.forEach((node) => {
+        const text = node.textContent || '';
+        const m = text.match(/^([฿$€\s]*)([\d,]+(?:\.\d+)?)(.*)$/);
+        if (!m) return;
+        const prefix = m[1] || '';
+        const target = parseFloat(m[2].replace(/,/g, ''));
+        const suffix = m[3] || '';
+        if (!isFinite(target) || target === 0) return;
+        const obj = { v: 0 };
+        gsap.to(obj, {
+          v: target,
+          duration: 1.1,
+          ease: 'power3.out',
+          onUpdate: () => {
+            const formatted = Math.round(obj.v).toLocaleString('en-US');
+            node.textContent = `${prefix}${formatted}${suffix}`;
+          }
+        });
+      });
+    });
+  }
 
   ngOnInit(): void {
     this.currentUser = this.authService.getCurrentUser();
@@ -247,6 +284,7 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
         this.upcomingItems = courseList.filter((c: any) => c.status === 'approved' || c.status === 'active').slice(0, 4);
         this.computeTodayAndNext(courseList);
         this.loading = false;
+        setTimeout(() => this.animateStatCounters(), 80);
       });
 
     } else if (role === 'teacher') {
@@ -269,6 +307,7 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
         this.recentNotifications = ((notifs as any).data || []).slice(0, 4);
         this.computeTodayAndNext(list);
         this.loading = false;
+        setTimeout(() => this.animateStatCounters(), 80);
       });
 
     } else {
@@ -292,6 +331,7 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
         this.recentNotifications = ((notifs as any).data || []).slice(0, 4);
         this.computeTodayAndNext(schedList);
         this.loading = false;
+        setTimeout(() => this.animateStatCounters(), 80);
       });
     }
   }
