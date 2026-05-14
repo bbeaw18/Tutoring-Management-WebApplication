@@ -600,3 +600,94 @@
   .tp-avatar { width: 76px; height: 76px; font-size: 26px; border-radius: 18px; }
   .tp-name { font-size: 18px; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   Touch parity + section rhythm
+   ═══════════════════════════════════════════════════════ */
+
+/* Edit affordance grows on mobile — the 26px pencil never met the 44px floor. */
+.tp-edit-btn {
+  transition: background var(--dur-base) var(--ease-out),
+              color      var(--dur-base) var(--ease-out),
+              transform  var(--dur-fast) var(--ease-out);
+}
+.tp-edit-btn:active { transform: scale(.92); }
+.tp-edit-btn:focus-visible {
+  outline: 2px solid #ec4899;
+  outline-offset: 2px;
+}
+
+/* Save/cancel both reach a 36px+ visual target on every viewport. */
+.tp-save-btn,
+.tp-cancel-btn {
+  width: 36px;
+  height: 36px;
+}
+.tp-save-btn-lg,
+.tp-cancel-btn-lg {
+  min-height: 44px;
+  padding: 10px 20px;
+}
+
+/* Clean rhythm: panel head reads as a label + rule, not a chip + box. */
+.panel-head {
+  position: relative;
+}
+.panel-head::after {
+  content: '';
+  position: absolute;
+  left: var(--sp-5);
+  right: var(--sp-5);
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+              transparent 0%,
+              var(--brand-200) 30%,
+              var(--brand-200) 70%,
+              transparent 100%);
+  opacity: .55;
+  pointer-events: none;
+}
+
+/* Inline-edit row grows to a tappable target on mobile. */
+@media (max-width: 480px) {
+  .teacher-profile-container { padding: 12px 10px; }
+
+  .tp-row {
+    padding: 14px 0;
+    min-height: 56px;            /* whole row reads as tappable */
+  }
+  .tp-edit-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--r-lg);
+    color: #ec4899;               /* visible affordance, not greyed-out */
+    background: rgba(253, 242, 248, .6);
+    border: 1px solid #fbcfe8;
+  }
+  .tp-save-btn,
+  .tp-cancel-btn {
+    width: 40px;
+    height: 40px;
+  }
+  .tp-edit-input,
+  .tp-edit-textarea {
+    font-size: 16px;              /* prevent iOS zoom on focus */
+    padding: 12px 14px;
+  }
+  .tp-toast {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    text-align: center;
+    justify-content: center;
+  }
+}
+
+/* Reduced-motion respect: page entrance + completeness fill stay static. */
+@media (prefers-reduced-motion: reduce) {
+  .teacher-profile-container,
+  .tp-cover-card,
+  .tp-toast { animation: none !important; }
+  .tp-comp-fill { transition: none !important; }
+}

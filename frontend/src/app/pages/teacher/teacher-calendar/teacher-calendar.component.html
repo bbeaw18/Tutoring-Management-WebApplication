@@ -36,6 +36,26 @@
 
   <app-loading *ngIf="loading"></app-loading>
 
+  <!-- ─── Status Legend ────────────────────────────────────── -->
+  <div *ngIf="!loading" class="tc-legend" role="list" aria-label="ความหมายของสีสถานะ">
+    <span class="tc-legend-item" role="listitem">
+      <span class="tc-legend-dot is-confirmed" aria-hidden="true"></span>
+      ยืนยันแล้ว
+    </span>
+    <span class="tc-legend-item" role="listitem">
+      <span class="tc-legend-dot is-pending" aria-hidden="true"></span>
+      รอยืนยัน
+    </span>
+    <span class="tc-legend-item" role="listitem">
+      <span class="tc-legend-dot is-completed" aria-hidden="true"></span>
+      เสร็จสิ้น
+    </span>
+    <span class="tc-legend-item" role="listitem">
+      <span class="tc-legend-dot is-cancelled" aria-hidden="true"></span>
+      ยกเลิก
+    </span>
+  </div>
+
   <!-- ═══════════════════════════════════════════════════════
        Teacher Earnings Dashboard (weekly)
   ═══════════════════════════════════════════════════════ -->
@@ -50,7 +70,7 @@
         รายได้สัปดาห์นี้
       </div>
       <div class="tc-earn-value">
-        ฿<span>{{ weekTotalIncome | number: '1.0-0' }}</span>
+        ฿<span #weekTotalEl [attr.data-target]="weekTotalIncome">0</span>
       </div>
       <div class="tc-earn-breakdown">
         <div class="tc-earn-seg">
@@ -127,7 +147,39 @@
   </div>
 
   <!-- ═══════════════════════════════════════════════════════
-       WEEKLY VIEW — Google Calendar Style
+       MOBILE LIST VIEW — Things-3 style date spine
+       Visible only at ≤480px via CSS (data is identical to weekly grid).
+  ═══════════════════════════════════════════════════════ -->
+  <div *ngIf="!loading && viewMode === 'weekly'" class="tc-listweek" aria-label="ตารางสอนรายสัปดาห์ — มุมมองรายการ">
+    <div class="tc-list-day" *ngFor="let day of weekDays" [class.is-today]="isToday(day.date)">
+      <div class="tc-list-date">
+        <span class="tc-list-dow">{{ dayNames[day.date.getDay()] }}</span>
+        <span class="tc-list-num" [class.today-pill]="isToday(day.date)">{{ day.date.getDate() }}</span>
+        <span class="tc-list-mon">{{ monthNames[day.date.getMonth()] }}</span>
+      </div>
+      <div class="tc-list-events">
+        <button class="tc-list-event"
+                *ngFor="let sch of day.schedules"
+                (click)="openDetail(sch, $event)"
+                [class.is-cancelled]="sch.status === 'cancelled'"
+                [class.is-completed]="sch.status === 'completed'"
+                [class.is-confirmed]="sch.isFullyConfirmed"
+                [class.is-pending]="!sch.teacherConfirmed && sch.status !== 'cancelled' && sch.status !== 'completed'">
+          <span class="tc-list-dot" aria-hidden="true"></span>
+          <span class="tc-list-time">{{ sch.startTime }}–{{ sch.endTime }}</span>
+          <span class="tc-list-title">{{ getCourseName(sch) }}</span>
+          <svg class="tc-list-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="tc-list-empty" *ngIf="day.schedules.length === 0">
+          <span aria-hidden="true">—</span>
+          <span>ไม่มีนัด</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       WEEKLY VIEW — Google Calendar Style (≥481px)
   ═══════════════════════════════════════════════════════ -->
   <div *ngIf="!loading && viewMode === 'weekly'" class="gcal-wrapper">
 

@@ -1,7 +1,8 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, ViewChild, ElementRef, NgZone, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import { gsap } from 'gsap';
 import { CourseService } from '../../../services/course.service';
 import { EnrollmentService } from '../../../services/enrollment.service';
 import { AuthService } from '../../../services/auth.service';
@@ -15,10 +16,11 @@ import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
   selector: 'app-teacher-courses',
   standalone: true,
   imports: [CommonModule, LoadingComponent, FormsModule, DisplayNamePipe],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './teacher-courses.component.html',
   styleUrls: ['./teacher-courses.component.css']
 })
-export class TeacherCoursesComponent implements OnInit, OnDestroy {
+export class TeacherCoursesComponent implements OnInit, OnDestroy, AfterViewInit {
   private destroy$ = new Subject<void>();
 
   courses: ICourse[] = [];
@@ -29,15 +31,53 @@ export class TeacherCoursesComponent implements OnInit, OnDestroy {
   expandedCourseId: string | null = null;
   currentUser = this.authService.getCurrentUser();
 
+  /** Drives the confirm-flow choreography: button morphs to check, chip color morphs. */
+  morphedId: string | null = null;
+  private morphTimer: any;
+
+  @ViewChild('tcList', { read: ElementRef, static: false }) tcList?: ElementRef<HTMLElement>;
+  private tcStaggerKey = '';
+
   constructor(
     private courseService: CourseService,
     private enrollmentService: EnrollmentService,
-    private authService: AuthService
+    private authService: AuthService,
+    private ngZone: NgZone
   ) {}
+
+  ngAfterViewInit(): void {
+    queueMicrotask(() => this.maybePlayStagger());
+  }
+  ngDoCheck(): void {
+    this.maybePlayStagger();
+  }
+
+  private maybePlayStagger(): void {
+    const root = this.tcList?.nativeElement;
+    if (!root) return;
+    if (typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const cards = root.querySelectorAll<HTMLElement>('.course-card');
+    const filterMode = (this as any).filterMode || '';
+    const searchTerm = (this as any).searchTerm || '';
+    const key = `${filterMode}:${searchTerm}:${cards.length}`;
+    if (key === this.tcStaggerKey) return;
+    this.tcStaggerKey = key;
+    if (cards.length === 0) return;
+    this.ngZone.runOutsideAngular(() => {
+      gsap.fromTo(cards, { opacity: 0, y: 10 }, {
+        opacity: 1, y: 0,
+        duration: 0.55, ease: 'power3.out',
+        stagger: { each: 0.04, from: 'start' },
+        clearProps: 'opacity,transform'
+      });
+    });
+  }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    clearTimeout(this.morphTimer);
   }
 
   ngOnInit(): void {
@@ -103,7 +143,8 @@ export class TeacherCoursesComponent implements OnInit, OnDestroy {
           // fallback: reload ทั้งหมด
           this.loadCourses();
         }
-        this.showSuccess('ยืนยันรับการสอนเรียบร้อย — เพิ่มในปฏิทินแล้ว');
+        this.playConfirmMorph(courseId);
+        this.showSuccess('เพิ่มในปฏิทินแล้ว');
       },
       error: (error) => {
         this.actionLoading[courseId] = false;
@@ -138,7 +179,22 @@ export class TeacherCoursesComponent implements OnInit, OnDestroy {
 
   showSuccess(msg: string): void {
     this.successMessage = msg;
-    setTimeout(() => { this.successMessage = ''; }, 4000);
+    setTimeout(() => { this.successMessage = ''; }, 3000);
+  }
+
+  /**
+   * Confirm-flow choreography: button morphs to a check icon, the status chip
+   * cross-fades from amber→green. The id is cleared after ~1.8s so subsequent
+   * renders restore the standard "approved" view.
+   */
+  private playConfirmMorph(courseId: string): void {
+    if (typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+    clearTimeout(this.morphTimer);
+    this.morphedId = courseId;
+    this.morphTimer = setTimeout(() => { this.morphedId = null; }, 1800);
   }
 
   toggleCourseDetails(courseId: string): void {

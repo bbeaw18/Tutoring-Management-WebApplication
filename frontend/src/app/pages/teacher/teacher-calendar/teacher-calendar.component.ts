@@ -1,9 +1,10 @@
-import { Component, OnInit, OnDestroy, HostListener, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ViewChild, ElementRef, AfterViewInit, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import { gsap } from 'gsap';
 import { ScheduleService } from '../../../services/schedule.service';
 import { AuthService } from '../../../services/auth.service';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
@@ -18,10 +19,12 @@ type CalendarViewMode = 'monthly' | 'weekly';
   templateUrl: './teacher-calendar.component.html',
   styleUrls: ['./teacher-calendar.component.css']
 })
-export class TeacherCalendarComponent implements OnInit, OnDestroy {
+export class TeacherCalendarComponent implements OnInit, OnDestroy, AfterViewInit {
   private destroy$ = new Subject<void>();
 
   @ViewChild('calScroll') calScrollRef!: ElementRef<HTMLElement>;
+  @ViewChild('weekTotalEl') weekTotalEl?: ElementRef<HTMLElement>;
+  private lastCountedTotal = -1;
 
   loading = false;
   viewMode: CalendarViewMode = 'weekly';
@@ -55,8 +58,51 @@ export class TeacherCalendarComponent implements OnInit, OnDestroy {
 
   constructor(
     private scheduleService: ScheduleService,
-    private authService: AuthService
+    private authService: AuthService,
+    private ngZone: NgZone
   ) {}
+
+  ngAfterViewInit(): void {
+    queueMicrotask(() => this.maybeAnimateEarnings());
+  }
+
+  ngDoCheck(): void {
+    this.maybeAnimateEarnings();
+  }
+
+  /** Count-up animation when the weekly total income changes. */
+  private maybeAnimateEarnings(): void {
+    if (this.viewMode !== 'weekly') return;
+    const el = this.weekTotalEl?.nativeElement;
+    if (!el) return;
+    const target = this.weekTotalIncome;
+    if (target === this.lastCountedTotal) return;
+    this.lastCountedTotal = target;
+
+    if (typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      el.textContent = this.formatNumber(target);
+      return;
+    }
+
+    const startStr = (el.textContent || '0').replace(/,/g, '');
+    const from = Number(startStr) || 0;
+    const obj = { v: from };
+    this.ngZone.runOutsideAngular(() => {
+      gsap.to(obj, {
+        v: target,
+        duration: 0.9,
+        ease: 'power3.out',
+        onUpdate: () => {
+          el.textContent = this.formatNumber(Math.round(obj.v));
+        }
+      });
+    });
+  }
+
+  private formatNumber(n: number): string {
+    return n.toLocaleString('en-US');
+  }
 
   ngOnDestroy(): void {
     this.destroy$.next();
