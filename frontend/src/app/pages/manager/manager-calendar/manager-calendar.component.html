@@ -174,6 +174,7 @@
         class="gcal-day-head"
         *ngFor="let day of weekDays"
         [class.today]="isToday(day.date)"
+        [class.is-weekend]="day.date.getDay() === 0 || day.date.getDay() === 6"
       >
         <span class="gcal-dow">{{ dayNames[day.date.getDay()] }}</span>
         <span class="gcal-datenum" [class.today-circle]="isToday(day.date)">{{ day.date.getDate() }}</span>
@@ -198,6 +199,7 @@
           class="gcal-day-col"
           *ngFor="let day of weekDays; let di = index"
           [class.today-col]="isToday(day.date)"
+          [class.is-weekend]="day.date.getDay() === 0 || day.date.getDay() === 6"
           [attr.data-mobile-day]="dayNames[day.date.getDay()] + ' ' + day.date.getDate()"
         >
           <!-- Hour-line backgrounds -->
@@ -228,7 +230,6 @@
             [style.top.px]="getEventTop(sch)"
             [style.height.px]="getEventHeight(sch)"
             [style.background]="getEventBg(sch)"
-            [style.borderLeftColor]="getEventBorder(sch)"
             [style.color]="getEventText(sch)"
             [class.is-dragging]="isDragging && dragSchedule?._id === sch._id"
             [class.draggable]="isManager"
@@ -274,6 +275,36 @@
         <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
       </svg>
       <strong>กดค้าง 2 วินาที</strong>เพื่อเริ่มย้ายเวลา · คลิกปกติเพื่อเปิดรายละเอียดและยืนยันนัดสอน · snap ทุก 30 นาที
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       MOBILE AGENDA VIEW — visible only at ≤640px when weekly mode
+  ═══════════════════════════════════════════════════════════ -->
+  <div *ngIf="!loading && viewMode === 'weekly'" class="mc-agenda" aria-label="ตารางสอน รูปแบบรายการ">
+    <div class="mc-agenda-day" *ngFor="let day of weekDays" [class.is-today]="isToday(day.date)" [class.is-weekend]="day.date.getDay() === 0 || day.date.getDay() === 6">
+      <div class="mc-agenda-date">
+        <span class="mc-agenda-dow">{{ dayNamesFull[day.date.getDay()] }}</span>
+        <span class="mc-agenda-num" [class.is-today]="isToday(day.date)">{{ day.date.getDate() }}</span>
+        <span class="mc-agenda-mon">{{ monthNames[day.date.getMonth()] }}</span>
+      </div>
+      <div class="mc-agenda-events">
+        <button class="mc-agenda-event"
+                *ngFor="let sch of day.schedules"
+                (click)="openDetail(sch, $event)"
+                [class.is-cancelled]="sch.status === 'cancelled'"
+                [class.is-completed]="sch.status === 'completed'"
+                [class.is-confirmed]="sch.isFullyConfirmed"
+                [class.is-pending]="!sch.isFullyConfirmed && sch.status === 'pending'">
+          <span class="mc-agenda-dot" aria-hidden="true"></span>
+          <span class="mc-agenda-time">{{ sch.startTime }}–{{ sch.endTime }}</span>
+          <span class="mc-agenda-title">{{ getCourseName(sch) }}</span>
+          <span class="mc-agenda-teacher">{{ getTeacherName(sch) }}</span>
+        </button>
+        <div class="mc-agenda-empty" *ngIf="day.schedules.length === 0">
+          <span aria-hidden="true">—</span> ไม่มีนัด
+        </div>
+      </div>
     </div>
   </div>
 

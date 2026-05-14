@@ -168,10 +168,7 @@
   font-size: 2rem;
   font-weight: 800;
   letter-spacing: -0.04em;
-  background: linear-gradient(135deg, var(--gray-900) 0%, var(--brand-700) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--brand-800);
 }
 
 .page-header p { margin: 0; color: var(--text-secondary); font-size: var(--text-sm); }
@@ -929,4 +926,34 @@ tbody tr:hover { background: rgba(30,63,128,0.03); }
   .vm-sort { justify-content: flex-start; flex-wrap: wrap; }
   .vm-library-grid { grid-template-columns: 1fr; gap: 14px; }
   .vm-stat-num { font-size: 19px; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   v2 polish — duration badge pulse + reduced-motion
+   ═══════════════════════════════════════════════════════ */
+.vm-card .vm-duration {
+  transition:
+    background-color 300ms var(--ease-out),
+    transform        220ms var(--ease-out);
+}
+.vm-card:hover .vm-duration {
+  background: var(--brand-700);
+  color: #fff;
+  transform: scale(1.04);
+}
+
+/* Touch-floor on phones. */
+@media (max-width: 480px) {
+  .btn.btn-primary, .vm-sort button, .vm-card-actions button {
+    min-height: 40px;
+  }
+  .vm-dropzone { min-height: 120px; }
+  .vm-dropzone-input { font-size: 16px; min-height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vm-card,
+  .vm-card .vm-duration,
+  .vm-dropzone,
+  .vm-library-grid { animation: none !important; transition: none !important; }
 }

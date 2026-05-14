@@ -392,10 +392,7 @@
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  background: linear-gradient(135deg, var(--gray-900) 0%, var(--brand-700) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--brand-800);
 }
 
 .title-icon { font-size: 1.6rem; }
@@ -762,13 +759,15 @@
   padding: var(--sp-4);
 }
 
-/* ── Form Error Banner (ภายใน form) ── */
+/* ── Form Error Banner (ภายใน form) — full border + bg tint, no side-stripe ── */
 .form-error-banner {
   flex-direction: column;
   align-items: flex-start;
   gap: var(--sp-2);
-  border-left: 4px solid #e11d48;
+  border: 1.5px solid #fecaca;
+  background: #fef2f2;
   padding: var(--sp-4);
+  color: #991b1b;
 }
 
 .error-body {
@@ -2032,12 +2031,8 @@
 .series-modal-header h2 {
   font-size: 1.2rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #6d28d9;
   margin: 0 0 3px;
-  background: linear-gradient(135deg, #6d28d9 0%, #be185d 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 .series-modal-header .modal-subtitle {
   display: flex;
@@ -2230,4 +2225,32 @@
   .series-item-main {
     flex-basis: calc(100% - 40px);
   }
+}
+
+/* ═══════════════════════════════════════════════════════
+   v2 polish — status chip morph + tab touch targets +
+   reduced-motion respect
+   ═══════════════════════════════════════════════════════ */
+
+/* Status badge colour-tweens between states (e.g. pending → confirmed
+   after a backend action). Subtle, never longer than 500ms. */
+.status-badge {
+  transition:
+    background-color 500ms var(--ease-out),
+    color            500ms var(--ease-out),
+    border-color     500ms var(--ease-out),
+    box-shadow       500ms var(--ease-out);
+}
+
+/* Touch-floor for tabs + axis chips on phones. */
+@media (max-width: 480px) {
+  .cm-tab        { min-height: 40px; padding: 8px 14px; }
+  .cm-axis-chip  { min-height: 36px; padding: 8px 14px; }
+  .cm-axis-clear { min-height: 36px; }
+  .cm-search input { min-height: 40px; font-size: 16px; }
+  .btn-create, .btn-refresh { min-height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-badge { transition: none !important; }
 }

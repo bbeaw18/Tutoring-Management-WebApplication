@@ -27,10 +27,7 @@
   font-size: 1.8rem;
   font-weight: 800;
   letter-spacing: -0.03em;
-  background: linear-gradient(135deg, var(--gray-900) 0%, var(--brand-700) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--brand-800);
 }
 .page-header h1 svg { color: var(--brand-600); }
 .page-header p {
@@ -429,4 +426,34 @@
   .vdo-card,
   .vdo-thumb-play,
   .vdo-thumb-overlay { transition: none; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Explicit 3/2/1 breakpoints + horizontal-scroll chips
+   ═══════════════════════════════════════════════════════ */
+@media (min-width: 1024px) {
+  .vdo-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  .vdo-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Category chips: horizontal scroll on mobile, no wrap. */
+@media (max-width: 640px) {
+  .vdo-chip-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  .vdo-chip-row::-webkit-scrollbar { display: none; }
+  .vdo-chip { flex-shrink: 0; min-height: 36px; }
+}
+
+/* Touch-floor on phones. */
+@media (max-width: 480px) {
+  .vdo-chip       { min-height: 36px; padding: 8px 14px; }
+  .vdo-card button,
+  .vdo-card a.btn { min-height: 40px; }
 }

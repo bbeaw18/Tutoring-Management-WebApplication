@@ -329,6 +329,62 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
     return sum;
   }
 
+  /**
+   * Daily-revenue micro-bars for the selected month. Each bar represents one
+   * day's *paid* revenue, normalised to a 48-unit drawable height.
+   *
+   * Returned items have `h` (height in viewBox units) and an `isToday` flag so
+   * the template can stay pure data-binding — no Math.* calls in HTML.
+   */
+  get dailyRevenueBars(): { day: number; paid: number; h: number; isToday: boolean }[] {
+    if (!this.filterMonth) return [];
+    const [year, month] = this.filterMonth.split('-').map(Number);
+    if (!year || !month) return [];
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const buckets = new Array(daysInMonth).fill(0);
+    for (const s of this.allSchedules) {
+      const d = new Date(s.date);
+      if (d.getFullYear() === year && d.getMonth() + 1 === month) {
+        buckets[d.getDate() - 1] += s.paid || 0;
+      }
+    }
+    const max = Math.max(1, ...buckets);
+    const today = new Date();
+    const isCurrentMonth =
+      today.getFullYear() === year && today.getMonth() + 1 === month;
+    const todayDay = isCurrentMonth ? today.getDate() : -1;
+    const H = 48;
+    return buckets.map((paid, i) => ({
+      day: i + 1,
+      paid,
+      h: paid > 0 ? Math.max((paid / max) * H, 2) : 0,
+      isToday: i + 1 === todayDay,
+    }));
+  }
+
+  /** SVG viewBox width tracks day count; bar slot is 12 units wide. */
+  get dailyChartViewBox(): string {
+    const n = this.dailyRevenueBars.length || 30;
+    return `0 0 ${n * 12} 60`;
+  }
+
+  get dailyChartMidLabel(): number {
+    const n = this.dailyRevenueBars.length;
+    return n ? Math.ceil(n / 2) : 15;
+  }
+
+  get dailyHasData(): boolean {
+    return this.dailyRevenueBars.some(b => b.paid > 0);
+  }
+
+  get peakDailyDay(): { day: number; paid: number } | null {
+    const bars = this.dailyRevenueBars;
+    if (!bars.length) return null;
+    let max = bars[0];
+    for (const b of bars) if (b.paid > max.paid) max = b;
+    return max.paid > 0 ? max : null;
+  }
+
   get studentFilterLabel(): string {
     if (!this.filterStudent) return '';
     const s = this.students.find(x => x._id === this.filterStudent);

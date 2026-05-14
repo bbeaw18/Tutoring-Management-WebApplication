@@ -65,12 +65,8 @@
   margin: 0 0 var(--sp-1) 0;
   font-size: 2rem;
   font-weight: 800;
-  color: var(--gray-900);
   letter-spacing: -0.04em;
-  background: linear-gradient(135deg, var(--gray-900) 0%, var(--brand-700) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--brand-800);
 }
 
 .header-left p {
@@ -627,15 +623,15 @@ tbody tr:hover { background: rgba(30, 63, 128, 0.03); }
   font-weight: 700;
 }
 
-/* Role change modal specifics */
+/* Role change modal specifics — full border, no side-stripe */
 .modal-user-info {
   margin: 0 0 var(--sp-4) 0;
   font-size: var(--text-sm);
   color: var(--text-secondary);
   padding: var(--sp-3) var(--sp-4);
-  background: var(--gray-50);
+  background: var(--brand-50);
   border-radius: var(--r-lg);
-  border-left: 3px solid var(--brand-400);
+  border: 1px solid var(--brand-200);
   display: flex;
   align-items: center;
   gap: var(--sp-2);
@@ -1371,4 +1367,36 @@ tbody tr:hover { background: rgba(30, 63, 128, 0.03); }
   .sl-detail-name { font-size: 1.1rem; }
   .sl-detail-body { padding: 6px 18px 18px; }
   .sl-grid { grid-template-columns: 1fr; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Role-coloured border glow on hover
+   Each card picks up the colour of the user's role.
+   ═══════════════════════════════════════════════════════ */
+.sl-card { transition:
+  transform     200ms var(--ease-out),
+  box-shadow    200ms var(--ease-out),
+  border-color  200ms var(--ease-out); }
+.sl-card:has(.sl-tag-role[data-role="admin"]):hover   { border-color: #f9a8d4; box-shadow: 0 12px 30px -10px rgba(190, 24, 93, 0.30); }
+.sl-card:has(.sl-tag-role[data-role="manager"]):hover { border-color: #67e8f9; box-shadow: 0 12px 30px -10px rgba(14, 116, 144, 0.30); }
+.sl-card:has(.sl-tag-role[data-role="teacher"]):hover { border-color: #6ee7b7; box-shadow: 0 12px 30px -10px rgba(4, 120, 87, 0.30); }
+.sl-card:has(.sl-tag-role[data-role="student"]):hover { border-color: #fdba74; box-shadow: 0 12px 30px -10px rgba(194, 65, 12, 0.30); }
+
+/* Tag transitions for smooth status changes. */
+.sl-tag { transition:
+  background-color 400ms var(--ease-out),
+  color            400ms var(--ease-out),
+  border-color     400ms var(--ease-out); }
+
+/* Touch-floor on view toggle + search on phones. */
+@media (max-width: 480px) {
+  .sl-view-btn  { min-height: 40px; padding: 8px 14px; }
+  .search-input { min-height: 40px; font-size: 16px; }
+  .btn.btn-sm   { min-height: 36px; padding: 8px 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-card,
+  .sl-card-clickable,
+  .sl-tag { transition: none !important; }
 }

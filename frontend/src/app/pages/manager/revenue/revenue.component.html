@@ -122,6 +122,39 @@
           ค้างชำระ <strong>{{ heroUnpaidPct | number:'1.0-0' }}%</strong>
         </span>
       </div>
+
+      <!-- Daily revenue micro-bar chart (Stripe-flavour data viz). -->
+      <div *ngIf="filterMonth && dailyHasData"
+           class="rev-daily"
+           role="img"
+           [attr.aria-label]="'แผนภูมิรายรับรายวันของ ' + (monthLabelTH(filterMonth) || '')">
+        <div class="rev-daily-meta">
+          <span class="rev-daily-meta-lbl">รายรับรายวัน</span>
+          <span *ngIf="peakDailyDay" class="rev-daily-meta-val">
+            สูงสุดวันที่ {{ peakDailyDay.day }} · ฿<span [kmsCountUp]="peakDailyDay.paid" kmsCountFormat="1.0-0">0</span>
+          </span>
+        </div>
+        <svg class="rev-daily-svg"
+             [attr.viewBox]="dailyChartViewBox"
+             preserveAspectRatio="none"
+             aria-hidden="true">
+          <rect *ngFor="let b of dailyRevenueBars; let i = index"
+                [attr.x]="i * 12 + 2"
+                [attr.y]="56 - b.h"
+                width="8"
+                [attr.height]="b.h"
+                rx="1.5"
+                ry="1.5"
+                [class.is-today]="b.isToday"
+                [class.is-empty]="b.paid === 0"
+                class="rev-daily-bar"/>
+        </svg>
+        <div class="rev-daily-axis">
+          <span>1</span>
+          <span>{{ dailyChartMidLabel }}</span>
+          <span>{{ dailyRevenueBars.length }}</span>
+        </div>
+      </div>
     </section>
 
     <!-- ── Section A: ภาพรวมสถาบัน (ไม่กรอง) ── -->
