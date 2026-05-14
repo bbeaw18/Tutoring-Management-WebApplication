@@ -1216,9 +1216,16 @@
 .student-price  .finance-total  { color: #78350f; }
 
 /* ── Animations ── */
+/*
+ * Opacity-only entrance. The root .course-booking-page hosts the modal
+ * markup; if this keyframe set kept a non-`none` transform on the root,
+ * any `position: fixed` descendant (modals, floating bars) would be
+ * positioned relative to .course-booking-page instead of the viewport
+ * (CSS containing-block rule).
+ */
 @keyframes pageEnter {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @keyframes slideDown {
@@ -2369,7 +2376,43 @@
   .btn-close-series { flex: 1; min-height: 40px; justify-content: center; }
 }
 
+.btn-delete-series {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  min-height: 36px;
+  border-radius: var(--r-lg);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+  color: #fff;
+  background: linear-gradient(135deg, #7f1d1d, #991b1b);
+  border: 1.5px solid #7f1d1d;
+  box-shadow: 0 2px 8px rgba(127, 29, 29, 0.30);
+  transition:
+    background-color 200ms var(--ease-out),
+    transform        160ms var(--ease-out),
+    box-shadow       200ms var(--ease-out);
+}
+.btn-delete-series:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(127, 29, 29, 0.40);
+  filter: brightness(1.08);
+}
+.btn-delete-series:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 480px) {
+  .btn-delete-series { flex: 1; min-height: 40px; justify-content: center; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .btn-cancel-series,
+  .btn-delete-series,
   .series-item-select-box { transition: none !important; }
 }

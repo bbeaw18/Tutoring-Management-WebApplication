@@ -599,54 +599,29 @@
         <span class="rev-chip-count-side" *ngIf="txTotalRows > 0">{{ txTotalRows }} รายการ</span>
       </div>
 
-      <!-- Date-spine list. Each group: sticky date header + transaction rows. -->
-      <div class="rev-tx-list" #txList>
-        <ng-container *ngFor="let group of txGroups; trackBy: trackByDay">
-          <div class="rev-tx-day">
-            <div class="rev-tx-day-head">
-              <span class="rev-tx-day-label">{{ group.label }}</span>
-              <span class="rev-tx-day-count">{{ group.rows.length }} รายการ</span>
-              <span class="rev-tx-day-total">฿{{ group.total | number:'1.0-0' }}</span>
-            </div>
-            <div class="rev-tx-rows">
-              <button class="rev-tx-row" type="button"
-                      *ngFor="let row of group.rows; trackBy: trackByTxRow"
-                      [attr.data-status]="row.status"
-                      (click)="openTxRow(row)">
-                <span class="rev-tx-avatar"
-                      [style.background]="'linear-gradient(135deg, hsl(' + txAvatarHue(row.studentId) + ', 75%, 58%), hsl(' + ((txAvatarHue(row.studentId) + 30) % 360) + ', 80%, 42%))'"
-                      aria-hidden="true">{{ row.nickname.charAt(0) }}</span>
+      <!-- Nickname-only grid. Each card = one unique student in the filter,
+           click → open student-monthly modal for full class details. -->
+      <div class="rev-nick-grid" #txList *ngIf="uniqueStudentsInFilter.length > 0">
+        <button class="rev-nick-card" type="button"
+                *ngFor="let u of uniqueStudentsInFilter; trackBy: trackByNick"
+                (click)="openStudentMonthlyModal(u.studentId, u.nickname)"
+                [attr.aria-label]="'ดูคลาสของน้อง' + u.nickname">
+          <span class="rev-nick-avatar"
+                [style.background]="'linear-gradient(135deg, hsl(' + txAvatarHue(u.studentId) + ', 75%, 58%), hsl(' + ((txAvatarHue(u.studentId) + 30) % 360) + ', 80%, 42%))'"
+                aria-hidden="true">{{ u.nickname.charAt(0) }}</span>
+          <span class="rev-nick-body">
+            <span class="rev-nick-name">น้อง{{ u.nickname }}</span>
+            <span class="rev-nick-count">{{ u.classCount }} คลาส</span>
+          </span>
+          <svg class="rev-nick-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+      </div>
 
-                <span class="rev-tx-body">
-                  <span class="rev-tx-row-top">
-                    <span class="rev-tx-course">{{ row.courseName }}</span>
-                    <span class="rev-tx-amount">฿<span>{{ row.amount | number:'1.0-0' }}</span></span>
-                  </span>
-                  <span class="rev-tx-row-bot">
-                    <span class="rev-tx-meta">
-                      <span class="rev-tx-student">น้อง{{ row.nickname }}</span>
-                      <span class="rev-tx-dot" aria-hidden="true">·</span>
-                      <span class="rev-tx-time" *ngIf="row.startTime">{{ row.startTime }}–{{ row.endTime }}</span>
-                      <ng-container *ngIf="row.teacherName">
-                        <span class="rev-tx-dot" aria-hidden="true">·</span>
-                        <span class="rev-tx-teacher">{{ row.teacherName }}</span>
-                      </ng-container>
-                    </span>
-                    <span class="rev-tx-chip" [attr.data-status]="row.status">
-                      <span class="rev-tx-chip-dot" aria-hidden="true"></span>
-                      {{ txStatusLabel(row.status) }}
-                    </span>
-                  </span>
-                </span>
-              </button>
-            </div>
-          </div>
-        </ng-container>
-
-        <!-- Inner empty (chip filter excluded all rows) -->
-        <div class="rev-tx-empty" *ngIf="txGroups.length === 0">
-          <span>ไม่มีรายการที่ตรงกับสถานะ "{{ activeKpi === 'paid' ? 'ชำระแล้ว' : (activeKpi === 'unpaid' ? 'รอชำระ' : 'ทั้งหมด') }}", ลองเปลี่ยน filter</span>
-        </div>
+      <!-- Inner empty (chip filter excluded all students) -->
+      <div class="rev-tx-empty" *ngIf="uniqueStudentsInFilter.length === 0">
+        <span>ไม่มีนักเรียนที่ตรงกับสถานะ "{{ activeKpi === 'paid' ? 'ชำระแล้ว' : (activeKpi === 'unpaid' ? 'รอชำระ' : 'ทั้งหมด') }}", ลองเปลี่ยน filter</span>
       </div>
     </div>
 

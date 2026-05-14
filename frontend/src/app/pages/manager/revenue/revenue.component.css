@@ -1139,9 +1139,14 @@ tbody tr:hover { background: rgba(30,63,128,0.03); }
   .badge { font-size: 10px; padding: 2px var(--sp-2); }
 }
 
+/*
+ * Opacity-only entrance — keeps .revenue-container free of a non-`none`
+ * computed transform so fixed-positioned modals anchor to the viewport,
+ * not to this component.
+ */
 @keyframes pageEnter {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -2896,4 +2901,105 @@ tbody tr:hover { background: rgba(30,63,128,0.03); }
 }
 @media (prefers-reduced-motion: reduce) {
   .rev-daily-bar { transition: none !important; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Nickname-only grid (replaces date-spine tx-list)
+   One card per unique student in the filter. Click → opens
+   the student-monthly modal for full class details.
+   ═══════════════════════════════════════════════════════ */
+.rev-nick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--sp-3);
+  padding: 4px 0 8px;
+}
+
+.rev-nick-card {
+  display: grid;
+  grid-template-columns: 44px 1fr 14px;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 64px;
+  padding: var(--sp-3) var(--sp-4);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  color: var(--text-primary);
+  transition:
+    background-color 180ms var(--ease-out),
+    border-color     180ms var(--ease-out),
+    transform        140ms var(--ease-out),
+    box-shadow       180ms var(--ease-out);
+}
+.rev-nick-card:hover {
+  background: var(--gray-50);
+  border-color: var(--brand-200);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px -10px rgba(15, 23, 42, 0.18);
+}
+.rev-nick-card:active { transform: scale(0.99); }
+.rev-nick-card:focus-visible {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
+}
+
+.rev-nick-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+}
+
+.rev-nick-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.rev-nick-name {
+  font-weight: 700;
+  font-size: var(--text-sm);
+  color: var(--gray-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rev-nick-count {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.rev-nick-chev {
+  color: var(--gray-300);
+  flex-shrink: 0;
+  transition: color 180ms var(--ease-out), transform 180ms var(--ease-out);
+}
+.rev-nick-card:hover .rev-nick-chev {
+  color: var(--brand-500);
+  transform: translateX(2px);
+}
+
+@media (max-width: 480px) {
+  .rev-nick-grid   { grid-template-columns: 1fr; gap: var(--sp-2); }
+  .rev-nick-card   { min-height: 56px; padding: var(--sp-3); }
+  .rev-nick-avatar { width: 40px; height: 40px; font-size: 1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rev-nick-card,
+  .rev-nick-chev { transition: none !important; }
 }

@@ -578,6 +578,9 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
   trackByDay(_i: number, g: TxGroup): string {
     return g.dayKey;
   }
+  trackByNick(_i: number, u: { studentId: string }): string {
+    return u.studentId;
+  }
 
   // ── "รายได้ของคุณ" / "รายได้ของ <ชื่อเล่น>" — ขึ้นกับ filterTeacher ──
   get myIncomeTitle(): string {

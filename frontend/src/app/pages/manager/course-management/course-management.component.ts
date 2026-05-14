@@ -848,12 +848,23 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     return resolveDisplayStatus(c) as string;
   }
 
-  /** A class is "final" (read-only) when its displayStatus is completed or
-   *  cancelled. We resolve via shared helper so we honour backend's unified
-   *  field, not raw `status` which may differ (e.g. awaiting_confirmation). */
+  /** A class is "final" (read-only for cancel/delete) when its displayStatus
+   *  is completed or cancelled. */
   isFinalStatus(c: any): boolean {
     const ds = resolveDisplayStatus(c);
     return ds === 'completed' || ds === 'cancelled';
+  }
+
+  /** Editing-details is locked once a class is past the pending-confirm
+   *  phases. Manager can still cancel a confirmed/awaiting class (use
+   *  isFinalStatus for that), but the booking details (teacher, time,
+   *  subject, students) must not change after both parties accepted. */
+  isEditingLocked(c: any): boolean {
+    const ds = resolveDisplayStatus(c);
+    return ds === 'confirmed' ||
+           ds === 'awaiting_manager' ||
+           ds === 'completed' ||
+           ds === 'cancelled';
   }
 
   /** Whether a card can be bulk-selected. Series cards aggregate many classes; skip them. */
@@ -879,25 +890,33 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Bulk cancel the entire open series — confirms with class count, then
-   *  calls deleteCourse on every non-final class in sequence. */
-  bulkCancelSeries(): void {
-    if (!this.seriesModalAnchor) return;
-    const ids = this.seriesModalCourses
-      .filter(c => !this.isFinalStatus(c))
-      .map(c => this.getId(c));
-    if (ids.length === 0) return;
+  /** Resolve which series-course list to act on:
+   *  - if `anchor` is passed (e.g. clicked on a card outside the modal),
+   *    fetch siblings via getSeriesCourses
+   *  - otherwise use the currently-open modal's loaded list */
+  private getSeriesActionList(anchor?: ICourse): ICourse[] {
+    if (anchor) return this.getSeriesCourses((anchor as any).seriesId);
+    return this.seriesModalCourses;
+  }
+
+  /** Bulk cancel an entire series. Used from both the series anchor card on
+   *  the main grid and from inside the series modal. */
+  bulkCancelSeries(anchor?: ICourse): void {
+    const list = this.getSeriesActionList(anchor);
+    const ids = list.filter(c => !this.isFinalStatus(c)).map(c => this.getId(c));
     if (this.bulkCancelling) return;
+    if (ids.length === 0) {
+      alert('ไม่มีคลาสที่ยกเลิกได้ในชุดนี้ (ทุกคลาสจบหรือถูกยกเลิกแล้ว)');
+      return;
+    }
     if (!confirm(`ยืนยันยกเลิกชุดทั้งหมด ${ids.length} คลาส?\n\nคลาสทุกตัวในชุดนี้ที่ยังไม่จบ/ยังไม่ยกเลิกจะถูกตั้งเป็น "ยกเลิก"`)) return;
 
     this.bulkCancelling = true;
-    const seriesAnchorId = this.getId(this.seriesModalAnchor);
     const next = (i: number) => {
       if (i >= ids.length) {
         this.bulkCancelling = false;
         this.successMessage = `ยกเลิกชุดเรียบร้อย — ${ids.length} คลาส`;
-        // close the modal first, then reload to refresh the grid
-        this.closeSeriesModal();
+        if (this.showSeriesModal) this.closeSeriesModal();
         this.loadAll();
         setTimeout(() => { this.successMessage = ''; }, 4000);
         return;
@@ -908,6 +927,39 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
           next: () => next(i + 1),
           error: (err) => {
             console.error('[CourseMgmt] bulkCancelSeries item failed:', ids[i], err);
+            next(i + 1);
+          }
+        });
+    };
+    next(0);
+  }
+
+  /** Bulk permanent-delete an entire series. Destructive: removes every
+   *  class in the series regardless of status. Two-step confirmation. */
+  bulkDeleteSeries(anchor?: ICourse): void {
+    const list = this.getSeriesActionList(anchor);
+    const ids = list.map(c => this.getId(c));
+    if (this.bulkCancelling) return;
+    if (ids.length === 0) return;
+    if (!confirm(`⚠️ ลบชุดนัดสอนนี้ออกถาวร ${ids.length} คลาส?\n\nการลบนี้ไม่สามารถย้อนกลับได้ ข้อมูลคลาสทั้งหมดในชุดและการเช็คชื่อ/การชำระเงินที่เกี่ยวข้องจะหายไปจากระบบ`)) return;
+    if (!confirm(`ยืนยันอีกครั้ง: ลบ ${ids.length} คลาสออกจากระบบถาวร?`)) return;
+
+    this.bulkCancelling = true;
+    const next = (i: number) => {
+      if (i >= ids.length) {
+        this.bulkCancelling = false;
+        this.successMessage = `ลบชุดทั้งหมดออกถาวร — ${ids.length} คลาส`;
+        if (this.showSeriesModal) this.closeSeriesModal();
+        this.loadAll();
+        setTimeout(() => { this.successMessage = ''; }, 4000);
+        return;
+      }
+      this.courseService.permanentDeleteCourse(ids[i])
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: () => next(i + 1),
+          error: (err) => {
+            console.error('[CourseMgmt] bulkDeleteSeries item failed:', ids[i], err);
             next(i + 1);
           }
         });
