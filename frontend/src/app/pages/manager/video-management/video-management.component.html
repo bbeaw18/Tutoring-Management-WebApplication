@@ -12,7 +12,26 @@
     <p>อัพโหลดและจัดการวิดีโอที่อัดไว้สำหรับนักเรียน</p>
   </div>
 
-  <app-loading *ngIf="loading"></app-loading>
+  <!-- Skeleton placeholder while loading video library -->
+  <div *ngIf="loading" class="vm-skel" aria-busy="true" aria-label="กำลังโหลดคลังวิดีโอ">
+    <div class="vm-skel-stats">
+      <div class="kms-skel-card" *ngFor="let _ of [1,2,3,4]">
+        <div class="kms-skel kms-skel-circle"></div>
+        <div class="kms-skel kms-skel-line lg w-50"></div>
+        <div class="kms-skel kms-skel-line w-70"></div>
+      </div>
+    </div>
+    <div class="kms-skel-grid">
+      <div class="kms-skel-card" *ngFor="let _ of [1,2,3,4,5,6]" style="padding:0;overflow:hidden">
+        <div class="kms-skel kms-skel-thumb" style="border-radius:0"></div>
+        <div style="padding:16px;display:flex;flex-direction:column;gap:8px">
+          <div class="kms-skel kms-skel-line w-30"></div>
+          <div class="kms-skel kms-skel-line lg w-70"></div>
+          <div class="kms-skel kms-skel-line w-50"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div *ngIf="!loading" class="content">
 
@@ -91,12 +110,46 @@
 
           <div class="form-group">
             <label for="zoomRecordingUrl">URL วิดีโอ</label>
-            <input
-              type="text"
-              id="zoomRecordingUrl"
-              formControlName="zoomRecordingUrl"
-              placeholder="https://..."
-            />
+            <!-- Drop-zone styled URL pasteboard. Visual upgrade over a plain input;
+                 functions identically (just paste URL).  -->
+            <div class="vm-dropzone"
+                 [class.has-url]="!!videoForm.get('zoomRecordingUrl')?.value"
+                 [class.is-dragover]="vmDragOver"
+                 [class.has-error]="!!vmDropError"
+                 (dragover)="onDropZoneDragOver($event)"
+                 (dragenter)="onDropZoneDragOver($event)"
+                 (dragleave)="onDropZoneDragLeave($event)"
+                 (drop)="onDropZoneDrop($event)">
+              <div class="vm-dropzone-icon" aria-hidden="true">
+                <svg *ngIf="!videoForm.get('zoomRecordingUrl')?.value" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <svg *ngIf="videoForm.get('zoomRecordingUrl')?.value" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </div>
+              <div class="vm-dropzone-body">
+                <div class="vm-dropzone-title">
+                  <span *ngIf="!vmDragOver && !videoForm.get('zoomRecordingUrl')?.value">ลาก URL มาวางที่นี่ หรือพิมพ์ด้านล่าง</span>
+                  <span *ngIf="vmDragOver">ปล่อยเพื่อใช้ URL นี้</span>
+                  <span *ngIf="!vmDragOver && videoForm.get('zoomRecordingUrl')?.value">พร้อมอัพโหลด</span>
+                </div>
+                <div class="vm-dropzone-hint" *ngIf="!vmDropError">Zoom, YouTube, Google Drive: ต้องเป็น public link</div>
+                <div class="vm-dropzone-hint vm-dropzone-error-msg" *ngIf="vmDropError">{{ vmDropError }}</div>
+                <input
+                  type="text"
+                  id="zoomRecordingUrl"
+                  formControlName="zoomRecordingUrl"
+                  class="vm-dropzone-input"
+                  placeholder="https://..."
+                />
+              </div>
+              <div class="vm-dropzone-progress" *ngIf="submitting" aria-hidden="true">
+                <div class="vm-dropzone-progress-fill"></div>
+              </div>
+            </div>
           </div>
 
           <div class="form-row">
@@ -150,11 +203,13 @@
       </button>
     </div>
 
-    <!-- Empty state — no videos at all -->
-    <div *ngIf="videos.length === 0" class="empty-state vm-empty">
-      <div class="vm-empty-art">
-        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+    <!-- Empty state — no videos at all (Lottie-ready) -->
+    <div *ngIf="videos.length === 0" class="kms-empty">
+      <div class="kms-empty-art">
+        <!-- Lottie placeholder: assets/lottie/empty-video.json -->
+        <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="23 7 16 12 23 17 23 7"/>
+          <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
         </svg>
       </div>
       <h3>ยังไม่มีวิดีโอในคลัง</h3>
@@ -162,18 +217,20 @@
     </div>
 
     <!-- Empty state — filter no match -->
-    <div *ngIf="videos.length > 0 && vmFiltered.length === 0" class="empty-state vm-empty">
-      <div class="vm-empty-art">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    <div *ngIf="videos.length > 0 && vmFiltered.length === 0" class="kms-empty">
+      <div class="kms-empty-art">
+        <!-- Lottie placeholder: assets/lottie/empty-search.json -->
+        <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
       </div>
       <h3>ไม่พบวิดีโอที่ตรงกับเงื่อนไข</h3>
       <p>ลองเปลี่ยนคำค้นหาหรือเลือกวิชาอื่น</p>
     </div>
 
-    <!-- ── Library Grid ─────────────────────────────────────── -->
-    <div *ngIf="vmFiltered.length > 0" class="vm-library-grid">
+    <!-- ── Library Grid (GSAP stagger via #libGrid + ngDoCheck) ─────────────── -->
+    <div *ngIf="vmFiltered.length > 0" class="vm-library-grid" #libGrid>
       <article *ngFor="let video of vmFiltered" class="vm-card" [class.vm-card-new]="isRecentlyUploaded(video)">
         <div class="vm-thumb"
              [style.background]="'linear-gradient(135deg, hsl(' + getVideoHue(video) + ', 78%, 58%), hsl(' + ((getVideoHue(video) + 35) % 360) + ', 80%, 42%))'"

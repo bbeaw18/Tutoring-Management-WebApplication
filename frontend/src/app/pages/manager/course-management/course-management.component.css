@@ -1,4 +1,366 @@
 /* ═══════════════════════════════════════════════════════
+   Course Booking — Skeleton placeholder (overdrive addition)
+   ═══════════════════════════════════════════════════════ */
+.cm-skel { padding: var(--sp-4) 0; }
+
+/* ═══════════════════════════════════════════════════════
+   Course Booking v2 — Multi-axis filter chips
+   ═══════════════════════════════════════════════════════ */
+.cm-axis-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: var(--sp-3) var(--sp-4);
+  margin: var(--sp-3) 0 var(--sp-2);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--gray-150);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-xs);
+}
+.cm-axis-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding: 4px 8px 4px 0;
+}
+.cm-axis-label-sep {
+  border-left: 1px solid var(--gray-200);
+  padding-left: var(--sp-3);
+  margin-left: var(--sp-1);
+}
+.cm-axis-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-150);
+  border-radius: 999px;
+  font-family: var(--font-th);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.cm-axis-chip:hover {
+  background: #fff;
+  border-color: var(--gray-300);
+}
+.cm-axis-chip.active {
+  background: var(--brand-50);
+  border-color: var(--brand-400);
+  color: var(--brand-700);
+}
+.cm-axis-chip-teacher.active {
+  background: linear-gradient(135deg, #fce7f3, #fbcfe8);
+  border-color: var(--accent-500);
+  color: var(--accent-600);
+}
+.cm-axis-count {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.cm-axis-chip.active .cm-axis-count {
+  background: rgba(255, 255, 255, 0.6);
+  color: inherit;
+}
+.cm-axis-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--gray-200);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: var(--font-th);
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.cm-axis-clear:hover {
+  background: var(--gray-50);
+  color: var(--danger-600);
+  border-color: var(--danger-500);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Course Booking v2 — Bulk-select checkbox + expand toggle
+   ═══════════════════════════════════════════════════════ */
+.cm-select {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 3;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  cursor: pointer;
+}
+.cm-select input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.cm-select-box {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  border: 1.5px solid var(--gray-300);
+  background: rgba(255, 255, 255, 0.85);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+  backdrop-filter: blur(4px);
+}
+.cm-select:hover .cm-select-box { border-color: var(--brand-400); }
+.cm-select input:checked + .cm-select-box {
+  background: linear-gradient(135deg, var(--brand-600), var(--brand-500));
+  border-color: var(--brand-600);
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(30, 63, 128, 0.30);
+}
+.course-card.is-selected {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 1px;
+  background: linear-gradient(135deg, var(--brand-50), rgba(255,255,255,0.9));
+}
+.course-card { position: relative; }
+
+.cm-expand-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  margin: 0 var(--sp-5) 6px;
+  background: transparent;
+  border: 1px solid var(--gray-200);
+  border-radius: 999px;
+  font-family: var(--font-th);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.cm-expand-btn:hover {
+  background: var(--gray-50);
+  border-color: var(--gray-300);
+  color: var(--brand-700);
+}
+.cm-expand-btn:focus-visible {
+  outline: 2px solid var(--brand-400);
+  outline-offset: 2px;
+}
+
+.cm-expand-panel {
+  margin: 0 var(--sp-5) var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  background: linear-gradient(135deg, var(--brand-50), rgba(255, 255, 255, 0.6));
+  border: 1px dashed var(--brand-200);
+  border-radius: var(--r-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  animation: cmExpandIn 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes cmExpandIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cm-expand-panel { animation: none; }
+}
+.cm-expand-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cm-expand-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.cm-expand-value {
+  font-size: 12.5px;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+.cm-expand-mono {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.cm-expand-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+}
+.cm-expand-grid > div { display: flex; flex-direction: column; gap: 4px; }
+.cm-expand-students {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cm-expand-student {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 4px;
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.cm-expand-student-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand-500), var(--accent-500));
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+}
+.cm-expand-student-grade {
+  color: var(--text-tertiary);
+  font-weight: 500;
+  font-size: 10.5px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Course Booking v2 — Floating bulk action bar
+   ═══════════════════════════════════════════════════════ */
+.cm-bulk-bar {
+  position: fixed;
+  left: 50%;
+  bottom: var(--sp-6);
+  transform: translateX(-50%);
+  z-index: var(--z-toast, 500);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: 10px 14px 10px 18px;
+  background: linear-gradient(135deg, var(--gray-900) 0%, var(--gray-800) 100%);
+  border-radius: 999px;
+  box-shadow:
+    0 12px 30px rgba(15, 23, 42, 0.30),
+    0 4px 8px rgba(15, 23, 42, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  color: #fff;
+  font-family: var(--font-th);
+  animation: cmBulkIn 340ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes cmBulkIn {
+  from { opacity: 0; transform: translate(-50%, 18px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cm-bulk-bar { animation: none; }
+}
+.cm-bulk-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding-right: var(--sp-2);
+  border-right: 1px solid rgba(255, 255, 255, 0.18);
+}
+.cm-bulk-count {
+  font-family: var(--font-en), var(--font-th);
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.cm-bulk-text {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.78);
+}
+.cm-bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cm-bulk-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 999px;
+  font-family: var(--font-th);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+.cm-bulk-btn-cancel {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+.cm-bulk-btn-cancel:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.cm-bulk-btn-apply {
+  background: linear-gradient(135deg, var(--danger-500), var(--danger-600));
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(244, 63, 94, 0.30);
+}
+.cm-bulk-btn-apply:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.42);
+}
+.cm-bulk-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.cm-bulk-spin { animation: cmBulkSpin 1s linear infinite; }
+@keyframes cmBulkSpin { to { transform: rotate(360deg); } }
+
+@media (max-width: 640px) {
+  .cm-bulk-bar {
+    left: var(--sp-3);
+    right: var(--sp-3);
+    transform: none;
+    width: auto;
+    border-radius: var(--r-xl);
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  @keyframes cmBulkIn {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .cm-axis-clear { margin-left: 0; }
+}
+
+/* ═══════════════════════════════════════════════════════
    Course Booking — Glassmorphism Design System
    ═══════════════════════════════════════════════════════ */
 

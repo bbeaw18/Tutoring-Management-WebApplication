@@ -1,8 +1,9 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, ElementRef, ViewChild, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil, forkJoin } from 'rxjs';
+import { gsap } from 'gsap';
 import { PaymentService } from '../../../services/payment.service';
 import { UserService } from '../../../services/user.service';
 import { ExpenseService, IExpense, ExpenseType } from '../../../services/expense.service';
@@ -12,8 +13,32 @@ import { IUser } from '../../../interfaces/user.interface';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { MonthPickerComponent } from '../../../shared/components/month-picker/month-picker.component';
 import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
+import { CountUpDirective } from '../../../shared/directives/count-up.directive';
+import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 
 type KpiMode = 'all' | 'paid' | 'unpaid' | 'teacherExpense' | 'managerIncome' | 'myIncome';
+type TxStatus = 'paid' | 'pending' | 'unpaid';
+
+interface TxRow {
+  scheduleId: string;
+  studentId: string;
+  courseName: string;
+  teacherName: string;
+  startTime: string;
+  endTime: string;
+  nickname: string;
+  amount: number;
+  status: TxStatus;
+  paymentId: string | null;
+}
+
+interface TxGroup {
+  dayKey: string;     // YYYY-MM-DD
+  label: string;      // "พุธ 14 พ.ค."
+  rows: TxRow[];
+  total: number;
+  sortKey: number;
+}
 
 interface PieSlice {
   key: string;
@@ -29,12 +54,18 @@ interface PieSlice {
 @Component({
   selector: 'app-revenue',
   standalone: true,
-  imports: [CommonModule, FormsModule, LoadingComponent, MonthPickerComponent, DisplayNamePipe],
+  imports: [CommonModule, FormsModule, LoadingComponent, MonthPickerComponent, DisplayNamePipe, CountUpDirective],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './revenue.component.html',
   styleUrls: ['./revenue.component.css']
 })
-export class RevenueComponent implements OnInit, OnDestroy {
+export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
   private destroy$ = new Subject<void>();
+
+  /** Root of the date-spine transaction list. GSAP row stagger plays
+   *  when this element gains/changes child rows (after data loads or filter changes). */
+  @ViewChild('txList', { read: ElementRef, static: false }) txList?: ElementRef<HTMLElement>;
+  private lastStaggerKey = '';
 
   // KPI totals
   kpiTotal   = 0;
@@ -95,7 +126,8 @@ export class RevenueComponent implements OnInit, OnDestroy {
     private paymentService: PaymentService,
     private userService: UserService,
     private expenseService: ExpenseService,
-    private authService: AuthService
+    private authService: AuthService,
+    private ngZone: NgZone
   ) {}
 
   ngOnInit(): void {
@@ -122,6 +154,47 @@ export class RevenueComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  ngAfterViewInit(): void {
+    // Play stagger once after initial render. ngDoCheck handles subsequent changes.
+    queueMicrotask(() => this.maybePlayRowStagger());
+  }
+
+  ngDoCheck(): void {
+    // Re-play stagger when the visible transaction set changes (filter, month, KPI mode).
+    this.maybePlayRowStagger();
+  }
+
+  /** Plays a GSAP power3.out fade-up stagger on .rev-tx-row whenever the
+   *  set of rendered rows changes. Honors prefers-reduced-motion (CSS-only fallback). */
+  private maybePlayRowStagger(): void {
+    const root = this.txList?.nativeElement;
+    if (!root) return;
+    if (typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+    const rows = root.querySelectorAll<HTMLElement>('.rev-tx-row');
+    const key = `${this.activeKpi}:${this.filterMonth}:${this.filterStudent}:${rows.length}`;
+    if (key === this.lastStaggerKey) return;
+    this.lastStaggerKey = key;
+    if (rows.length === 0) return;
+
+    this.ngZone.runOutsideAngular(() => {
+      gsap.fromTo(
+        rows,
+        { opacity: 0, y: 8 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.55,
+          ease: 'power3.out',
+          stagger: { each: 0.035, from: 'start' },
+          clearProps: 'opacity,transform',
+        }
+      );
+    });
   }
 
   loadDropdowns(): void {
@@ -333,6 +406,121 @@ export class RevenueComponent implements OnInit, OnDestroy {
 
   get netProfit(): number {
     return this.incomeTotal - this.expenseTotal;
+  }
+
+  /** Paid share of the month's total revenue. Hero KPI proportion strip. */
+  get heroPaidPct(): number {
+    if (this.kpiTotal <= 0) return 0;
+    return Math.max(0, Math.min(100, (this.kpiPaid / this.kpiTotal) * 100));
+  }
+  /** Unpaid share — complementary. */
+  get heroUnpaidPct(): number {
+    if (this.kpiTotal <= 0) return 0;
+    return Math.max(0, Math.min(100, (this.kpiUnpaid / this.kpiTotal) * 100));
+  }
+  get heroBarEmpty(): boolean { return this.kpiTotal <= 0; }
+
+  // ── Date-spine transaction groups ────────────────────────────────
+  // One transaction = one student × one schedule. Grouped by date (desc),
+  // each group lists rows sorted by start time then student name.
+  // Respects activeKpi filter (paid/unpaid/all) + filterStudent.
+  get txGroups(): TxGroup[] {
+    const groups = new Map<string, TxRow[]>();
+    const labels = new Map<string, string>();
+    const sortKeys = new Map<string, number>();
+
+    for (const s of this.filteredSchedules) {
+      const list = s.attendedStudents || [];
+      if (list.length === 0) continue;
+      const dt = s.date ? new Date(s.date) : null;
+      if (!dt || isNaN(dt.getTime())) continue;
+
+      // Day key (YYYY-MM-DD) for grouping. Local Asia/Bangkok offset OK because
+      // backend already returns dates in app timezone.
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth() + 1).padStart(2, '0');
+      const d = String(dt.getDate()).padStart(2, '0');
+      const dayKey = `${y}-${m}-${d}`;
+
+      if (!labels.has(dayKey)) {
+        labels.set(dayKey, this.formatDayHeading(dt));
+        sortKeys.set(dayKey, dt.getTime());
+      }
+      if (!groups.has(dayKey)) groups.set(dayKey, []);
+
+      for (const st of list) {
+        if (this.filterStudent && st.studentId !== this.filterStudent) continue;
+        const status: TxStatus = st.paymentStatus === 'confirmed'
+          ? 'paid'
+          : (st.paymentStatus === 'pending' ? 'pending' : 'unpaid');
+        // Filter by activeKpi
+        if (this.activeKpi === 'paid' && status !== 'paid') continue;
+        if (this.activeKpi === 'unpaid' && status === 'paid') continue;
+
+        groups.get(dayKey)!.push({
+          scheduleId: s.scheduleId || '',
+          studentId: st.studentId,
+          courseName: s.courseName || '—',
+          teacherName: s.teacherName || '',
+          startTime: s.startTime || '',
+          endTime: s.endTime || '',
+          nickname: this.getStudentNickname(st.studentId, st.name),
+          amount: st.paymentAmount || 0,
+          status,
+          paymentId: st.paymentId || null,
+        });
+      }
+    }
+
+    const out: TxGroup[] = [];
+    for (const [dayKey, rows] of groups) {
+      if (rows.length === 0) continue;
+      rows.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || '') || a.nickname.localeCompare(b.nickname, 'th'));
+      out.push({
+        dayKey,
+        label: labels.get(dayKey) || dayKey,
+        rows,
+        total: rows.reduce((sum, r) => sum + r.amount, 0),
+        sortKey: sortKeys.get(dayKey) || 0,
+      });
+    }
+    // Newest day first.
+    out.sort((a, b) => b.sortKey - a.sortKey);
+    return out;
+  }
+
+  get txTotalRows(): number {
+    return this.txGroups.reduce((n, g) => n + g.rows.length, 0);
+  }
+
+  /** Thai day heading: "วันพุธ 14 พ.ค." — short, no year (year already in month picker). */
+  private formatDayHeading(d: Date): string {
+    const dow = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสฯ','ศุกร์','เสาร์'][d.getDay()];
+    const mo  = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][d.getMonth()];
+    return `${dow} ${d.getDate()} ${mo}`;
+  }
+
+  /** Helpers for the transaction row template. */
+  txStatusLabel(s: TxStatus): string {
+    return s === 'paid' ? 'ชำระแล้ว' : (s === 'pending' ? 'รอ Manager' : 'ค้างชำระ');
+  }
+  txAvatarHue(seed: string): number {
+    let h = 0;
+    for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+    return h % 360;
+  }
+
+  /** Open student-monthly modal from a transaction row. */
+  openTxRow(row: TxRow): void {
+    if (!row.studentId) return;
+    this.openStudentMonthlyModal(row.studentId, row.nickname);
+  }
+
+  trackByTxRow(_i: number, r: TxRow): string {
+    return `${r.scheduleId}:${r.studentId}`;
+  }
+  trackByDay(_i: number, g: TxGroup): string {
+    return g.dayKey;
   }
 
   // ── "รายได้ของคุณ" / "รายได้ของ <ชื่อเล่น>" — ขึ้นกับ filterTeacher ──

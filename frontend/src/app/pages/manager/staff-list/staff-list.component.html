@@ -14,12 +14,34 @@
     </div>
   </div>
 
-  <app-loading *ngIf="loading"></app-loading>
+  <!-- ── Skeleton loader (replaces app-loading) ── -->
+  <div *ngIf="loading" class="sl-skel" aria-busy="true" aria-label="กำลังโหลดบุคลากร">
+    <div class="sl-skel-strip">
+      <div class="kms-skel-card" *ngFor="let _ of [1,2,3,4,5]">
+        <div class="kms-skel kms-skel-circle"></div>
+        <div class="kms-skel kms-skel-line lg w-50"></div>
+        <div class="kms-skel kms-skel-line w-30"></div>
+      </div>
+    </div>
+    <div class="kms-skel-grid">
+      <div class="kms-skel-card" *ngFor="let _ of [1,2,3,4,5,6]">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div class="kms-skel kms-skel-circle lg"></div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+            <div class="kms-skel kms-skel-line w-70"></div>
+            <div class="kms-skel kms-skel-line w-50"></div>
+          </div>
+        </div>
+        <div class="kms-skel kms-skel-line w-40"></div>
+        <div class="kms-skel kms-skel-line w-60"></div>
+      </div>
+    </div>
+  </div>
 
   <div *ngIf="!loading" class="content">
 
-    <!-- ── Stats Strip ──────────────────────────────────────── -->
-    <div class="sl-stats" *ngIf="users.length > 0">
+    <!-- ── Stats Strip (GSAP stagger via #slStats) ──────────── -->
+    <div class="sl-stats" #slStats *ngIf="users.length > 0">
       <div class="sl-stat sl-stat-total">
         <div class="sl-stat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
         <div class="sl-stat-body"><div class="sl-stat-num">{{ staffStats.total }}</div><div class="sl-stat-lbl">ผู้ใช้ทั้งหมด</div></div>
@@ -85,20 +107,35 @@
       </div>
     </div>
 
-    <!-- Empty state -->
-    <div *ngIf="filteredUsers.length === 0" class="empty-state">
-      <svg class="empty-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-        <circle cx="9" cy="7" r="4"/>
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-      </svg>
-      <h3>ไม่พบข้อมูลบุคลากร</h3>
-      <p>ลองเปลี่ยนตัวกรองหรือคำค้นหา</p>
+    <!-- Empty state (Lottie-ready) -->
+    <div *ngIf="filteredUsers.length === 0" class="kms-empty">
+      <div class="kms-empty-art">
+        <!-- Lottie placeholder: assets/lottie/empty-people.json -->
+        <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87" opacity=".5"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" opacity=".5"/>
+        </svg>
+      </div>
+      <ng-container *ngIf="users.length === 0; else filteredEmpty">
+        <h3>ยังไม่มีบุคลากรในระบบ</h3>
+        <p>เริ่มต้นด้วยการส่งลิ้งค์สมัครให้ครูคนแรก เพื่อสร้างทีมของคุณ</p>
+        <a routerLink="/register" class="sl-empty-cta">
+          เพิ่มครูคนแรก
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </a>
+      </ng-container>
+      <ng-template #filteredEmpty>
+        <h3>ไม่พบข้อมูลบุคลากร</h3>
+        <p>ลองเปลี่ยนตัวกรองหรือคำค้นหา</p>
+      </ng-template>
     </div>
 
-    <!-- Cards Grid View -->
-    <div *ngIf="filteredUsers.length > 0 && viewMode === 'cards'" class="sl-cards-grid">
+    <!-- Cards Grid View (GSAP stagger via #slGrid) -->
+    <div *ngIf="filteredUsers.length > 0 && viewMode === 'cards'" class="sl-cards-grid" #slGrid>
       <div *ngFor="let user of filteredUsers"
            class="sl-card sl-card-clickable"
            (click)="openDetail(user)"

@@ -1739,3 +1739,132 @@ router-outlet + * {
   border-color: #fecaca;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   Impeccable: Skeleton shimmer + Lottie empty wrapper + entrance stagger
+   Shared primitives used across manager pages.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Skeleton shimmer ─────────────────────────────────────────────────── */
+.kms-skel {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(110deg, var(--gray-100) 0%, var(--gray-150) 40%, var(--gray-100) 70%);
+  background-size: 220% 100%;
+  animation: kmsShimmer 1.6s var(--ease-in-out) infinite;
+  border-radius: var(--r-md);
+}
+.kms-skel-line   { height: 12px; border-radius: 999px; }
+.kms-skel-line.lg{ height: 18px; }
+.kms-skel-line.xl{ height: 28px; }
+.kms-skel-line.w-30 { width: 30%; }
+.kms-skel-line.w-40 { width: 40%; }
+.kms-skel-line.w-50 { width: 50%; }
+.kms-skel-line.w-60 { width: 60%; }
+.kms-skel-line.w-70 { width: 70%; }
+.kms-skel-line.w-80 { width: 80%; }
+.kms-skel-circle { width: 40px; height: 40px; border-radius: 50%; }
+.kms-skel-circle.lg { width: 56px; height: 56px; }
+.kms-skel-thumb  { width: 100%; aspect-ratio: 16 / 9; border-radius: var(--r-lg); }
+.kms-skel-card {
+  background: rgba(255,255,255,0.85);
+  border: 1px solid var(--gray-150);
+  border-radius: var(--r-xl);
+  padding: var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  box-shadow: var(--shadow-xs);
+}
+.kms-skel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--sp-4);
+}
+.kms-skel-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--gray-100);
+}
+.kms-skel-row:last-child { border-bottom: none; }
+.kms-skel-row-body { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.kms-skel-table {
+  background: rgba(255,255,255,0.85);
+  border: 1px solid var(--gray-150);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+}
+@keyframes kmsShimmer {
+  0%   { background-position: 220% 0; }
+  100% { background-position: -20% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kms-skel { animation: none; background: var(--gray-100); }
+}
+
+/* ── Lottie / empty-state polish ──────────────────────────────────────── */
+.kms-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  text-align: center;
+  padding: var(--sp-12) var(--sp-6);
+  background: var(--glass-white);
+  border: 1.5px dashed var(--gray-200);
+  border-radius: var(--r-2xl);
+  color: var(--text-secondary);
+}
+.kms-empty-art {
+  width: 180px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 50%, rgba(30,63,128,0.06) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.kms-empty-art lottie-player,
+.kms-empty-art > svg {
+  width: 140px;
+  height: 140px;
+  filter: drop-shadow(0 8px 18px rgba(30,63,128,0.10));
+}
+.kms-empty h3 {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.kms-empty p {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  max-width: 38ch;
+  line-height: 1.5;
+}
+
+/* ── Entrance stagger ─────────────────────────────────────────────────── */
+.kms-stagger > * {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: kmsRise 480ms var(--ease-out) forwards;
+}
+.kms-stagger > *:nth-child(1)  { animation-delay:  20ms; }
+.kms-stagger > *:nth-child(2)  { animation-delay:  60ms; }
+.kms-stagger > *:nth-child(3)  { animation-delay: 100ms; }
+.kms-stagger > *:nth-child(4)  { animation-delay: 140ms; }
+.kms-stagger > *:nth-child(5)  { animation-delay: 180ms; }
+.kms-stagger > *:nth-child(6)  { animation-delay: 220ms; }
+.kms-stagger > *:nth-child(7)  { animation-delay: 260ms; }
+.kms-stagger > *:nth-child(8)  { animation-delay: 300ms; }
+.kms-stagger > *:nth-child(n+9){ animation-delay: 340ms; }
+@keyframes kmsRise {
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kms-stagger > * { opacity: 1; transform: none; animation: none; }
+}
+

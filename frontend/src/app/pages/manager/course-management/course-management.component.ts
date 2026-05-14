@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Subject } from 'rxjs';
@@ -17,6 +17,7 @@ import { resolveDisplayStatus, getDisplayStatusLabel, getDisplayStatusClass } fr
   selector: 'app-course-management',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, FormsModule, LoadingComponent, DatePickerComponent, TimePickerComponent, DisplayNamePipe],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './course-management.component.html',
   styleUrls: ['./course-management.component.css']
 })
@@ -755,6 +756,12 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     const term = this.cmSearch.trim().toLowerCase();
     return this.representativeCourses.filter(c => {
       if (this.cmTab !== 'all' && resolveDisplayStatus(c) !== this.cmTab) return false;
+      if (this.cmSubjectFilter && (c.subject || '') !== this.cmSubjectFilter) return false;
+      if (this.cmTeacherFilter) {
+        const t: any = c.teacher;
+        const tid = (t && typeof t === 'object') ? (t._id || t.id || '') : (t || '');
+        if (tid !== this.cmTeacherFilter) return false;
+      }
       if (term) {
         const teacher: any = c.teacher;
         const teacherName = teacher && typeof teacher === 'object' ? `${teacher.firstName} ${teacher.lastName}` : '';
@@ -763,5 +770,113 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
       }
       return true;
     });
+  }
+
+  // ─── v2: Filter chips (subject + teacher) ──────────────────
+  cmSubjectFilter = '';
+  cmTeacherFilter = '';
+
+  /** Distinct subject options from current courses. Sorted, plus a count badge. */
+  get cmSubjectOptions(): { value: string; count: number }[] {
+    const map = new Map<string, number>();
+    for (const c of this.representativeCourses) {
+      const s = (c.subject || '').trim();
+      if (!s) continue;
+      map.set(s, (map.get(s) || 0) + 1);
+    }
+    return Array.from(map.entries())
+      .map(([value, count]) => ({ value, count }))
+      .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, 'th'));
+  }
+  /** Distinct teacher options from current courses. */
+  get cmTeacherOptions(): { id: string; label: string; count: number }[] {
+    const map = new Map<string, { label: string; count: number }>();
+    for (const c of this.representativeCourses) {
+      const t: any = c.teacher;
+      if (!t || typeof t !== 'object') continue;
+      const id = t._id || t.id;
+      if (!id) continue;
+      const label = (t.nickname || '').trim() || `${t.firstName || ''} ${t.lastName || ''}`.trim();
+      const cur = map.get(id);
+      if (cur) cur.count++;
+      else map.set(id, { label: label || '—', count: 1 });
+    }
+    return Array.from(map.entries())
+      .map(([id, v]) => ({ id, label: v.label, count: v.count }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'th'));
+  }
+
+  toggleSubjectFilter(s: string): void {
+    this.cmSubjectFilter = (this.cmSubjectFilter === s) ? '' : s;
+  }
+  toggleTeacherFilter(id: string): void {
+    this.cmTeacherFilter = (this.cmTeacherFilter === id) ? '' : id;
+  }
+  clearAxisFilters(): void {
+    this.cmSubjectFilter = '';
+    this.cmTeacherFilter = '';
+  }
+  get hasAxisFilter(): boolean {
+    return !!(this.cmSubjectFilter || this.cmTeacherFilter);
+  }
+
+  // ─── v2: Expandable inline detail per card ─────────────────
+  expandedIds = new Set<string>();
+  toggleExpand(id: string, ev?: Event): void {
+    ev?.stopPropagation();
+    if (this.expandedIds.has(id)) this.expandedIds.delete(id);
+    else this.expandedIds.add(id);
+  }
+  isExpanded(id: string): boolean { return this.expandedIds.has(id); }
+
+  // ─── v2: Bulk selection ─────────────────────────────────────
+  selectedIds = new Set<string>();
+  bulkCancelling = false;
+
+  toggleSelect(id: string, ev?: Event): void {
+    ev?.stopPropagation();
+    if (!id) return;
+    if (this.selectedIds.has(id)) this.selectedIds.delete(id);
+    else this.selectedIds.add(id);
+  }
+  isSelected(id: string): boolean { return this.selectedIds.has(id); }
+  clearSelection(): void { this.selectedIds.clear(); }
+  get selectionCount(): number { return this.selectedIds.size; }
+
+  /** Whether a card can be bulk-selected. Series cards aggregate many classes; skip them. */
+  canSelectCard(c: ICourse): boolean {
+    if (this.isSeriesCourse(c)) return false;
+    return c.status !== 'cancelled' && c.status !== 'completed';
+  }
+
+  /** Bulk cancel: confirm once, call cancelCourse-equivalent in sequence. */
+  bulkCancelSelected(): void {
+    if (this.selectionCount === 0) return;
+    if (this.bulkCancelling) return;
+    if (!confirm(`ยืนยันยกเลิกนัดสอนที่เลือก ${this.selectionCount} รายการ?\n\nรายการจะถูกตั้งเป็น "ยกเลิก" และสามารถลบออกถาวรได้ภายหลัง`)) return;
+
+    const ids = Array.from(this.selectedIds);
+    this.bulkCancelling = true;
+
+    const next = (i: number) => {
+      if (i >= ids.length) {
+        this.bulkCancelling = false;
+        this.selectedIds.clear();
+        this.successMessage = `ยกเลิก ${ids.length} รายการเรียบร้อย`;
+        this.loadAll();
+        setTimeout(() => { this.successMessage = ''; }, 4000);
+        return;
+      }
+      this.courseService.deleteCourse(ids[i])
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: () => next(i + 1),
+          error: (err) => {
+            console.error('[CourseMgmt] bulkCancel item failed:', ids[i], err);
+            next(i + 1);
+          }
+        });
+    };
+    next(0);
   }
 }

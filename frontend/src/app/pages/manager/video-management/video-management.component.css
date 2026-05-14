@@ -1,4 +1,146 @@
 /* ═══════════════════════════════════════════════════════
+   Video Management — Drop-zone + Skeleton (overdrive addition)
+   ═══════════════════════════════════════════════════════ */
+.vm-dropzone {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-5);
+  border: 2px dashed var(--gray-200);
+  border-radius: var(--r-xl);
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(30, 63, 128, 0.015) 0,
+      rgba(30, 63, 128, 0.015) 8px,
+      transparent 8px,
+      transparent 16px
+    ),
+    var(--gray-50);
+  transition:
+    border-color var(--dur-base) var(--ease-out),
+    background-color var(--dur-base) var(--ease-out),
+    transform var(--dur-base) var(--ease-out);
+  overflow: hidden;
+}
+.vm-dropzone:hover {
+  border-color: var(--brand-300);
+  background-color: var(--brand-50);
+}
+.vm-dropzone:focus-within {
+  border-color: var(--brand-500);
+  background-color: rgba(30, 63, 128, 0.04);
+  box-shadow: 0 0 0 3px rgba(30, 63, 128, 0.10);
+}
+.vm-dropzone.has-url {
+  border-style: solid;
+  border-color: var(--success-500);
+  background:
+    linear-gradient(135deg, rgba(34, 197, 94, 0.06), rgba(255, 255, 255, 0.6));
+}
+.vm-dropzone.is-dragover {
+  border-color: var(--brand-500);
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(30, 63, 128, 0.06) 0,
+      rgba(30, 63, 128, 0.06) 8px,
+      transparent 8px,
+      transparent 16px
+    ),
+    var(--brand-50);
+  transform: scale(1.005);
+  box-shadow: 0 0 0 4px rgba(30, 63, 128, 0.12);
+}
+.vm-dropzone.has-error {
+  border-color: var(--danger-500);
+  background: var(--danger-50);
+}
+.vm-dropzone-error-msg {
+  color: var(--danger-700);
+  font-weight: 600;
+}
+.vm-dropzone-icon {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--r-xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--brand-100), var(--brand-50));
+  color: var(--brand-600);
+}
+.vm-dropzone.has-url .vm-dropzone-icon {
+  background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+  color: var(--success-700);
+}
+.vm-dropzone-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.vm-dropzone-title {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+.vm-dropzone-hint {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+.vm-dropzone-input {
+  margin-top: 4px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--r-md);
+  background: #fff;
+  font-family: var(--font-en), var(--font-th);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+.vm-dropzone-input:focus {
+  outline: none;
+  border-color: var(--brand-400);
+  box-shadow: 0 0 0 3px rgba(30, 63, 128, 0.08);
+}
+.vm-dropzone-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+}
+.vm-dropzone-progress-fill {
+  width: 30%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--brand-500), var(--accent-500));
+  animation: vmProgress 1.4s var(--ease-in-out) infinite;
+}
+@keyframes vmProgress {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(360%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vm-dropzone-progress-fill { animation: none; width: 100%; opacity: .35; }
+}
+
+/* ── Skeleton placeholder ── */
+.vm-skel { display: flex; flex-direction: column; gap: var(--sp-5); padding: var(--sp-4) 0; }
+.vm-skel-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--sp-3);
+}
+
+/* ═══════════════════════════════════════════════════════
    Video Management — Glassmorphism Design
    ═══════════════════════════════════════════════════════ */
 

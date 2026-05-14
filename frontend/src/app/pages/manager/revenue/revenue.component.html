@@ -4,7 +4,48 @@
     <p>สรุปรายรับ-รายจ่ายของสถาบันต่อเดือน</p>
   </div>
 
-  <app-loading *ngIf="loading"></app-loading>
+  <!-- ── Skeleton placeholder (replaces app-loading) ── -->
+  <div *ngIf="loading" class="rev-skel" aria-busy="true" aria-label="กำลังโหลดรายรับ">
+    <!-- Hero KPI placeholder -->
+    <div class="rev-skel-hero kms-skel-card">
+      <div class="kms-skel kms-skel-line w-30"></div>
+      <div class="rev-skel-hero-cells">
+        <div class="rev-skel-hero-cell">
+          <div class="kms-skel kms-skel-line w-50"></div>
+          <div class="kms-skel kms-skel-line xl w-70" style="margin-top:6px"></div>
+          <div class="kms-skel kms-skel-line w-40" style="margin-top:4px"></div>
+        </div>
+        <div class="rev-skel-hero-cell">
+          <div class="kms-skel kms-skel-line w-50"></div>
+          <div class="kms-skel kms-skel-line xl w-70" style="margin-top:6px"></div>
+          <div class="kms-skel kms-skel-line w-40" style="margin-top:4px"></div>
+        </div>
+        <div class="rev-skel-hero-cell">
+          <div class="kms-skel kms-skel-line w-50"></div>
+          <div class="kms-skel kms-skel-line xl w-70" style="margin-top:6px"></div>
+          <div class="kms-skel kms-skel-line w-40" style="margin-top:4px"></div>
+        </div>
+      </div>
+      <div class="rev-skel-hero-bar kms-skel"></div>
+    </div>
+
+    <!-- Chip filter placeholder -->
+    <div class="rev-skel-chips">
+      <div class="kms-skel" *ngFor="let _ of [1,2,3]" style="width:120px;height:34px;border-radius:999px"></div>
+    </div>
+
+    <!-- 5 transaction row placeholders -->
+    <div class="rev-skel-rows kms-skel-card">
+      <div class="rev-skel-row" *ngFor="let _ of [1,2,3,4,5]">
+        <div class="kms-skel kms-skel-circle"></div>
+        <div class="rev-skel-row-body">
+          <div class="kms-skel kms-skel-line w-60"></div>
+          <div class="kms-skel kms-skel-line w-40"></div>
+        </div>
+        <div class="kms-skel kms-skel-line lg" style="width:90px"></div>
+      </div>
+    </div>
+  </div>
 
   <div *ngIf="!loading" class="content">
 
@@ -24,6 +65,65 @@
       </div>
     </div>
 
+    <!-- ── Hero KPI: รายรับ / ยอดชำระ / ค้างชำระ — paid-vs-unpaid proportion strip ── -->
+    <section class="rev-hero" aria-label="ภาพรวมเดือนนี้">
+      <div class="rev-hero-head">
+        <div class="rev-hero-eyebrow">ภาพรวมเดือนนี้</div>
+        <div class="rev-hero-month">{{ monthLabelTH(filterMonth) || 'ทั้งหมด' }}</div>
+      </div>
+
+      <div class="rev-hero-grid">
+        <div class="rev-hero-cell rev-hero-total">
+          <span class="rev-hero-cell-lbl">รายรับ</span>
+          <span class="rev-hero-cell-amt">
+            <span class="rev-hero-prefix">฿</span><span [kmsCountUp]="kpiTotal" kmsCountFormat="1.0-0">0</span>
+          </span>
+          <span class="rev-hero-cell-sub">ยอดทั้งหมดที่ออกใบเสร็จ</span>
+        </div>
+
+        <div class="rev-hero-cell rev-hero-paid"
+             [class.active]="activeKpi === 'paid'"
+             (click)="selectKpi('paid')"
+             role="button" tabindex="0"
+             (keydown.enter)="selectKpi('paid')" (keydown.space)="selectKpi('paid')">
+          <span class="rev-hero-cell-lbl">ยอดชำระ</span>
+          <span class="rev-hero-cell-amt">
+            <span class="rev-hero-prefix">฿</span><span [kmsCountUp]="kpiPaid" kmsCountFormat="1.0-0">0</span>
+          </span>
+          <span class="rev-hero-cell-sub">{{ heroPaidPct | number:'1.0-0' }}% ของรายรับ</span>
+        </div>
+
+        <div class="rev-hero-cell rev-hero-unpaid"
+             [class.active]="activeKpi === 'unpaid'"
+             (click)="selectKpi('unpaid')"
+             role="button" tabindex="0"
+             (keydown.enter)="selectKpi('unpaid')" (keydown.space)="selectKpi('unpaid')">
+          <span class="rev-hero-cell-lbl">ค้างชำระ</span>
+          <span class="rev-hero-cell-amt">
+            <span class="rev-hero-prefix">฿</span><span [kmsCountUp]="kpiUnpaid" kmsCountFormat="1.0-0">0</span>
+          </span>
+          <span class="rev-hero-cell-sub">{{ heroUnpaidPct | number:'1.0-0' }}% ของรายรับ</span>
+        </div>
+      </div>
+
+      <!-- Inline proportion strip — paid (green) vs unpaid (amber) -->
+      <div class="rev-hero-bar" [class.is-empty]="heroBarEmpty"
+           [attr.aria-label]="'ชำระแล้ว ' + (heroPaidPct | number:'1.0-0') + ' เปอร์เซ็นต์'">
+        <div class="rev-hero-bar-paid"   [style.width.%]="heroPaidPct"></div>
+        <div class="rev-hero-bar-unpaid" [style.width.%]="heroUnpaidPct"></div>
+      </div>
+      <div class="rev-hero-legend">
+        <span class="rev-hero-leg rev-hero-leg-paid">
+          <span class="rev-hero-leg-dot"></span>
+          ชำระแล้ว <strong>{{ heroPaidPct | number:'1.0-0' }}%</strong>
+        </span>
+        <span class="rev-hero-leg rev-hero-leg-unpaid">
+          <span class="rev-hero-leg-dot"></span>
+          ค้างชำระ <strong>{{ heroUnpaidPct | number:'1.0-0' }}%</strong>
+        </span>
+      </div>
+    </section>
+
     <!-- ── Section A: ภาพรวมสถาบัน (ไม่กรอง) ── -->
     <section class="kpi-section">
       <div class="kpi-section-head">
@@ -33,13 +133,13 @@
         </div>
         <span class="kpi-section-hint">ภาพรวมรายเดือน · ไม่ขึ้นกับฟิลเตอร์</span>
       </div>
-      <div class="revenue-cards kpi-row-3">
+      <div class="revenue-cards kpi-row-3 kms-stagger">
         <div class="revenue-card total"
              [class.active]="activeKpi === 'all'"
              (click)="selectKpi('all')"
              role="button" tabindex="0">
           <h3>รายได้รวม</h3>
-          <div class="amount">{{ kpiTotal | number: '1.0-0' }} <span class="unit">บาท</span></div>
+          <div class="amount"><span class="thb">฿</span><span [kmsCountUp]="kpiTotal" kmsCountFormat="1.0-0">0</span></div>
           <div class="amount-change">ยอดชำระนักเรียนทั้งหมด</div>
         </div>
 
@@ -51,7 +151,7 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
             รายจ่ายครู
           </h3>
-          <div class="amount">{{ kpiTeacherExpense | number: '1.0-0' }} <span class="unit">บาท</span></div>
+          <div class="amount"><span class="thb">฿</span><span [kmsCountUp]="kpiTeacherExpense" kmsCountFormat="1.0-0">0</span></div>
           <div class="amount-change">เฉพาะคลาสที่ Manager ยืนยันแล้ว</div>
         </div>
 
@@ -60,7 +160,9 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             กำไรสุทธิสถาบัน
           </h3>
-          <div class="amount" [class.negative-amt]="kpiNetInstitute < 0">{{ kpiNetInstitute | number: '1.0-0' }} <span class="unit">บาท</span></div>
+          <div class="amount" [class.negative-amt]="kpiNetInstitute < 0">
+            <span class="thb">฿</span><span [kmsCountUp]="kpiNetInstitute" kmsCountFormat="1.0-0">0</span>
+          </div>
           <div class="amount-change">ยอดชำระแล้ว − รายจ่ายครู</div>
         </div>
       </div>
@@ -83,13 +185,13 @@
           </select>
         </div>
       </div>
-      <div class="revenue-cards kpi-row-2">
+      <div class="revenue-cards kpi-row-2 kms-stagger">
         <div class="revenue-card confirmed"
              [class.active]="activeKpi === 'paid'"
              (click)="selectKpi('paid')"
              role="button" tabindex="0">
           <h3>ยืนยันแล้ว</h3>
-          <div class="amount">{{ paidFiltered | number: '1.0-0' }} <span class="unit">บาท</span></div>
+          <div class="amount"><span class="thb">฿</span><span [kmsCountUp]="paidFiltered" kmsCountFormat="1.0-0">0</span></div>
           <div class="amount-change positive">
             <ng-container *ngIf="!filterStudent">ยอดที่นักเรียนชำระแล้ว</ng-container>
             <ng-container *ngIf="filterStudent">ยอดที่ {{ studentFilterLabel }} ชำระแล้ว</ng-container>
@@ -101,7 +203,7 @@
              (click)="selectKpi('unpaid')"
              role="button" tabindex="0">
           <h3>รอการชำระ</h3>
-          <div class="amount">{{ unpaidFiltered | number: '1.0-0' }} <span class="unit">บาท</span></div>
+          <div class="amount"><span class="thb">฿</span><span [kmsCountUp]="unpaidFiltered" kmsCountFormat="1.0-0">0</span></div>
           <div class="amount-change negative">
             <ng-container *ngIf="!filterStudent">ยอดค้างชำระ</ng-container>
             <ng-container *ngIf="filterStudent">ยอดค้างชำระของ {{ studentFilterLabel }}</ng-container>
@@ -144,7 +246,7 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M20 7h-9M14 17H5M21 17a4 4 0 1 0-8 0M11 7a4 4 0 1 1-8 0"/></svg>
             {{ myIncomeTitle }}
           </h3>
-          <div class="amount">{{ myIncomeAmount | number: '1.0-0' }} <span class="unit">บาท</span></div>
+          <div class="amount"><span class="thb">฿</span><span [kmsCountUp]="myIncomeAmount" kmsCountFormat="1.0-0">0</span></div>
           <div class="amount-change">{{ myIncomeSubtitle }}</div>
         </div>
       </div>
@@ -369,13 +471,23 @@
       <span class="table-section-count">{{ filteredSchedules.length }} คลาส</span>
     </div>
 
-    <!-- ── Empty State ── -->
-    <div *ngIf="filteredSchedules.length === 0" class="empty-state">
-      <h3>ไม่พบข้อมูล</h3>
-      <p *ngIf="activeKpi === 'teacherExpense'">ยังไม่มีคลาสที่ครูสอนและ Manager ยืนยันแล้วในช่วงนี้</p>
-      <p *ngIf="activeKpi === 'managerIncome'">ยังไม่มีคลาสที่ Manager สอนและยืนยันแล้วในช่วงนี้</p>
-      <p *ngIf="activeKpi === 'myIncome'">ยังไม่มีคลาสที่ครูคนนี้สอนและยืนยันแล้วในช่วงนี้</p>
-      <p *ngIf="activeKpi !== 'teacherExpense' && activeKpi !== 'managerIncome' && activeKpi !== 'myIncome'">ยังไม่มีคลาสที่เสร็จสิ้นในช่วงเวลานี้</p>
+    <!-- ── Empty State (Lottie-ready) ── -->
+    <div *ngIf="filteredSchedules.length === 0" class="kms-empty rev-empty">
+      <div class="kms-empty-art">
+        <!-- Lottie placeholder: assets/lottie/empty-revenue.json -->
+        <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <path d="M9 15h6" opacity=".4"/>
+        </svg>
+      </div>
+      <h3>ยังไม่มีรายรับเดือนนี้</h3>
+      <p *ngIf="activeKpi === 'teacherExpense'">ยังไม่มีคลาสที่ครูสอนและ Manager ยืนยันแล้วในช่วงนี้, ลองเปลี่ยนเดือน</p>
+      <p *ngIf="activeKpi === 'managerIncome'">ยังไม่มีคลาสที่ Manager สอนและยืนยันแล้วในช่วงนี้, ลองเปลี่ยนเดือน</p>
+      <p *ngIf="activeKpi === 'myIncome'">ยังไม่มีคลาสที่ครูคนนี้สอนและยืนยันแล้วในช่วงนี้, ลองเปลี่ยนเดือน</p>
+      <p *ngIf="activeKpi !== 'teacherExpense' && activeKpi !== 'managerIncome' && activeKpi !== 'myIncome'">ยังไม่มีคลาสที่เสร็จสิ้นในเดือนนี้, ลองเปลี่ยนเดือนหรือสร้างนัดสอนใหม่</p>
     </div>
 
     <!-- ── Teacher Income Table (สำหรับโหมด teacherExpense / managerIncome) ── -->
@@ -423,27 +535,86 @@
       </table>
     </div>
 
-    <!-- ── Per-Student Grid (โหมด all/paid/unpaid) — แสดงเฉพาะชื่อเล่น คลิกเพื่อดูคลาส ── -->
-    <div *ngIf="filteredSchedules.length > 0 && !showTeacherIncomeColumn" class="students-grid-wrap">
-      <div class="students-grid-hint">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        คลิกที่ชื่อเด็กเพื่อดูคลาสทั้งหมดของเด็กคนนั้นในเดือนนี้
-      </div>
-      <div class="students-grid">
-        <button *ngFor="let s of uniqueStudentsInFilter" type="button"
-                class="student-link student-link-large"
-                (click)="openStudentMonthlyModal(s.studentId)"
-                [title]="'ดูคลาสทั้งหมดของน้อง' + s.nickname + ' ในเดือนนี้'">
-          <span class="student-link-avatar">{{ (s.nickname || '?').charAt(0) }}</span>
-          <span class="student-link-name">น้อง{{ s.nickname }}</span>
-          <svg class="student-link-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
+    <!-- ── Date-spine Transaction List (modes: all / paid / unpaid) ── -->
+    <div *ngIf="filteredSchedules.length > 0 && !showTeacherIncomeColumn" class="rev-tx-wrap">
+
+      <!-- Chip filter row: ทั้งหมด / ชำระแล้ว / รอชำระ -->
+      <div class="rev-chip-row" role="tablist" aria-label="กรองสถานะชำระเงิน">
+        <button class="rev-chip" role="tab"
+                [class.active]="activeKpi === 'all'"
+                [attr.aria-selected]="activeKpi === 'all'"
+                (click)="selectKpi('all')">
+          <span>ทั้งหมด</span>
+          <span class="rev-chip-num">{{ allSchedules.length }}</span>
         </button>
+        <button class="rev-chip rev-chip-paid" role="tab"
+                [class.active]="activeKpi === 'paid'"
+                [attr.aria-selected]="activeKpi === 'paid'"
+                (click)="selectKpi('paid')">
+          <span class="rev-chip-dot" aria-hidden="true"></span>
+          <span>ชำระแล้ว</span>
+          <span class="rev-chip-amt">฿{{ kpiPaid | number:'1.0-0' }}</span>
+        </button>
+        <button class="rev-chip rev-chip-unpaid" role="tab"
+                [class.active]="activeKpi === 'unpaid'"
+                [attr.aria-selected]="activeKpi === 'unpaid'"
+                (click)="selectKpi('unpaid')">
+          <span class="rev-chip-dot" aria-hidden="true"></span>
+          <span>รอชำระ</span>
+          <span class="rev-chip-amt">฿{{ kpiUnpaid | number:'1.0-0' }}</span>
+        </button>
+        <span class="rev-chip-count-side" *ngIf="txTotalRows > 0">{{ txTotalRows }} รายการ</span>
       </div>
-      <p class="students-grid-empty" *ngIf="uniqueStudentsInFilter.length === 0">
-        ยังไม่มีนักเรียนเข้าเรียนในช่วงนี้
-      </p>
+
+      <!-- Date-spine list. Each group: sticky date header + transaction rows. -->
+      <div class="rev-tx-list" #txList>
+        <ng-container *ngFor="let group of txGroups; trackBy: trackByDay">
+          <div class="rev-tx-day">
+            <div class="rev-tx-day-head">
+              <span class="rev-tx-day-label">{{ group.label }}</span>
+              <span class="rev-tx-day-count">{{ group.rows.length }} รายการ</span>
+              <span class="rev-tx-day-total">฿{{ group.total | number:'1.0-0' }}</span>
+            </div>
+            <div class="rev-tx-rows">
+              <button class="rev-tx-row" type="button"
+                      *ngFor="let row of group.rows; trackBy: trackByTxRow"
+                      [attr.data-status]="row.status"
+                      (click)="openTxRow(row)">
+                <span class="rev-tx-avatar"
+                      [style.background]="'linear-gradient(135deg, hsl(' + txAvatarHue(row.studentId) + ', 75%, 58%), hsl(' + ((txAvatarHue(row.studentId) + 30) % 360) + ', 80%, 42%))'"
+                      aria-hidden="true">{{ row.nickname.charAt(0) }}</span>
+
+                <span class="rev-tx-body">
+                  <span class="rev-tx-row-top">
+                    <span class="rev-tx-course">{{ row.courseName }}</span>
+                    <span class="rev-tx-amount">฿<span>{{ row.amount | number:'1.0-0' }}</span></span>
+                  </span>
+                  <span class="rev-tx-row-bot">
+                    <span class="rev-tx-meta">
+                      <span class="rev-tx-student">น้อง{{ row.nickname }}</span>
+                      <span class="rev-tx-dot" aria-hidden="true">·</span>
+                      <span class="rev-tx-time" *ngIf="row.startTime">{{ row.startTime }}–{{ row.endTime }}</span>
+                      <ng-container *ngIf="row.teacherName">
+                        <span class="rev-tx-dot" aria-hidden="true">·</span>
+                        <span class="rev-tx-teacher">{{ row.teacherName }}</span>
+                      </ng-container>
+                    </span>
+                    <span class="rev-tx-chip" [attr.data-status]="row.status">
+                      <span class="rev-tx-chip-dot" aria-hidden="true"></span>
+                      {{ txStatusLabel(row.status) }}
+                    </span>
+                  </span>
+                </span>
+              </button>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Inner empty (chip filter excluded all rows) -->
+        <div class="rev-tx-empty" *ngIf="txGroups.length === 0">
+          <span>ไม่มีรายการที่ตรงกับสถานะ "{{ activeKpi === 'paid' ? 'ชำระแล้ว' : (activeKpi === 'unpaid' ? 'รอชำระ' : 'ทั้งหมด') }}", ลองเปลี่ยน filter</span>
+        </div>
+      </div>
     </div>
 
   </div>

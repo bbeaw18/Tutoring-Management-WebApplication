@@ -1,4 +1,6 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, CUSTOM_ELEMENTS_SCHEMA, AfterViewInit, ViewChild, ElementRef, NgZone } from '@angular/core';
+import { gsap } from 'gsap';
+import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { Subject, Subscription } from 'rxjs';
@@ -13,11 +15,16 @@ import { getPaymentChannelLabel } from '../../../shared/constants/payment-channe
 @Component({
   selector: 'app-staff-list',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, LoadingComponent, DisplayNamePipe],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule, LoadingComponent, DisplayNamePipe],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './staff-list.component.html',
   styleUrls: ['./staff-list.component.css']
 })
-export class StaffListComponent implements OnInit, OnDestroy {
+export class StaffListComponent implements OnInit, OnDestroy, AfterViewInit {
+  @ViewChild('slGrid', { read: ElementRef, static: false }) slGrid?: ElementRef<HTMLElement>;
+  @ViewChild('slStats', { read: ElementRef, static: false }) slStats?: ElementRef<HTMLElement>;
+  private slStaggerKey = '';
+  private slStatsPlayed = false;
   users: IUser[] = [];
   filteredUsers: IUser[] = [];
   loading = false;
@@ -50,7 +57,8 @@ export class StaffListComponent implements OnInit, OnDestroy {
   constructor(
     private userService: UserService,
     private formBuilder: FormBuilder,
-    private authService: AuthService
+    private authService: AuthService,
+    private ngZone: NgZone
   ) {}
 
   ngOnInit(): void {
@@ -58,6 +66,52 @@ export class StaffListComponent implements OnInit, OnDestroy {
     this.userSub = this.authService.currentUser$.subscribe(u => this.currentUser = u);
     this.initializeForm();
     this.loadUsers();
+  }
+
+  ngAfterViewInit(): void {
+    queueMicrotask(() => this.maybePlayStagger());
+  }
+  ngDoCheck(): void {
+    this.maybePlayStagger();
+  }
+
+  private maybePlayStagger(): void {
+    if (typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    // Stats strip — plays once on first appearance.
+    const statsRoot = this.slStats?.nativeElement;
+    if (statsRoot && !this.slStatsPlayed) {
+      const cells = statsRoot.querySelectorAll<HTMLElement>('.sl-stat');
+      if (cells.length > 0) {
+        this.slStatsPlayed = true;
+        this.ngZone.runOutsideAngular(() => {
+          gsap.fromTo(cells, { opacity: 0, y: 10 }, {
+            opacity: 1, y: 0,
+            duration: 0.5, ease: 'power3.out',
+            stagger: { each: 0.04, from: 'start' },
+            clearProps: 'opacity,transform'
+          });
+        });
+      }
+    }
+
+    // Cards grid — re-plays on filter/role/search change.
+    const gridRoot = this.slGrid?.nativeElement;
+    if (!gridRoot) return;
+    const cards = gridRoot.querySelectorAll<HTMLElement>('.sl-card');
+    const key = `${this.roleFilter}:${this.searchForm?.value?.search || ''}:${cards.length}:${this.viewMode}`;
+    if (key === this.slStaggerKey) return;
+    this.slStaggerKey = key;
+    if (cards.length === 0) return;
+    this.ngZone.runOutsideAngular(() => {
+      gsap.fromTo(cards, { opacity: 0, y: 8 }, {
+        opacity: 1, y: 0,
+        duration: 0.5, ease: 'power3.out',
+        stagger: { each: 0.03, from: 'start' },
+        clearProps: 'opacity,transform'
+      });
+    });
   }
 
   ngOnDestroy(): void {

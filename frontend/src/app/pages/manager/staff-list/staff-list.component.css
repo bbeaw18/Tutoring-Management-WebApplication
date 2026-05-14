@@ -1,4 +1,45 @@
 /* ═══════════════════════════════════════════════════════
+   Staff List — Skeleton placeholder (overdrive addition)
+   ═══════════════════════════════════════════════════════ */
+.sl-skel { display: flex; flex-direction: column; gap: var(--sp-5); padding: var(--sp-4) 0; }
+
+/* v2: Empty state CTA */
+.sl-empty-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--sp-3);
+  padding: 9px 18px;
+  background: linear-gradient(135deg, var(--brand-600) 0%, var(--brand-500) 100%);
+  color: #fff;
+  border-radius: 999px;
+  font-family: var(--font-th);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 4px 16px rgba(30, 63, 128, 0.30);
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), filter var(--dur-fast) var(--ease-out);
+}
+.sl-empty-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(30, 63, 128, 0.42);
+  filter: brightness(1.06);
+  text-decoration: none;
+  color: #fff;
+}
+.sl-empty-cta:active { transform: translateY(0); }
+.sl-empty-cta:focus-visible {
+  outline: 2px solid var(--accent-500);
+  outline-offset: 3px;
+}
+.sl-skel-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--sp-3);
+}
+.sl-skel-strip .kms-skel-card { padding: var(--sp-4); }
+
+/* ═══════════════════════════════════════════════════════
    Staff List — Modern Glassmorphism Design
    ═══════════════════════════════════════════════════════ */
 

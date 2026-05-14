@@ -1,4 +1,5 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, CUSTOM_ELEMENTS_SCHEMA, AfterViewInit, ViewChild, ElementRef, NgZone } from '@angular/core';
+import { gsap } from 'gsap';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Subject } from 'rxjs';
@@ -14,10 +15,11 @@ import { DatePickerComponent } from '../../../shared/components/date-picker/date
   selector: 'app-video-management',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, FormsModule, LoadingComponent, DatePickerComponent],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './video-management.component.html',
   styleUrls: ['./video-management.component.css']
 })
-export class VideoManagementComponent implements OnInit, OnDestroy {
+export class VideoManagementComponent implements OnInit, OnDestroy, AfterViewInit {
   private destroy$ = new Subject<void>();
 
   videos: IVideo[] = [];
@@ -32,10 +34,17 @@ export class VideoManagementComponent implements OnInit, OnDestroy {
   vmCourseFilter = 'all';
   vmSortBy: 'recent' | 'duration' | 'title' = 'recent';
 
+  // ── v2: drop-zone drag state + GSAP stagger
+  vmDragOver = false;
+  vmDropError = '';
+  @ViewChild('libGrid', { read: ElementRef, static: false }) libGrid?: ElementRef<HTMLElement>;
+  private vmLastStaggerKey = '';
+
   constructor(
     private videoService: VideoService,
     private courseService: CourseService,
-    private formBuilder: FormBuilder
+    private formBuilder: FormBuilder,
+    private ngZone: NgZone
   ) {}
 
   ngOnDestroy(): void {
@@ -47,6 +56,64 @@ export class VideoManagementComponent implements OnInit, OnDestroy {
     this.initializeForm();
     this.loadVideos();
     this.loadCourses();
+  }
+
+  ngAfterViewInit(): void {
+    queueMicrotask(() => this.maybePlayLibStagger());
+  }
+  ngDoCheck(): void {
+    this.maybePlayLibStagger();
+  }
+
+  /** Drop-zone v2: extract a URL from a drag-and-drop payload (text/uri-list or text/plain). */
+  onDropZoneDragOver(ev: DragEvent): void {
+    ev.preventDefault();
+    this.vmDragOver = true;
+  }
+  onDropZoneDragLeave(ev: DragEvent): void {
+    ev.preventDefault();
+    this.vmDragOver = false;
+  }
+  onDropZoneDrop(ev: DragEvent): void {
+    ev.preventDefault();
+    this.vmDragOver = false;
+    this.vmDropError = '';
+    const dt = ev.dataTransfer;
+    if (!dt) return;
+    // Prefer uri-list; fall back to plain text.
+    let url = (dt.getData('text/uri-list') || dt.getData('text/plain') || '').trim();
+    // uri-list may contain multiple lines including comments; take first non-comment line.
+    if (url.includes('\n')) {
+      url = url.split('\n').map(s => s.trim()).find(s => s && !s.startsWith('#')) || '';
+    }
+    if (!/^https?:\/\//i.test(url)) {
+      this.vmDropError = 'ลิ้งค์ไม่ถูกต้อง, ต้องขึ้นต้นด้วย http(s)://';
+      setTimeout(() => { this.vmDropError = ''; }, 3000);
+      return;
+    }
+    this.videoForm.patchValue({ zoomRecordingUrl: url });
+    if (!this.showForm) this.showForm = true;
+  }
+
+  /** Library grid GSAP stagger — fires on data/filter/sort change. */
+  private maybePlayLibStagger(): void {
+    const root = this.libGrid?.nativeElement;
+    if (!root) return;
+    if (typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const cards = root.querySelectorAll<HTMLElement>('.vm-card');
+    const key = `${this.vmSearch}:${this.vmCourseFilter}:${this.vmSortBy}:${cards.length}`;
+    if (key === this.vmLastStaggerKey) return;
+    this.vmLastStaggerKey = key;
+    if (cards.length === 0) return;
+    this.ngZone.runOutsideAngular(() => {
+      gsap.fromTo(cards, { opacity: 0, y: 10 }, {
+        opacity: 1, y: 0,
+        duration: 0.55, ease: 'power3.out',
+        stagger: { each: 0.04, from: 'start' },
+        clearProps: 'opacity,transform'
+      });
+    });
   }
 
   initializeForm(): void {

@@ -1,4 +1,190 @@
 /* ═══════════════════════════════════════════════════════
+   Manager Calendar v2 — Toolbar refresh + mobile stack
+   ═══════════════════════════════════════════════════════ */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--gray-150);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-xs);
+  margin-bottom: var(--sp-3);
+  flex-wrap: wrap;
+}
+.view-toggle {
+  display: inline-flex;
+  background: var(--gray-100);
+  border-radius: var(--r-md);
+  padding: 3px;
+  gap: 2px;
+}
+.view-toggle button {
+  padding: 6px 14px;
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--r-md) - 2px);
+  font-family: var(--font-th);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.view-toggle button:hover { color: var(--brand-700); }
+.view-toggle button.active {
+  background: #fff;
+  color: var(--brand-700);
+  box-shadow: var(--shadow-xs);
+}
+.nav-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.nav-btn,
+.today-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 12px;
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--r-md);
+  font-family: var(--font-th);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+.nav-btn:hover,
+.today-btn:hover {
+  background: var(--brand-50);
+  border-color: var(--brand-300);
+  color: var(--brand-700);
+  transform: translateY(-1px);
+}
+.nav-btn:active,
+.today-btn:active { transform: translateY(0); }
+.today-btn.active {
+  background: linear-gradient(135deg, var(--brand-600), var(--brand-500));
+  border-color: var(--brand-600);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(30, 63, 128, 0.22);
+}
+.nav-btn:focus-visible,
+.today-btn:focus-visible {
+  outline: 2px solid var(--brand-400);
+  outline-offset: 2px;
+}
+.cal-title {
+  padding: 0 var(--sp-2);
+  font-family: var(--font-th);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--gray-900);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+/* Mobile <640px: stack the gcal weekly grid vertically (listWeek equivalent).
+   gcal renders weekDays as columns; on mobile we make each column a full-width
+   block stacked top-to-bottom, with the day-head sticking inside the block.
+   No JS change — purely CSS reflow. */
+@media (max-width: 640px) {
+  .gcal-wrapper { padding: 0; }
+  .gcal-header {
+    display: none; /* hide the row of day-heads — each day-col renders its own header inline */
+  }
+  .gcal-scroll {
+    overflow: visible;
+    max-height: none;
+  }
+  .gcal-inner {
+    height: auto !important;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+  }
+  .gcal-time-col { display: none; }
+  .gcal-day-col {
+    width: 100% !important;
+    min-height: 80px;
+    padding: var(--sp-3) var(--sp-3) var(--sp-4);
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid var(--gray-150);
+    border-radius: var(--r-lg);
+  }
+  .gcal-day-col::before {
+    /* synthetic per-day header: shows weekday + date number */
+    content: attr(data-mobile-day);
+    display: block;
+    font-family: var(--font-th);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    color: var(--brand-700);
+    letter-spacing: -0.01em;
+    margin-bottom: var(--sp-2);
+    padding-bottom: 6px;
+    border-bottom: 1px dashed var(--gray-200);
+  }
+  /* Position events as a vertical stack on mobile (override absolute positioning). */
+  .gcal-event {
+    position: static !important;
+    height: auto !important;
+    top: auto !important;
+    margin: 0 0 6px !important;
+    padding: 8px 10px !important;
+    border-radius: var(--r-md);
+  }
+  .gcal-hr-line,
+  .gcal-halfhr-line,
+  .gcal-now-line,
+  .gcal-drag-preview { display: none !important; }
+  .drag-hint { display: none; } /* drag not available on touch */
+}
+
+/* ═══════════════════════════════════════════════════════
+   Manager Calendar — Skeleton + Legend polish (overdrive)
+   ═══════════════════════════════════════════════════════ */
+.mc-skel { display: flex; flex-direction: column; gap: var(--sp-4); padding: var(--sp-4) 0; }
+.mc-skel-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--sp-3);
+}
+.mc-skel-grid { padding: var(--sp-5); }
+
+/* Calmer legend pills + subtle elevation on hover. Visual only — no logic. */
+.mc-legend .mc-lg-item {
+  padding: 3px 9px 3px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  transition: background var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
+}
+.mc-legend .mc-lg-item:hover {
+  background: #fff;
+  border-color: rgba(15, 23, 42, 0.10);
+}
+
+/* Event hover micro-lift (CSS only — no popover JS) */
+.gcal-event {
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), filter var(--dur-fast) var(--ease-out);
+}
+.gcal-event:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.10);
+  filter: brightness(1.04);
+}
+
+/* ═══════════════════════════════════════════════════════
    Manager Calendar — Google Calendar Style
    ═══════════════════════════════════════════════════════ */
 

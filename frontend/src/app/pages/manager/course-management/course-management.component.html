@@ -423,8 +423,24 @@
     </div>
   </div>
 
-  <!-- Courses List -->
-  <app-loading *ngIf="loading"></app-loading>
+  <!-- Courses List — Skeleton placeholder while loading -->
+  <div *ngIf="loading" class="cm-skel" aria-busy="true" aria-label="กำลังโหลดนัดสอน">
+    <div class="kms-skel-grid">
+      <div class="kms-skel-card" *ngFor="let _ of [1,2,3,4,5,6]">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+          <div class="kms-skel kms-skel-line lg w-60"></div>
+          <div class="kms-skel kms-skel-line" style="width:70px;height:18px"></div>
+        </div>
+        <div class="kms-skel kms-skel-line w-50"></div>
+        <div class="kms-skel kms-skel-line w-70"></div>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <div class="kms-skel kms-skel-line" style="width:60px;height:18px"></div>
+          <div class="kms-skel kms-skel-line" style="width:80px;height:18px"></div>
+          <div class="kms-skel kms-skel-line" style="width:50px;height:18px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div *ngIf="!loading" class="courses-section">
     <div class="section-header">
@@ -479,31 +495,87 @@
       </div>
     </div>
 
-    <!-- Empty State -->
-    <div class="empty-state" *ngIf="courses.length === 0">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <rect x="3" y="4" width="18" height="18" rx="2"/>
-        <line x1="3" y1="10" x2="21" y2="10"/>
-        <line x1="8" y1="2" x2="8" y2="6"/>
-        <line x1="16" y1="2" x2="16" y2="6"/>
-      </svg>
+    <!-- ── v2: Multi-axis filter chips (subject + teacher) ────────────────────────── -->
+    <div class="cm-axis-chips" *ngIf="courses.length > 0 && (cmSubjectOptions.length > 0 || cmTeacherOptions.length > 0)">
+      <ng-container *ngIf="cmSubjectOptions.length > 0">
+        <span class="cm-axis-label">วิชา</span>
+        <button class="cm-axis-chip"
+                *ngFor="let s of cmSubjectOptions"
+                [class.active]="cmSubjectFilter === s.value"
+                (click)="toggleSubjectFilter(s.value)">
+          {{ s.value }}
+          <span class="cm-axis-count">{{ s.count }}</span>
+        </button>
+      </ng-container>
+      <ng-container *ngIf="cmTeacherOptions.length > 0">
+        <span class="cm-axis-label cm-axis-label-sep">ครู</span>
+        <button class="cm-axis-chip cm-axis-chip-teacher"
+                *ngFor="let t of cmTeacherOptions"
+                [class.active]="cmTeacherFilter === t.id"
+                (click)="toggleTeacherFilter(t.id)">
+          {{ t.label }}
+          <span class="cm-axis-count">{{ t.count }}</span>
+        </button>
+      </ng-container>
+      <button class="cm-axis-clear" *ngIf="hasAxisFilter" (click)="clearAxisFilters()">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        ล้างตัวกรอง
+      </button>
+    </div>
+
+    <!-- Empty State (Lottie-ready: swap inline SVG with <lottie-player src="..."> when JSON sourced) -->
+    <div class="kms-empty" *ngIf="courses.length === 0">
+      <div class="kms-empty-art">
+        <!-- Lottie placeholder: assets/lottie/empty-calendar.json -->
+        <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <circle cx="12" cy="16" r="1.2" fill="currentColor" opacity=".5"/>
+        </svg>
+      </div>
       <h3>ยังไม่มีการนัดสอน</h3>
       <p>คลิก "สร้างนัดสอน" เพื่อเริ่มต้น</p>
     </div>
 
     <!-- Filtered empty state -->
-    <div class="empty-state" *ngIf="courses.length > 0 && cmFiltered.length === 0">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <div class="kms-empty" *ngIf="courses.length > 0 && cmFiltered.length === 0">
+      <div class="kms-empty-art">
+        <!-- Lottie placeholder: assets/lottie/empty-search.json -->
+        <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </div>
       <h3>ไม่พบรายการ</h3>
       <p>ลองเปลี่ยนแท็บหรือล้างคำค้น</p>
     </div>
 
     <!-- Courses Grid -->
-    <div class="courses-grid" *ngIf="cmFiltered.length > 0">
+    <div class="courses-grid kms-stagger" *ngIf="cmFiltered.length > 0">
       <div class="course-card" *ngFor="let course of cmFiltered"
            [class.series-card]="isSeriesCourse(course)"
            [class.series-card-clickable]="isSeriesCourse(course)"
+           [class.is-selected]="isSelected(getId(course))"
+           [class.is-expanded]="isExpanded(getId(course))"
            (click)="isSeriesCourse(course) && openSeriesModal(course)">
+
+        <!-- ── v2: Bulk-select checkbox (top-left, hidden for series/cancelled/completed) ── -->
+        <label class="cm-select" *ngIf="canSelectCard(course)"
+               (click)="$event.stopPropagation()"
+               [title]="isSelected(getId(course)) ? 'ยกเลิกการเลือก' : 'เลือกเพื่อจัดการพร้อมกัน'">
+          <input type="checkbox"
+                 [checked]="isSelected(getId(course))"
+                 (change)="toggleSelect(getId(course))" />
+          <span class="cm-select-box">
+            <svg *ngIf="isSelected(getId(course))" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </span>
+        </label>
         <!-- ── Series stack badge ── -->
         <div class="series-stack-badge" *ngIf="isSeriesCourse(course)"
              [title]="'ชุดนัดสอนอัตโนมัติ — ' + getSeriesCount(course) + ' คลาสในชุด'">
@@ -628,6 +700,47 @@
             </ng-container>
           </div>
         </div>
+
+        <!-- ── v2: Expandable inline detail ── -->
+        <div class="cm-expand-panel" *ngIf="!isSeriesCourse(course) && isExpanded(getId(course))">
+          <div class="cm-expand-row" *ngIf="course.description">
+            <span class="cm-expand-label">รายละเอียด</span>
+            <span class="cm-expand-value">{{ course.description }}</span>
+          </div>
+          <div class="cm-expand-row" *ngIf="course.students && course.students.length > 0">
+            <span class="cm-expand-label">นักเรียนที่ลงทะเบียน ({{ course.students.length }})</span>
+            <div class="cm-expand-students">
+              <span class="cm-expand-student" *ngFor="let s of course.students">
+                <span class="cm-expand-student-avatar">{{ $any(s).firstName?.charAt(0) }}{{ $any(s).lastName?.charAt(0) }}</span>
+                {{ s | displayName:'student' }}<span class="cm-expand-student-grade" *ngIf="$any(s).grade || $any(s).academicYear"> · {{ $any(s).grade || $any(s).academicYear }}</span>
+              </span>
+            </div>
+          </div>
+          <div class="cm-expand-row cm-expand-grid">
+            <div>
+              <span class="cm-expand-label">รหัสนัดสอน</span>
+              <span class="cm-expand-value cm-expand-mono">{{ getId(course).slice(0, 8) }}…</span>
+            </div>
+            <div *ngIf="course.createdAt">
+              <span class="cm-expand-label">สร้างเมื่อ</span>
+              <span class="cm-expand-value">{{ formatDateTime(course.createdAt) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── v2: Expand toggle button (non-series only) ── -->
+        <button class="cm-expand-btn" type="button"
+                *ngIf="!isSeriesCourse(course)"
+                (click)="toggleExpand(getId(course), $event)"
+                [attr.aria-expanded]="isExpanded(getId(course))"
+                [attr.aria-label]="isExpanded(getId(course)) ? 'ย่อรายละเอียด' : 'ขยายรายละเอียด'">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"
+               [style.transform]="isExpanded(getId(course)) ? 'rotate(180deg)' : 'rotate(0)'"
+               style="transition:transform 220ms cubic-bezier(0.16,1,0.3,1)">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+          <span>{{ isExpanded(getId(course)) ? 'ย่อ' : 'รายละเอียด' }}</span>
+        </button>
 
         <!-- Card Footer -->
         <div class="card-footer">
@@ -940,6 +1053,28 @@
           <button class="btn-close-series" (click)="closeSeriesModal()">ปิด</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ── v2: Floating bulk action bar — visible when selection > 0 ── -->
+  <div class="cm-bulk-bar" *ngIf="selectionCount > 0" role="region" aria-label="ดำเนินการพร้อมกัน">
+    <div class="cm-bulk-summary">
+      <span class="cm-bulk-count">{{ selectionCount }}</span>
+      <span class="cm-bulk-text">รายการที่เลือก</span>
+    </div>
+    <div class="cm-bulk-actions">
+      <button class="cm-bulk-btn cm-bulk-btn-cancel" type="button" (click)="clearSelection()" [disabled]="bulkCancelling">
+        ล้างการเลือก
+      </button>
+      <button class="cm-bulk-btn cm-bulk-btn-apply" type="button" (click)="bulkCancelSelected()" [disabled]="bulkCancelling">
+        <svg *ngIf="!bulkCancelling" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        <svg *ngIf="bulkCancelling" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="cm-bulk-spin">
+          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+        </svg>
+        {{ bulkCancelling ? 'กำลังยกเลิก...' : 'ยกเลิกที่เลือก' }}
+      </button>
     </div>
   </div>
 
