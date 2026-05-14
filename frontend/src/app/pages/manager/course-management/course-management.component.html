@@ -554,28 +554,25 @@
       <p>ลองเปลี่ยนแท็บหรือล้างคำค้น</p>
     </div>
 
-    <!-- Courses Grid -->
-    <div class="courses-grid kms-stagger" *ngIf="cmFiltered.length > 0">
-      <div class="course-card" *ngFor="let course of cmFiltered"
-           [class.series-card]="isSeriesCourse(course)"
-           [class.series-card-clickable]="isSeriesCourse(course)"
-           [class.is-selected]="isSelected(getId(course))"
-           [class.is-expanded]="isExpanded(getId(course))"
-           (click)="isSeriesCourse(course) && openSeriesModal(course)">
+    <!-- Courses Timeline — date-grouped sections (matches history page) -->
+    <div class="cm-timeline" *ngIf="cmTimelineGroups.length > 0">
+      <div class="cm-tl-group" *ngFor="let g of cmTimelineGroups">
+        <div class="cm-tl-date">
+          <div class="cm-tl-date-circle">{{ g.dayNum }}</div>
+          <div class="cm-tl-date-info">
+            <div class="cm-tl-date-label">{{ g.dateLabel }}</div>
+            <div class="cm-tl-date-weekday" *ngIf="g.weekday">วัน{{ g.weekday }}</div>
+          </div>
+          <div class="cm-tl-date-count">{{ g.items.length }} คลาส</div>
+        </div>
 
-        <!-- ── v2: Bulk-select checkbox (top-left, hidden for series/cancelled/completed) ── -->
-        <label class="cm-select" *ngIf="canSelectCard(course)"
-               (click)="$event.stopPropagation()"
-               [title]="isSelected(getId(course)) ? 'ยกเลิกการเลือก' : 'เลือกเพื่อจัดการพร้อมกัน'">
-          <input type="checkbox"
-                 [checked]="isSelected(getId(course))"
-                 (change)="toggleSelect(getId(course))" />
-          <span class="cm-select-box">
-            <svg *ngIf="isSelected(getId(course))" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          </span>
-        </label>
+        <div class="courses-grid kms-stagger">
+          <div class="course-card" *ngFor="let course of g.items"
+               [class.series-card]="isSeriesCourse(course)"
+               [class.series-card-clickable]="isSeriesCourse(course)"
+               [class.is-expanded]="isExpanded(getId(course))"
+               (click)="isSeriesCourse(course) && openSeriesModal(course)">
+
         <!-- ── Series stack badge ── -->
         <div class="series-stack-badge" *ngIf="isSeriesCourse(course)"
              [title]="'ชุดนัดสอนอัตโนมัติ — ' + getSeriesCount(course) + ' คลาสในชุด'">
@@ -775,7 +772,7 @@
               ดูทั้งชุด ({{ getSeriesCount(course) }} คลาส)
             </button>
             <button class="btn-edit-course" (click)="openEditModal(course)"
-              *ngIf="!isSeriesCourse(course) && !isEditingLocked(course)">
+              *ngIf="!isSeriesCourse(course)">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -816,7 +813,9 @@
           </div>
         </div>
       </div>
-    </div>
+          </div><!-- /courses-grid (per-day) -->
+        </div><!-- /cm-tl-group -->
+    </div><!-- /cm-timeline -->
   </div>
 
   <!-- ─── Edit Modal ──────────────────────────────────────────── -->
@@ -1055,7 +1054,6 @@
             </div>
             <div class="series-item-actions">
               <button class="series-item-btn series-item-btn-edit"
-                      *ngIf="!isEditingLocked(c)"
                       (click)="closeSeriesModal(); openEditModal(c)"
                       title="แก้ไขคลาสนี้">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">

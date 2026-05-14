@@ -820,6 +820,56 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     return !!(this.cmSubjectFilter || this.cmTeacherFilter);
   }
 
+  // ─── Timeline grouping — classes grouped by scheduled date,
+  //     matching the date-spine pattern used by the history page. ──
+  get cmTimelineGroups(): {
+    dateKey: string;
+    dateLabel: string;
+    dayNum: string;
+    weekday: string;
+    items: ICourse[];
+  }[] {
+    const list = this.cmFiltered;
+    const map = new Map<string, ICourse[]>();
+    for (const c of list) {
+      const raw = (c as any).scheduledDate;
+      const key = raw
+        ? (() => {
+            const d = new Date(raw);
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          })()
+        : 'zzz-no-date';
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(c);
+    }
+    const monthShort = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    const weekdays  = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์','เสาร์'];
+    const groups = Array.from(map.entries()).map(([key, items]) => {
+      if (key === 'zzz-no-date') {
+        return {
+          dateKey: 'zzz-no-date',
+          dateLabel: 'ไม่ระบุวันที่',
+          dayNum: '–',
+          weekday: '',
+          items: items.sort((a, b) => ((a as any).startTime || '').localeCompare((b as any).startTime || ''))
+        };
+      }
+      const d = new Date(key);
+      const sortedItems = items.sort((a, b) =>
+        ((a as any).startTime || '').localeCompare((b as any).startTime || '')
+      );
+      return {
+        dateKey: key,
+        dateLabel: `${d.getDate()} ${monthShort[d.getMonth()]} ${d.getFullYear() + 543}`,
+        dayNum: String(d.getDate()),
+        weekday: weekdays[d.getDay()],
+        items: sortedItems
+      };
+    });
+    // Ascending: earliest day first (matches typical schedule reading order).
+    return groups.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+  }
+
   // ─── v2: Expandable inline detail per card ─────────────────
   expandedIds = new Set<string>();
   toggleExpand(id: string, ev?: Event): void {

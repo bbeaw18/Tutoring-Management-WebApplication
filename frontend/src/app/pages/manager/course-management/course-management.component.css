@@ -2416,3 +2416,82 @@
   .btn-delete-series,
   .series-item-select-box { transition: none !important; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   Course timeline — date-grouped sections (history pattern)
+   ═══════════════════════════════════════════════════════ */
+.cm-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-7);
+}
+
+.cm-tl-group { display: flex; flex-direction: column; gap: var(--sp-3); }
+
+.cm-tl-date {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  background: linear-gradient(135deg, #fff, var(--brand-50));
+  border: 1px solid var(--brand-200);
+  border-radius: var(--r-xl);
+  position: sticky;
+  top: var(--header-h, 64px);
+  z-index: 5;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.cm-tl-date-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-lg);
+  background: var(--brand-700);
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(30, 63, 128, 0.25);
+}
+
+.cm-tl-date-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+
+.cm-tl-date-label {
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--gray-900);
+  letter-spacing: -0.01em;
+}
+
+.cm-tl-date-weekday {
+  font-size: var(--text-xs);
+  color: var(--brand-700);
+  font-weight: 600;
+}
+
+.cm-tl-date-count {
+  padding: 4px 12px;
+  background: var(--brand-700);
+  color: #fff;
+  border-radius: var(--r-full);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The inner courses-grid keeps its own auto-fit columns. */
+.cm-tl-group .courses-grid { margin: 0; }
+
+@media (max-width: 480px) {
+  .cm-tl-date         { padding: var(--sp-2) var(--sp-3); gap: var(--sp-2); position: static; }
+  .cm-tl-date-circle  { width: 36px; height: 36px; font-size: 1rem; }
+  .cm-tl-date-label   { font-size: var(--text-sm); }
+  .cm-tl-date-count   { padding: 2px 10px; font-size: 11px; }
+  .cm-timeline        { gap: var(--sp-5); }
+}
