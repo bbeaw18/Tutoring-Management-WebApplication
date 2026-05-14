@@ -866,8 +866,8 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
         items: sortedItems
       };
     });
-    // Ascending: earliest day first (matches typical schedule reading order).
-    return groups.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+    // Descending: newest day first (most recent class on top).
+    return groups.sort((a, b) => b.dateKey.localeCompare(a.dateKey));
   }
 
   // ─── v2: Expandable inline detail per card ─────────────────
