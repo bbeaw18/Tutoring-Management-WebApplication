@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, DoCheck, HostListener, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -22,8 +22,9 @@ type FilterMode = 'all' | 'teacher' | 'student';
   templateUrl: './manager-calendar.component.html',
   styleUrls: ['./manager-calendar.component.css']
 })
-export class ManagerCalendarComponent implements OnInit, OnDestroy {
+export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
   private destroy$ = new Subject<void>();
+  private scrolledToNow = false;
 
   @ViewChild('calScroll') calScrollRef!: ElementRef<HTMLElement>;
 
@@ -40,8 +41,8 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy {
   weekDays: Array<{ date: Date; schedules: ISchedule[] }> = [];
 
   // ─── Time Grid Config ─────────────────────────────────────────────────────
-  readonly START_HOUR = 6;
-  readonly END_HOUR = 23;
+  readonly START_HOUR = 0;
+  readonly END_HOUR = 24;
   readonly HOUR_HEIGHT = 64; // px per hour
   readonly hours: number[] = Array.from(
     { length: this.END_HOUR - this.START_HOUR },
@@ -121,6 +122,22 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy {
     this.currentUser = this.authService.getCurrentUser();
     this.loadDropdowns();
     this.loadCalendar();
+  }
+
+  ngDoCheck(): void {
+    this.maybeScrollToNow();
+  }
+
+  /** On first weekly render, scroll the 24h grid to the current time (centred). */
+  private maybeScrollToNow(): void {
+    if (this.scrolledToNow) return;
+    if (this.viewMode !== 'weekly' || this.loading) return;
+    const el = this.calScrollRef?.nativeElement;
+    if (!el || !el.clientHeight) return;
+    this.scrolledToNow = true;
+    const now = new Date();
+    const top = (now.getHours() - this.START_HOUR + now.getMinutes() / 60) * this.HOUR_HEIGHT;
+    el.scrollTop = Math.max(0, top - el.clientHeight / 2);
   }
 
   // ─── Dropdowns ────────────────────────────────────────────────────────────

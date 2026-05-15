@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, DoCheck, HostListener, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -20,8 +20,9 @@ type CalendarViewMode = 'monthly' | 'weekly';
   templateUrl: './student-calendar.component.html',
   styleUrls: ['./student-calendar.component.css']
 })
-export class StudentCalendarComponent implements OnInit, OnDestroy {
+export class StudentCalendarComponent implements OnInit, OnDestroy, DoCheck {
   private destroy$ = new Subject<void>();
+  private scrolledToNow = false;
 
   @ViewChild('calScroll') calScrollRef!: ElementRef<HTMLElement>;
 
@@ -49,8 +50,8 @@ export class StudentCalendarComponent implements OnInit, OnDestroy {
   scanSuccess = '';
 
   // ─── Time Grid Config ─────────────────────────────────────
-  readonly START_HOUR = 6;
-  readonly END_HOUR = 23;
+  readonly START_HOUR = 0;
+  readonly END_HOUR = 24;
   readonly HOUR_HEIGHT = 64;
   readonly hours: number[] = Array.from(
     { length: this.END_HOUR - this.START_HOUR },
@@ -81,6 +82,22 @@ export class StudentCalendarComponent implements OnInit, OnDestroy {
     this.checkUrlForQR();
     // ── Auto-refresh เมื่อกลับมาที่ tab — เพื่อเห็นสถานะคลาสที่อัปเดต ──
     document.addEventListener('visibilitychange', this.onVisibilityChange);
+  }
+
+  ngDoCheck(): void {
+    this.maybeScrollToNow();
+  }
+
+  /** On first weekly render, scroll the 24h grid to the current time (centred). */
+  private maybeScrollToNow(): void {
+    if (this.scrolledToNow) return;
+    if (this.viewMode !== 'weekly' || this.loading) return;
+    const el = this.calScrollRef?.nativeElement;
+    if (!el || !el.clientHeight) return;
+    this.scrolledToNow = true;
+    const now = new Date();
+    const top = (now.getHours() - this.START_HOUR + now.getMinutes() / 60) * this.HOUR_HEIGHT;
+    el.scrollTop = Math.max(0, top - el.clientHeight / 2);
   }
 
   /** Refresh calendar เมื่อ user สลับมาที่ tab นี้ (manager อาจกดยืนยันคลาส) */

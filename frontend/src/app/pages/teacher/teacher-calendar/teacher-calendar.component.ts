@@ -25,6 +25,7 @@ export class TeacherCalendarComponent implements OnInit, OnDestroy, AfterViewIni
   @ViewChild('calScroll') calScrollRef!: ElementRef<HTMLElement>;
   @ViewChild('weekTotalEl') weekTotalEl?: ElementRef<HTMLElement>;
   private lastCountedTotal = -1;
+  private scrolledToNow = false;
 
   loading = false;
   viewMode: CalendarViewMode = 'weekly';
@@ -42,8 +43,8 @@ export class TeacherCalendarComponent implements OnInit, OnDestroy, AfterViewIni
   confirmLoading = false;
 
   // ─── Time Grid Config ─────────────────────────────────────
-  readonly START_HOUR = 6;
-  readonly END_HOUR = 23;
+  readonly START_HOUR = 0;
+  readonly END_HOUR = 24;
   readonly HOUR_HEIGHT = 64;
   readonly hours: number[] = Array.from(
     { length: this.END_HOUR - this.START_HOUR },
@@ -68,6 +69,19 @@ export class TeacherCalendarComponent implements OnInit, OnDestroy, AfterViewIni
 
   ngDoCheck(): void {
     this.maybeAnimateEarnings();
+    this.maybeScrollToNow();
+  }
+
+  /** On first weekly render, scroll the 24h grid to the current time (centred). */
+  private maybeScrollToNow(): void {
+    if (this.scrolledToNow) return;
+    if (this.viewMode !== 'weekly' || this.loading) return;
+    const el = this.calScrollRef?.nativeElement;
+    if (!el || !el.clientHeight) return;
+    this.scrolledToNow = true;
+    const now = new Date();
+    const top = (now.getHours() - this.START_HOUR + now.getMinutes() / 60) * this.HOUR_HEIGHT;
+    el.scrollTop = Math.max(0, top - el.clientHeight / 2);
   }
 
   /** Count-up animation when the weekly total income changes. */
