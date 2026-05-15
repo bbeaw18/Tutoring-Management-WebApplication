@@ -329,10 +329,34 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
   /** Height in px for an event (based on duration) */
   getEventHeight(sch: ISchedule): number {
     if (!sch.startTime || !sch.endTime) return this.HOUR_HEIGHT;
-    const [sh, sm] = sch.startTime.split(':').map(Number);
-    const [eh, em] = sch.endTime.split(':').map(Number);
-    const duration = (eh * 60 + em) - (sh * 60 + sm);
+    const s = this.minOf(sch.startTime), e = this.minOf(sch.endTime);
+    // Overnight: first segment runs start → end of grid (24:00)
+    const duration = e <= s ? (this.END_HOUR * 60 - s) : (e - s);
     return Math.max(duration / 60 * this.HOUR_HEIGHT, 28); // min 28px
+  }
+
+  // ─── Overnight (cross-midnight) support ───────────────────
+  private minOf(t?: string): number {
+    if (!t) return -1;
+    const [h, m] = String(t).split(':').map(Number);
+    return (isNaN(h) || isNaN(m)) ? -1 : h * 60 + m;
+  }
+
+  isOvernight(sch: ISchedule): boolean {
+    const s = this.minOf(sch?.startTime), e = this.minOf(sch?.endTime);
+    return s >= 0 && e >= 0 && e <= s;
+  }
+
+  /** Tail segments (00:00 → end) carried from the previous day's column */
+  overnightTails(di: number): ISchedule[] {
+    if (di <= 0 || !this.weekDays[di - 1]) return [];
+    return (this.weekDays[di - 1].schedules || []).filter(s => this.isOvernight(s));
+  }
+
+  getTailHeight(sch: ISchedule): number {
+    const e = this.minOf(sch?.endTime);
+    if (e < 0) return this.HOUR_HEIGHT;
+    return Math.max((e / 60) * this.HOUR_HEIGHT, 22);
   }
 
   /** Top of the drag preview ghost */
@@ -343,13 +367,13 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
     );
   }
 
-  /** Height of the drag preview ghost (same as original event) */
+  /** Height of the drag preview ghost (clipped to grid bottom for overnight) */
   getDragPreviewHeight(): number {
     if (!this.dragSchedule) return this.HOUR_HEIGHT;
-    const [sh, sm] = this.dragSchedule.startTime.split(':').map(Number);
-    const [eh, em] = this.dragSchedule.endTime.split(':').map(Number);
-    const duration = (eh * 60 + em) - (sh * 60 + sm);
-    return Math.max(duration / 60 * this.HOUR_HEIGHT, 28);
+    const dur = this.getEventDurationMinutes(this.dragSchedule);
+    const startMin = this.dragPreviewStartHour * 60 + this.dragPreviewStartMin;
+    const visible = Math.min(dur, this.END_HOUR * 60 - startMin);
+    return Math.max(visible / 60 * this.HOUR_HEIGHT, 28);
   }
 
   formatDragTime(): string {
@@ -540,15 +564,17 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
     const rawStartMins = (relY / this.HOUR_HEIGHT) * 60 - this.dragOffsetMinutes + this.START_HOUR * 60;
     const snappedStartMins = Math.round(rawStartMins / 30) * 30;
 
+    // Start must stay within the day; end may roll into the next day (overnight)
     const minStart = this.START_HOUR * 60;
-    const maxStart = (this.END_HOUR - 1) * 60 - duration + 30; // leave at least 30 min room
+    const maxStart = this.END_HOUR * 60 - 30; // need at least 30 min on the start day
     const clampedStart = Math.max(minStart, Math.min(maxStart, snappedStartMins));
     const clampedEnd = clampedStart + duration;
+    const endWrapped = clampedEnd % (24 * 60); // wrap past midnight
 
     this.dragPreviewStartHour = Math.floor(clampedStart / 60);
     this.dragPreviewStartMin = clampedStart % 60;
-    this.dragPreviewEndHour = Math.floor(clampedEnd / 60);
-    this.dragPreviewEndMin = clampedEnd % 60;
+    this.dragPreviewEndHour = Math.floor(endWrapped / 60);
+    this.dragPreviewEndMin = endWrapped % 60;
 
     // X → day index calculation (60px gutter + 7 equal columns)
     const timeGutterWidth = 60;
@@ -622,9 +648,10 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
 
   private getEventDurationMinutes(sch: ISchedule): number {
     if (!sch.startTime || !sch.endTime) return 60;
-    const [sh, sm] = sch.startTime.split(':').map(Number);
-    const [eh, em] = sch.endTime.split(':').map(Number);
-    return Math.max(30, (eh * 60 + em) - (sh * 60 + sm));
+    const s = this.minOf(sch.startTime), e = this.minOf(sch.endTime);
+    let dur = e - s;
+    if (dur <= 0) dur += 24 * 60; // overnight (ends next day)
+    return Math.max(30, dur);
   }
 
   // ─── Detail Modal ─────────────────────────────────────────────────────────

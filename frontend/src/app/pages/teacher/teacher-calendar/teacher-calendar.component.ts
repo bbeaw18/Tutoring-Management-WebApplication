@@ -231,10 +231,34 @@ export class TeacherCalendarComponent implements OnInit, OnDestroy, AfterViewIni
 
   getEventHeight(sch: ISchedule): number {
     if (!sch.startTime || !sch.endTime) return this.HOUR_HEIGHT;
-    const [sh, sm] = sch.startTime.split(':').map(Number);
-    const [eh, em] = sch.endTime.split(':').map(Number);
-    const duration = (eh * 60 + em) - (sh * 60 + sm);
+    const s = this.minOf(sch.startTime), e = this.minOf(sch.endTime);
+    // Overnight: first segment runs start → end of grid (24:00)
+    const duration = e <= s ? (this.END_HOUR * 60 - s) : (e - s);
     return Math.max(duration / 60 * this.HOUR_HEIGHT, 28);
+  }
+
+  // ─── Overnight (cross-midnight) support ───────────────────
+  private minOf(t?: string): number {
+    if (!t) return -1;
+    const [h, m] = String(t).split(':').map(Number);
+    return (isNaN(h) || isNaN(m)) ? -1 : h * 60 + m;
+  }
+
+  isOvernight(sch: ISchedule): boolean {
+    const s = this.minOf(sch?.startTime), e = this.minOf(sch?.endTime);
+    return s >= 0 && e >= 0 && e <= s;
+  }
+
+  /** Tail segments (00:00 → end) carried from the previous day's column */
+  overnightTails(di: number): ISchedule[] {
+    if (di <= 0 || !this.weekDays[di - 1]) return [];
+    return (this.weekDays[di - 1].schedules || []).filter(s => this.isOvernight(s));
+  }
+
+  getTailHeight(sch: ISchedule): number {
+    const e = this.minOf(sch?.endTime);
+    if (e < 0) return this.HOUR_HEIGHT;
+    return Math.max((e / 60) * this.HOUR_HEIGHT, 22);
   }
 
   getCurrentTimeTop(): number {

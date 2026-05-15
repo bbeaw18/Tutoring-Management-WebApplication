@@ -232,6 +232,19 @@
             </div>
           </div>
 
+          <!-- Overnight tail (continued from previous day) -->
+          <div class="gcal-event gcal-event-tail"
+               *ngFor="let sch of overnightTails(di)"
+               [style.top.px]="0"
+               [style.height.px]="getTailHeight(sch)"
+               [style.background]="getEventBg(sch)"
+               [style.borderLeftColor]="getEventBorder(sch)"
+               [style.color]="getEventText(sch)"
+               (click)="openDetail(sch, $event)">
+            <div class="gcal-event-time">▸ {{ sch.startTime }}–{{ sch.endTime }}</div>
+            <div class="gcal-event-title">{{ getCourseName(sch) }}</div>
+          </div>
+
         </div>
       </div>
     </div>
