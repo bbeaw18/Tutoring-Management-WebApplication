@@ -25,19 +25,15 @@
 .table-header-row h2 { font-size: 15px; font-weight: 700; color: #1e293b; margin: 0; }
 .record-count { font-size: 12px; color: #94a3b8; font-weight: 600; }
 .empty-state { padding: 32px; text-align: center; color: #94a3b8; font-size: 14px; }
-.table-scroll { overflow-x: auto; }
-.inc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.inc-table th { text-align: left; padding: 10px 14px; background: #f8fafc; color: #64748b; font-weight: 600; font-size: 12px; white-space: nowrap; }
-.inc-table td { padding: 11px 14px; border-top: 1px solid #f1f5f9; color: #334155; vertical-align: top; }
-.inc-table tr.row-done { background: #f6fefb; }
-.cell-primary { font-weight: 600; color: #1e293b; }
-.cell-secondary { font-size: 11.5px; color: #94a3b8; margin-top: 1px; }
-
-/* ─── Nickname chips ─── */
-.nick-chips { display: flex; flex-wrap: wrap; gap: 5px; }
-.nick-chip { border: 1px solid #e2e8f0; background: #f8fafc; color: #1e3f80; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; cursor: pointer; transition: all .15s ease; font-family: inherit; }
-.nick-chip:hover { background: #1e3f80; color: #fff; border-color: #1e3f80; }
-.nick-none { color: #cbd5e1; }
+/* ─── Nickname list (one row per class) ─── */
+.nick-list { display: flex; flex-direction: column; }
+.nick-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; text-align: left; padding: 13px 18px; border: none; border-top: 1px solid #f1f5f9; background: #fff; cursor: pointer; transition: background .15s ease; font-family: inherit; }
+.nick-row:first-child { border-top: none; }
+.nick-row:hover { background: #f8faff; }
+.nick-row.is-done { background: #f6fefb; }
+.nick-row.is-done:hover { background: #ecfdf5; }
+.nick-name { font-size: 14px; font-weight: 600; color: #1e293b; }
+.nick-arrow { color: #cbd5e1; flex-shrink: 0; }
 
 .inc-value { font-weight: 700; color: #15803d; }
 .inc-pending { color: #cbd5e1; }
@@ -58,13 +54,11 @@
 .modal-close:hover { background: #e2e8f0; }
 .modal-title { font-size: 17px; font-weight: 700; color: #1e293b; margin: 0 0 16px; padding-right: 36px; }
 .modal-sub { display: block; font-size: 12px; font-weight: 500; color: #94a3b8; margin-top: 3px; }
-.ds-list { display: flex; flex-direction: column; gap: 8px; }
-.ds-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; }
-.ds-course { font-weight: 600; color: #1e293b; font-size: 14px; }
-.ds-meta { font-size: 12px; color: #94a3b8; margin-top: 2px; }
-.ds-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.cd-grid { display: flex; flex-direction: column; }
+.cd-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 2px; border-top: 1px solid #f1f5f9; font-size: 14px; color: #334155; }
+.cd-row:first-child { border-top: none; }
+.cd-label { color: #94a3b8; font-weight: 600; font-size: 13px; }
 
 @media (max-width: 640px) {
   .page-header { flex-direction: column; }
-  .inc-table th:nth-child(1), .inc-table td:nth-child(1) { display: none; }
 }
