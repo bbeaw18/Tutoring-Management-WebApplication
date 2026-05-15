@@ -280,7 +280,7 @@
                 </label>
                 <div class="income-input-wrap">
                   <span class="income-currency">฿</span>
-                  <input type="number" inputmode="numeric" formControlName="teacherIncomeGroup" class="form-input income-input" min="0" placeholder="บาท / ชั่วโมง"/>
+                  <input type="number" inputmode="numeric" formControlName="teacherIncomeGroup" class="form-input income-input" min="0" placeholder="บาท / ชั่วโมง" (wheel)="$event.preventDefault()"/>
                   <span class="income-suffix">/ ชม.</span>
                 </div>
                 <span class="field-hint">คิดต่อชั่วโมง × ระยะเวลาคลาส (ใช้เมื่อมีนักเรียน ≥ 2 คน)</span>
@@ -296,7 +296,7 @@
                 </label>
                 <div class="income-input-wrap">
                   <span class="income-currency">฿</span>
-                  <input type="number" inputmode="numeric" formControlName="teacherIncomeIndividual" class="form-input income-input" min="0" placeholder="บาท / ชั่วโมง"/>
+                  <input type="number" inputmode="numeric" formControlName="teacherIncomeIndividual" class="form-input income-input" min="0" placeholder="บาท / ชั่วโมง" (wheel)="$event.preventDefault()"/>
                   <span class="income-suffix">/ ชม.</span>
                 </div>
                 <span class="field-hint">คิดต่อชั่วโมง × ระยะเวลาคลาส (ใช้เมื่อมีนักเรียน 1 คน)</span>
@@ -323,7 +323,7 @@
               </label>
               <div class="income-input-wrap">
                 <span class="income-currency">฿</span>
-                <input type="number" inputmode="numeric" formControlName="teacherIncomeIndividual" class="form-input income-input" min="0" placeholder="บาท / ชั่วโมง"/>
+                <input type="number" inputmode="numeric" formControlName="teacherIncomeIndividual" class="form-input income-input" min="0" placeholder="บาท / ชั่วโมง" (wheel)="$event.preventDefault()"/>
                 <span class="income-suffix">/ ชม.</span>
               </div>
               <span class="field-hint">คิดต่อชั่วโมง × ระยะเวลาคลาส</span>
@@ -342,7 +342,7 @@
               </label>
               <div class="income-input-wrap">
                 <span class="income-currency">฿</span>
-                <input type="number" inputmode="numeric" formControlName="coursePrice" class="form-input income-input price-input" min="0" placeholder="ระบุอัตราต่อชั่วโมง"/>
+                <input type="number" inputmode="numeric" formControlName="coursePrice" class="form-input income-input price-input" min="0" placeholder="ระบุอัตราต่อชั่วโมง" (wheel)="$event.preventDefault()"/>
                 <span class="income-suffix">/ ชม.</span>
               </div>
               <span class="field-hint">ค่าเรียนจริง = อัตรา × ชั่วโมงคลาส </span>
