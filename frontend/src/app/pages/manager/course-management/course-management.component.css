@@ -1145,6 +1145,17 @@
   gap: var(--sp-2);
 }
 
+.preview-warn {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: #b45309;
+}
+
+.preview-warn svg { flex-shrink: 0; }
+
 .teacher-preview { color: #166534; }
 .student-preview { color: #92400e; }
 

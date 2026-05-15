@@ -351,6 +351,13 @@
 
           <!-- Preview summary -->
           <div class="income-preview" *ngIf="(bookingForm.get('teacherIncomeIndividual')?.value > 0) || (bookingForm.get('teacherIncomeGroup')?.value > 0) || (bookingForm.get('coursePrice')?.value > 0)">
+            <div class="preview-warn" *ngIf="classDurationHours <= 0">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              เลือกเวลาเริ่ม–สิ้นสุดคลาสก่อน เพื่อคำนวณยอดที่ครูได้รับและค่าเรียน
+            </div>
+            <ng-container *ngIf="classDurationHours > 0">
             <div class="preview-row teacher-preview">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
@@ -377,6 +384,7 @@
                 </small>
               </strong>
             </div>
+            </ng-container>
           </div>
         </div>
 
