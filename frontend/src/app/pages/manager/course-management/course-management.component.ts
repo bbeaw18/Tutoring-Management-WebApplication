@@ -681,49 +681,12 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     this.cmTab = t;
   }
 
-  /** รายการคอร์สสำหรับการแสดงผล — ยุบคลาสในชุดอัตโนมัติเดียวกันให้เหลือ 1 ตัวแทน
-   *  (เลือกคลาสที่วันที่นัดสอนเร็วสุดในชุด) เพื่อให้การ์ดในรายการไม่ซ้ำเป็นชุดยาว
-   *  ส่วน this.courses ยังเก็บทุกคลาสไว้ครบ — modal "ดูทั้งชุด" จะอ่านจาก this.courses */
+  /** รายการคอร์สสำหรับการแสดงผล — แสดงทุกคลาสจริง รวมทุก member ของชุด
+   *  อัตโนมัติ เพื่อให้แต่ละคลาสไปอยู่ในช่องวันที่นัดสอนของตัวเอง และให้
+   *  ตัวเลขแท็บ/ฟิลเตอร์นับตรงกับจำนวนการ์ดที่เห็นจริงใน timeline.
+   *  modal "ดูทั้งชุด" ยังอ่านจาก this.courses ผ่าน getSeriesCourses เช่นเดิม */
   get representativeCourses(): ICourse[] {
-    const seriesEarliest = new Map<string, ICourse>();
-    for (const c of this.courses) {
-      const sid = (c as any).seriesId;
-      if (!sid) continue;
-      const ct = c.scheduledDate ? new Date(c.scheduledDate).getTime() : 0;
-      const cur = seriesEarliest.get(sid);
-      const curt = cur?.scheduledDate ? new Date(cur.scheduledDate).getTime() : Number.POSITIVE_INFINITY;
-      if (!cur || ct < curt) seriesEarliest.set(sid, c);
-    }
-    const out: ICourse[] = [];
-    const seenSeries = new Set<string>();
-    for (const c of this.courses) {
-      const sid = (c as any).seriesId;
-      if (sid) {
-        if (seenSeries.has(sid)) continue;
-        seenSeries.add(sid);
-        out.push(seriesEarliest.get(sid) || c);
-      } else {
-        out.push(c);
-      }
-    }
-    return out;
-  }
-
-  /** ป้ายช่วงวันที่ของชุด — เช่น "17, 24, 31 พ.ค." หรือถ้ายาวเกินก็ "17 พ.ค. → 31 พ.ค." */
-  getSeriesDateRangeLabel(course: any): string {
-    if (!this.isSeriesCourse(course)) return '';
-    const all = this.getSeriesCourses(course.seriesId);
-    if (all.length === 0) return '';
-    const dates = all
-      .map(c => c.scheduledDate ? new Date(c.scheduledDate) : null)
-      .filter((d): d is Date => !!d && !isNaN(d.getTime()));
-    if (dates.length === 0) return '';
-    const monthShort = dates[0].toLocaleDateString('th-TH', { month: 'short' });
-    if (dates.length <= 4) {
-      return dates.map(d => d.getDate()).join(', ') + ' ' + monthShort;
-    }
-    const last = dates[dates.length - 1];
-    return `${dates[0].getDate()} ${monthShort} → ${last.getDate()} ${last.toLocaleDateString('th-TH', { month: 'short' })}`;
+    return this.courses;
   }
 
   get cmCounts(): {

@@ -1895,8 +1895,6 @@
   border-color: rgba(236, 72, 153, 0.28);
 }
 
-.courses-grid .course-card.series-card-clickable { cursor: pointer; }
-
 .courses-grid .course-card.series-card:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-lg), 0 8px 24px rgba(139, 92, 246, 0.22);
@@ -1956,27 +1954,6 @@
 
 /* เผื่อระยะให้ stack badge ไม่บัง subject */
 .course-card.series-card .card-header { padding-top: 18px; }
-
-/* ── แถบช่วงวันที่สำหรับการ์ดชุด ── */
-.series-card-dates strong {
-  color: #6d28d9;
-  font-weight: 700;
-}
-.series-card-time {
-  color: var(--text-tertiary);
-  font-weight: 500;
-}
-
-/* ── footer hint สำหรับ series card ── */
-.teacher-status.series-footer-hint {
-  background: linear-gradient(135deg, #f5f3ff, #fdf2f8);
-  border: 1px solid rgba(139, 92, 246, 0.25);
-  color: #6d28d9;
-  padding: 4px 9px;
-  border-radius: 999px;
-  font-weight: 600;
-}
-.teacher-status.series-footer-hint svg { color: #8b5cf6; }
 
 /* ── ปุ่ม "ดูทั้งชุด" บน card footer ── */
 .btn-view-series {
