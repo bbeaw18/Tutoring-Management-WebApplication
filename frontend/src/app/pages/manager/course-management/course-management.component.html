@@ -917,7 +917,7 @@
               <label class="edit-label">รายได้ครู (กลุ่ม) ฿</label>
               <div class="income-input-wrap">
                 <span class="income-currency">฿</span>
-                <input type="number" inputmode="numeric" class="edit-input" [(ngModel)]="editIncomeGrp" min="0" placeholder="ระบุจำนวนเงิน"/>
+                <input type="number" inputmode="numeric" class="edit-input" [(ngModel)]="editIncomeGrp" min="0" placeholder="ระบุจำนวนเงิน" (wheel)="$event.preventDefault()"/>
               </div>
               <span class="field-hint" style="font-size:10px;color:#9ca3af;margin-top:3px;display:block;">ใช้เมื่อมี ≥ 2 คน</span>
             </div>
@@ -925,7 +925,7 @@
               <label class="edit-label">รายได้ครู (เดี่ยว — สำรอง) ฿</label>
               <div class="income-input-wrap">
                 <span class="income-currency">฿</span>
-                <input type="number" inputmode="numeric" class="edit-input" [(ngModel)]="editIncomeInd" min="0" placeholder="ระบุจำนวนเงิน"/>
+                <input type="number" inputmode="numeric" class="edit-input" [(ngModel)]="editIncomeInd" min="0" placeholder="ระบุจำนวนเงิน" (wheel)="$event.preventDefault()"/>
               </div>
               <span class="field-hint" style="font-size:10px;color:#9ca3af;margin-top:3px;display:block;">ใช้เมื่อมีคนเดียว</span>
             </div>
@@ -936,7 +936,7 @@
             <label class="edit-label">รายได้ครู (เดี่ยว) ฿</label>
             <div class="income-input-wrap">
               <span class="income-currency">฿</span>
-              <input type="number" inputmode="numeric" class="edit-input" [(ngModel)]="editIncomeInd" min="0" placeholder="ระบุจำนวนเงิน"/>
+              <input type="number" inputmode="numeric" class="edit-input" [(ngModel)]="editIncomeInd" min="0" placeholder="ระบุจำนวนเงิน" (wheel)="$event.preventDefault()"/>
             </div>
           </div>
 
@@ -944,7 +944,7 @@
             <label class="edit-label">ค่าเรียน/คน ฿</label>
             <div class="income-input-wrap">
               <span class="income-currency">฿</span>
-              <input type="number" inputmode="numeric" class="edit-input" [(ngModel)]="editPrice" min="0" placeholder="ระบุจำนวนเงิน"/>
+              <input type="number" inputmode="numeric" class="edit-input" [(ngModel)]="editPrice" min="0" placeholder="ระบุจำนวนเงิน" (wheel)="$event.preventDefault()"/>
             </div>
           </div>
         </div>
