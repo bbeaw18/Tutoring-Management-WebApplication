@@ -1,0 +1,147 @@
+<div class="income-container">
+
+  <!-- ─── Header ──────────────────────────────────────────── -->
+  <div class="page-header">
+    <div>
+      <h1>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        รายได้
+      </h1>
+      <p>รายได้และประวัติการสอนของคุณ — นับเฉพาะคลาสที่เสร็จสิ้นและ Manager ยืนยันแล้ว</p>
+    </div>
+    <div class="header-actions">
+      <div class="filter-group">
+        <label>เดือน</label>
+        <kms-month-picker [(ngModel)]="selectedMonth" placeholder="ทั้งหมด"></kms-month-picker>
+      </div>
+    </div>
+  </div>
+
+  <app-loading *ngIf="loading"></app-loading>
+
+  <ng-container *ngIf="!loading">
+
+    <!-- ─── KPI Cards ────────────────────────────────────── -->
+    <div class="kpi-grid">
+      <div class="kpi-card green">
+        <div class="kpi-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">฿{{ monthIncome | number }}</div>
+          <div class="kpi-label">รายได้เดือน {{ formatMonth(selectedMonth) }}</div>
+          <div class="kpi-sub">นับเฉพาะคลาสที่เสร็จสิ้น</div>
+        </div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ completedCount }} คลาส</div>
+          <div class="kpi-label">เสร็จสิ้น (คิดรายได้แล้ว)</div>
+          <div class="kpi-sub">จาก {{ filteredSessions.length }} คลาสในเดือนนี้</div>
+        </div>
+      </div>
+      <div class="kpi-card amber">
+        <div class="kpi-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ monthHours | number:'1.0-1' }} ชม.</div>
+          <div class="kpi-label">ชั่วโมงสอน (คิดรายได้แล้ว)</div>
+          <div class="kpi-sub">&nbsp;</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Session List ─────────────────────────────────── -->
+    <div class="table-wrapper">
+      <div class="table-header-row">
+        <h2>ประวัติการสอน {{ formatMonth(selectedMonth) }}</h2>
+        <span class="record-count">{{ filteredSessions.length }} คลาส</span>
+      </div>
+
+      <div *ngIf="filteredSessions.length === 0" class="empty-state">
+        ไม่มีคลาสในเดือนนี้
+      </div>
+
+      <div class="table-scroll" *ngIf="filteredSessions.length > 0">
+        <table class="inc-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>วันที่</th>
+              <th>คลาส / วิชา</th>
+              <th>เวลา</th>
+              <th>นักเรียน</th>
+              <th>สถานะ</th>
+              <th>รายได้</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of filteredSessions; let i = index" [class.row-done]="isPaid(s)">
+              <td>{{ i + 1 }}</td>
+              <td>{{ s.date | date:'d MMM y' }}</td>
+              <td>
+                <div class="cell-primary">{{ getCourseName(s) }}</div>
+                <div class="cell-secondary">{{ s.course?.subject }}</div>
+              </td>
+              <td>{{ s.startTime }} – {{ s.endTime }}</td>
+              <td>
+                <div class="nick-chips">
+                  <button type="button" class="nick-chip"
+                          *ngFor="let st of s.students"
+                          (click)="openStudent(st, $event)"
+                          title="ดูประวัติการเรียนของนักเรียนคนนี้">
+                    {{ nick(st) }}
+                  </button>
+                  <span *ngIf="!s.students || s.students.length === 0" class="nick-none">—</span>
+                </div>
+              </td>
+              <td><span class="badge" [ngClass]="statusClass(s)">{{ statusLabel(s) }}</span></td>
+              <td>
+                <span *ngIf="sessionIncome(s) !== null" class="inc-value">฿{{ sessionIncome(s) | number }}</span>
+                <span *ngIf="sessionIncome(s) === null" class="inc-pending">—</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </ng-container>
+</div>
+
+<!-- ─── Drill-down: student's classes with me this month ──── -->
+<div class="modal-overlay" *ngIf="selectedStudent" (click)="closeStudent()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+    <button class="modal-close" (click)="closeStudent()" aria-label="ปิด">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <h3 class="modal-title">
+      ประวัติการเรียนของ {{ selectedStudent.name }}
+      <span class="modal-sub">เดือน {{ formatMonth(selectedMonth) }}</span>
+    </h3>
+
+    <div *ngIf="studentSessions.length === 0" class="empty-state">
+      ไม่มีคลาสกับนักเรียนคนนี้ในเดือนนี้
+    </div>
+
+    <div class="ds-list" *ngIf="studentSessions.length > 0">
+      <div class="ds-row" *ngFor="let s of studentSessions">
+        <div class="ds-main">
+          <div class="ds-course">{{ getCourseName(s) }}</div>
+          <div class="ds-meta">
+            {{ s.date | date:'d MMM y' }} · {{ s.startTime }}–{{ s.endTime }} · {{ formatDuration(s.totalDurationMinutes) }}
+          </div>
+        </div>
+        <div class="ds-right">
+          <span class="badge" [ngClass]="statusClass(s)">{{ statusLabel(s) }}</span>
+          <span *ngIf="sessionIncome(s) !== null" class="inc-value">฿{{ sessionIncome(s) | number }}</span>
+          <span *ngIf="sessionIncome(s) === null" class="inc-pending">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

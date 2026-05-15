@@ -549,6 +549,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   private readonly ICON_CALENDAR  = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
   private readonly ICON_HISTORY   = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>`;
   private readonly ICON_CARD      = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`;
+  private readonly ICON_MONEY     = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`;
   private readonly ICON_BELL      = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>`;
   private readonly ICON_CLOCK     = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
   private readonly ICON_OPENBOOK  = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`;
@@ -567,7 +568,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
     { label: 'การแจ้งเตือน',      path: '/dashboard/notifications',    icon: this.ICON_BELL,      roles: ['student'] },
     // Teacher
     { label: 'ปฏิทินตารางสอน',  path: '/dashboard/teacher-calendar', icon: this.ICON_CALENDAR,  roles: ['teacher'] },
-    { label: 'คลาสวิชาของฉัน',   path: '/dashboard/teacher-courses',  icon: this.ICON_BOOK,      roles: ['teacher'] },
+    { label: 'รายได้',           path: '/dashboard/income',           icon: this.ICON_MONEY,     roles: ['teacher'] },
     { label: 'ประวัติการสอน',     path: '/dashboard/history',          icon: this.ICON_HISTORY,   roles: ['teacher'] },
     // ประวัติส่วนตัว — student/teacher (อยู่ในตำแหน่งปัจจุบันของแต่ละ role)
     { label: 'ประวัติส่วนตัว',    path: '/dashboard/profile',          icon: this.ICON_CLOCK,     roles: ['student', 'teacher'] },

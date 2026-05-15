@@ -556,7 +556,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     { label: 'การแจ้งเตือน',       path: '/dashboard/notifications',  group: 'ไปยัง', keywords: 'notifications alert',      roles: ['student'], icon: this._I(`<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>`) },
     // Teacher
     { label: 'ปฏิทินตารางสอน',     path: '/dashboard/teacher-calendar', group: 'ไปยัง', keywords: 'teacher calendar สอน',   roles: ['teacher'], icon: this._I(`<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>`) },
-    { label: 'คลาสวิชาของฉัน',     path: '/dashboard/teacher-courses',  group: 'ไปยัง', keywords: 'teacher courses class',  roles: ['teacher'], icon: this._I(`<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>`) },
+    { label: 'รายได้',     path: '/dashboard/income',  group: 'ไปยัง', keywords: 'teacher income earnings รายได้',  roles: ['teacher'], icon: this._I(`<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>`) },
     { label: 'ประวัติชั่วโมง',      path: '/dashboard/teacher-profile',  group: 'ไปยัง', keywords: 'profile teacher hours',  roles: ['teacher'], icon: this._I(`<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>`) },
     // Manager / Admin
     { label: 'ปฏิทินมาสเตอร์',     path: '/dashboard/manager-calendar', group: 'ไปยัง', keywords: 'manager master calendar', roles: ['manager','admin'], icon: this._I(`<rect x="3" y="4" width="18" height="18" rx="2"/>`) },
@@ -681,7 +681,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
       '/dashboard/payments':        'ชำระเงิน',
       '/dashboard/notifications':   'การแจ้งเตือน',
       '/dashboard/teacher-calendar': 'ปฏิทินตารางสอน',
-      '/dashboard/teacher-courses': 'คลาสวิชาของฉัน',
+      '/dashboard/income': 'รายได้',
       '/dashboard/teacher-profile': 'ประวัติชั่วโมง',
       '/dashboard/manager-calendar': 'ปฏิทินมาสเตอร์',
       '/dashboard/course-management': 'จัดการรายวิชา',

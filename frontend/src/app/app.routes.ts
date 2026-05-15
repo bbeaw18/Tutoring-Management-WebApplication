@@ -11,7 +11,7 @@ import { StudentNotificationsComponent } from './pages/student/student-notificat
 import { StudentCalendarComponent } from './pages/student/student-calendar/student-calendar.component';
 import { StudentCoursesComponent } from './pages/student/student-courses/student-courses.component';
 import { TeacherCalendarComponent } from './pages/teacher/teacher-calendar/teacher-calendar.component';
-import { TeacherCoursesComponent } from './pages/teacher/teacher-courses/teacher-courses.component';
+import { IncomeComponent } from './pages/teacher/income/income.component';
 import { TeacherProfileComponent } from './pages/teacher/teacher-profile/teacher-profile.component';
 import { ManagerCalendarComponent } from './pages/manager/manager-calendar/manager-calendar.component';
 import { CourseManagementComponent } from './pages/manager/course-management/course-management.component';
@@ -80,8 +80,8 @@ export const appRoutes: Routes = [
         data: { roles: ['teacher'] }
       },
       {
-        path: 'teacher-courses',
-        component: TeacherCoursesComponent,
+        path: 'income',
+        component: IncomeComponent,
         canActivate: [roleGuard],
         data: { roles: ['teacher'] }
       },

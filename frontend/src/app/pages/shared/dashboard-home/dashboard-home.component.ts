@@ -238,7 +238,7 @@ export class DashboardHomeComponent implements OnInit, OnDestroy, AfterViewInit 
     } else if (role === 'teacher') {
       this.actions = [
         { label: 'ปฏิทินสอน', desc: 'ตารางสอนรายสัปดาห์', icon: ICONS.calendar, route: '/dashboard/teacher-calendar', color: 'brand' },
-        { label: 'คลาสของฉัน', desc: 'รายการคลาสที่รับผิดชอบ', icon: ICONS.book, route: '/dashboard/teacher-courses', color: 'info' },
+        { label: 'รายได้', desc: 'รายได้และประวัติการสอน', icon: ICONS.revenue, route: '/dashboard/income', color: 'info' },
         { label: 'ประวัติชั่วโมง', desc: 'สรุปชั่วโมงการสอน', icon: ICONS.clock, route: '/dashboard/teacher-profile', color: 'success' },
         { label: 'ประวัติการสอน', desc: 'บันทึกคลาสที่ผ่านมา', icon: ICONS.history, route: '/dashboard/history', color: 'warning' },
       ];
