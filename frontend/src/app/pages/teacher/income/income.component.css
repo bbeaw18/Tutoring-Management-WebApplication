@@ -33,6 +33,7 @@
 .nick-row.is-done { background: #f6fefb; }
 .nick-row.is-done:hover { background: #ecfdf5; }
 .nick-name { font-size: 14px; font-weight: 600; color: #1e293b; }
+.nick-count { font-size: 12px; font-weight: 600; color: #64748b; background: #f1f5f9; padding: 2px 9px; border-radius: 999px; margin-left: auto; }
 .nick-arrow { color: #cbd5e1; flex-shrink: 0; }
 
 .inc-value { font-weight: 700; color: #15803d; }
@@ -54,10 +55,12 @@
 .modal-close:hover { background: #e2e8f0; }
 .modal-title { font-size: 17px; font-weight: 700; color: #1e293b; margin: 0 0 16px; padding-right: 36px; }
 .modal-sub { display: block; font-size: 12px; font-weight: 500; color: #94a3b8; margin-top: 3px; }
-.cd-grid { display: flex; flex-direction: column; }
-.cd-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 2px; border-top: 1px solid #f1f5f9; font-size: 14px; color: #334155; }
-.cd-row:first-child { border-top: none; }
-.cd-label { color: #94a3b8; font-weight: 600; font-size: 13px; }
+.ds-list { display: flex; flex-direction: column; gap: 8px; }
+.ds-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; }
+.ds-course { font-weight: 600; color: #1e293b; font-size: 14px; }
+.ds-subj { font-weight: 500; color: #94a3b8; font-size: 12px; }
+.ds-meta { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+.ds-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
 @media (max-width: 640px) {
   .page-header { flex-direction: column; }

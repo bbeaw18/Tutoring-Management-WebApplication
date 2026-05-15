@@ -55,23 +55,23 @@
       </div>
     </div>
 
-    <!-- ─── Session List ─────────────────────────────────── -->
+    <!-- ─── Students taught ──────────────────────────────── -->
     <div class="table-wrapper">
       <div class="table-header-row">
-        <h2>ประวัติการสอน {{ formatMonth(selectedMonth) }}</h2>
-        <span class="record-count">{{ filteredSessions.length }} คลาส</span>
+        <h2>นักเรียนที่สอน {{ formatMonth(selectedMonth) }}</h2>
+        <span class="record-count">{{ students.length }} คน</span>
       </div>
 
-      <div *ngIf="filteredSessions.length === 0" class="empty-state">
-        ไม่มีคลาสในเดือนนี้
+      <div *ngIf="students.length === 0" class="empty-state">
+        ไม่มีนักเรียนในเดือนนี้
       </div>
 
-      <div class="nick-list" *ngIf="filteredSessions.length > 0">
-        <button type="button" class="nick-row" *ngFor="let s of filteredSessions"
-                [class.is-done]="isPaid(s)"
-                (click)="openSession(s)"
-                title="ดูรายละเอียดคลาส">
-          <span class="nick-name">{{ studentNicks(s) }}</span>
+      <div class="nick-list" *ngIf="students.length > 0">
+        <button type="button" class="nick-row" *ngFor="let st of students"
+                (click)="openStudent(st)"
+                title="ดูคลาสทั้งหมดของนักเรียนคนนี้">
+          <span class="nick-name">{{ st.nickname }}</span>
+          <span class="nick-count">{{ st.classCount }} คลาส</span>
           <svg class="nick-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
       </div>
@@ -80,42 +80,32 @@
   </ng-container>
 </div>
 
-<!-- ─── Class detail ─────────────────────────────────────── -->
-<div class="modal-overlay" *ngIf="selectedSession" (click)="closeSession()">
+<!-- ─── Student's classes with me ─────────────────────────── -->
+<div class="modal-overlay" *ngIf="selectedStudent" (click)="closeStudent()">
   <div class="modal-card" (click)="$event.stopPropagation()">
-    <button class="modal-close" (click)="closeSession()" aria-label="ปิด">
+    <button class="modal-close" (click)="closeStudent()" aria-label="ปิด">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
     <h3 class="modal-title">
-      {{ getCourseName(selectedSession) }}
-      <span class="modal-sub">{{ selectedSession.course?.subject }}</span>
+      คลาสของ {{ selectedStudent.nickname }}
+      <span class="modal-sub">เดือน {{ formatMonth(selectedMonth) }} · {{ studentSessions.length }} คลาส</span>
     </h3>
 
-    <div class="cd-grid">
-      <div class="cd-row">
-        <span class="cd-label">วันที่</span>
-        <span>{{ selectedSession.date | date:'d MMM y' }}</span>
-      </div>
-      <div class="cd-row">
-        <span class="cd-label">เวลา</span>
-        <span>{{ selectedSession.startTime }} – {{ selectedSession.endTime }}</span>
-      </div>
-      <div class="cd-row">
-        <span class="cd-label">ระยะเวลา</span>
-        <span>{{ formatDuration(selectedSession.totalDurationMinutes) }}</span>
-      </div>
-      <div class="cd-row">
-        <span class="cd-label">นักเรียน</span>
-        <span>{{ studentNicks(selectedSession) }}</span>
-      </div>
-      <div class="cd-row">
-        <span class="cd-label">สถานะ</span>
-        <span class="badge" [ngClass]="statusClass(selectedSession)">{{ statusLabel(selectedSession) }}</span>
-      </div>
-      <div class="cd-row">
-        <span class="cd-label">รายได้</span>
-        <span *ngIf="sessionIncome(selectedSession) !== null" class="inc-value">฿{{ sessionIncome(selectedSession) | number }}</span>
-        <span *ngIf="sessionIncome(selectedSession) === null" class="inc-pending">ยังไม่คิดรายได้ (รอเสร็จสิ้น)</span>
+    <div *ngIf="studentSessions.length === 0" class="empty-state">
+      ไม่มีคลาสกับนักเรียนคนนี้ในเดือนนี้
+    </div>
+
+    <div class="ds-list" *ngIf="studentSessions.length > 0">
+      <div class="ds-row" *ngFor="let s of studentSessions">
+        <div class="ds-main">
+          <div class="ds-course">{{ getCourseName(s) }}<span class="ds-subj" *ngIf="s.course?.subject"> · {{ s.course?.subject }}</span></div>
+          <div class="ds-meta">{{ s.date | date:'d MMM y' }} · {{ s.startTime }}–{{ s.endTime }} · {{ formatDuration(s.totalDurationMinutes) }}</div>
+        </div>
+        <div class="ds-right">
+          <span class="badge" [ngClass]="statusClass(s)">{{ statusLabel(s) }}</span>
+          <span *ngIf="sessionIncome(s) !== null" class="inc-value">฿{{ sessionIncome(s) | number }}</span>
+          <span *ngIf="sessionIncome(s) === null" class="inc-pending">—</span>
+        </div>
       </div>
     </div>
   </div>

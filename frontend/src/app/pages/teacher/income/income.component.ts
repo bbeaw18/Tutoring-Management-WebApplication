@@ -26,8 +26,8 @@ export class IncomeComponent implements OnInit, OnDestroy {
   sessions: any[] = [];
   selectedMonth = '';
 
-  /** Drill-down: the class (session) whose detail is shown */
-  selectedSession: any | null = null;
+  /** Drill-down: the student whose classes with me are shown */
+  selectedStudent: { id: string; nickname: string } | null = null;
 
   constructor(
     private attendanceService: AttendanceService,
@@ -98,20 +98,45 @@ export class IncomeComponent implements OnInit, OnDestroy {
     return Math.round((mins / 60) * 10) / 10;
   }
 
-  // ─── Drill-down: detail of the clicked class ─────────────────
-  openSession(s: any, ev?: Event): void {
+  private studentId(st: any): string {
+    return String(st?._id || st?.id || '');
+  }
+
+  /** Distinct students taught this month + how many classes with me */
+  get students(): { id: string; nickname: string; classCount: number }[] {
+    const seen = new Map<string, { nickname: string; classCount: number }>();
+    for (const s of this.filteredSessions) {
+      for (const st of (s.students || [])) {
+        const id = this.studentId(st);
+        if (!id) continue;
+        const cur = seen.get(id);
+        if (cur) cur.classCount++;
+        else seen.set(id, { nickname: this.nick(st), classCount: 1 });
+      }
+    }
+    return Array.from(seen.entries())
+      .map(([id, v]) => ({ id, nickname: v.nickname, classCount: v.classCount }))
+      .sort((a, b) => a.nickname.localeCompare(b.nickname, 'th'));
+  }
+
+  // ─── Drill-down: this student's classes with me ──────────────
+  openStudent(entry: { id: string; nickname: string }, ev?: Event): void {
     ev?.stopPropagation();
-    this.selectedSession = s;
+    if (!entry?.id) return;
+    this.selectedStudent = { id: entry.id, nickname: entry.nickname };
   }
 
-  closeSession(): void {
-    this.selectedSession = null;
+  closeStudent(): void {
+    this.selectedStudent = null;
   }
 
-  /** Comma-joined student nicknames for a session */
-  studentNicks(s: any): string {
-    if (!Array.isArray(s?.students) || s.students.length === 0) return '—';
-    return s.students.map((st: any) => this.nick(st)).join(', ');
+  get studentSessions(): any[] {
+    if (!this.selectedStudent) return [];
+    const sid = this.selectedStudent.id;
+    return this.filteredSessions.filter(s =>
+      Array.isArray(s.students) &&
+      s.students.some((st: any) => this.studentId(st) === sid)
+    );
   }
 
   // ─── Helpers ─────────────────────────────────────────────────
