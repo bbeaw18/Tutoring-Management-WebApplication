@@ -57,9 +57,6 @@ export class TeacherCalendarComponent implements OnInit, OnDestroy, AfterViewIni
                          'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
   readonly dayNames = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
 
-  // Classes on/after this date bill teacher income as rate × hours (matches backend)
-  private readonly TEACHER_HOURLY_FROM = new Date('2026-05-08T00:00:00+07:00');
-
   constructor(
     private scheduleService: ScheduleService,
     private authService: AuthService,
@@ -328,17 +325,9 @@ export class TeacherCalendarComponent implements OnInit, OnDestroy, AfterViewIni
   /** Estimate income per schedule — prefers group rate when multiple students */
   private scheduleIncome(s: ISchedule): number {
     const studentCount = (s.students as any[])?.length || 0;
-    const course = (typeof s.course === 'object' && s.course) ? s.course : null;
-    const groupRate = Number(s.teacherIncomeGroup || course?.teacherIncomeGroup || 0);
-    const indivRate = Number(s.teacherIncomeIndividual || course?.teacherIncomeIndividual || 0);
-    const rate = studentCount > 1 ? groupRate : indivRate;
-    if (!rate) return 0;
-    const d = s.date ? new Date(s.date) : null;
-    const isHourly = !!d && !isNaN(d.getTime()) && d >= this.TEACHER_HOURLY_FROM;
-    if (isHourly && s.totalDurationMinutes > 0) {
-      return Math.round(rate * (s.totalDurationMinutes / 60));
-    }
-    return rate;
+    const group = s.teacherIncomeGroup || 0;
+    const individual = s.teacherIncomeIndividual || 0;
+    return studentCount > 1 ? group : individual;
   }
 
   get weekTotalIncome(): number {

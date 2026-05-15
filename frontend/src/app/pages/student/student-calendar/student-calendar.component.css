@@ -200,7 +200,6 @@
 .wi-kpi-icon.wi-green  { background: linear-gradient(135deg, #dcfce7, #bbf7d0); color: #15803d; }
 .wi-kpi-icon.wi-red    { background: linear-gradient(135deg, #fee2e2, #fecaca); color: #b91c1c; }
 .wi-kpi-icon.wi-purple { background: linear-gradient(135deg, #ede9fe, #ddd6fe); color: #6d28d9; }
-.wi-kpi-icon.wi-amber  { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #b45309; }
 
 .wi-kpi-val {
   font-size: 1.15rem;

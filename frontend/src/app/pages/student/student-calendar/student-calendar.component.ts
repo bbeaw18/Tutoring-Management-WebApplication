@@ -401,12 +401,6 @@ export class StudentCalendarComponent implements OnInit, OnDestroy, DoCheck {
     return `${hrs} ชม. ${mins} นาที`;
   }
 
-  /** Total course fee for the week (effective price per class, computed by backend) */
-  get weekTotalFee(): number {
-    return this.weekSchedules.reduce(
-      (acc, s) => acc + (s.paymentSummary?.effectivePrice || s.coursePrice || 0), 0);
-  }
-
   /** Next upcoming class (today or future, status not cancelled) */
   get nextUpcoming(): ISchedule | null {
     const now = new Date();
