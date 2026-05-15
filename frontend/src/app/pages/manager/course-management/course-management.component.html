@@ -784,7 +784,7 @@
               แก้ไข
             </button>
             <button class="btn-cancel-course" (click)="cancelCourse(getId(course))"
-              *ngIf="!isFinalStatus(course)">ยกเลิก</button>
+              *ngIf="resolveStatus(course) !== 'cancelled' && (!isFinalStatus(course) || isTestClass(course))">ยกเลิก</button>
             <!-- Series quick actions on the anchor card (no modal needed) -->
             <button class="btn-cancel-course"
               *ngIf="isSeriesCourse(course)"

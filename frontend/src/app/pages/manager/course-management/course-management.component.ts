@@ -887,6 +887,12 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     return ds === 'completed' || ds === 'cancelled';
   }
 
+  /** Test classes (subject === "test") can be cancelled regardless of status,
+   *  so they can then be permanently deleted — for cleaning up test data. */
+  isTestClass(c: any): boolean {
+    return (c?.subject || '').trim().toLowerCase() === 'test';
+  }
+
   /** Editing-details is locked once a class is past the pending-confirm
    *  phases. Manager can still cancel a confirmed/awaiting class (use
    *  isFinalStatus for that), but the booking details (teacher, time,
