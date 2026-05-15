@@ -161,7 +161,8 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     const [sh, sm] = String(s).split(':').map(Number);
     const [eh, em] = String(e).split(':').map(Number);
     if ([sh, sm, eh, em].some(n => isNaN(n))) return 0;
-    const minutes = (eh * 60 + em) - (sh * 60 + sm);
+    let minutes = (eh * 60 + em) - (sh * 60 + sm);
+    if (minutes <= 0) minutes += 24 * 60; // ข้ามเที่ยงคืน (เลิกวันถัดไป)
     return minutes > 0 ? minutes / 60 : 0;
   }
 
@@ -219,7 +220,8 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     if (!course?.startTime || !course?.endTime) return 0;
     const [sh, sm] = String(course.startTime).split(':').map(Number);
     const [eh, em] = String(course.endTime).split(':').map(Number);
-    const minutes = (eh * 60 + em) - (sh * 60 + sm);
+    let minutes = (eh * 60 + em) - (sh * 60 + sm);
+    if (minutes <= 0) minutes += 24 * 60; // ข้ามเที่ยงคืน (เลิกวันถัดไป)
     return minutes > 0 ? minutes / 60 : 0;
   }
 

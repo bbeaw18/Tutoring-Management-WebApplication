@@ -167,7 +167,8 @@ ScheduleSchema.pre('save', function (next) {
   if (this.startTime && this.endTime) {
     const [startH, startM] = this.startTime.split(':').map(Number);
     const [endH, endM] = this.endTime.split(':').map(Number);
-    const duration = (endH * 60 + endM) - (startH * 60 + startM);
+    let duration = (endH * 60 + endM) - (startH * 60 + startM);
+    if (duration <= 0) duration += 24 * 60; // ข้ามเที่ยงคืน (เลิกวันถัดไป)
     if (duration > 0) this.totalDurationMinutes = duration;
   }
 
