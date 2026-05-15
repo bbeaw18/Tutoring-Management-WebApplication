@@ -246,10 +246,6 @@
         <div class="detail-row"><span class="detail-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>เวลา</span><span>{{ selectedSchedule.startTime }} – {{ selectedSchedule.endTime }}</span></div>
         <div class="detail-row"><span class="detail-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 7 12 12 15 15"/></svg>ระยะเวลา</span><span>{{ selectedSchedule.totalDurationMinutes }} นาที</span></div>
         <div class="detail-row"><span class="detail-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>ครูผู้สอน</span><span>{{ getTeacherName(selectedSchedule) }}</span></div>
-        <div class="detail-row" *ngIf="selectedSchedule.coursePrice > 0">
-          <span class="detail-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 10h5.5a1.5 1.5 0 0 1 0 3H9m0 0h5.5a1.5 1.5 0 0 1 0 3H9"/></svg>ราคาคอร์ส</span>
-          <span class="price-badge">฿{{ selectedSchedule.coursePrice | number }}</span>
-        </div>
         <div class="detail-row">
           <span class="detail-label">สมาชิกในคลาส</span>
           <div class="member-list">

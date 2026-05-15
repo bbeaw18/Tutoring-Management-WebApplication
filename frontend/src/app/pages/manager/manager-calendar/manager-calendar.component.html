@@ -406,25 +406,6 @@
           </span>
         </div>
 
-        <!-- ── Payment summary (จำนวนนักเรียนที่ชำระ/ค้าง — มาจาก paymentSummary) ── -->
-        <div class="detail-row" *ngIf="selectedSchedule.paymentSummary?.attendanceCount">
-          <span class="detail-label">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            การชำระ
-          </span>
-          <span class="payment-badges">
-            <span class="pay-pill pay-paid" *ngIf="selectedSchedule.paymentSummary!.paidCount">
-              ชำระแล้ว {{ selectedSchedule.paymentSummary!.paidCount }}
-            </span>
-            <span class="pay-pill pay-pending" *ngIf="selectedSchedule.paymentSummary!.pendingCount">
-              รอ Manager {{ selectedSchedule.paymentSummary!.pendingCount }}
-            </span>
-            <span class="pay-pill pay-unpaid" *ngIf="selectedSchedule.paymentSummary!.unpaidCount">
-              ค้างชำระ {{ selectedSchedule.paymentSummary!.unpaidCount }}
-            </span>
-            <span class="pay-amount-mini">{{ selectedSchedule.paymentSummary!.paid | number }} / {{ selectedSchedule.paymentSummary!.total | number }} ฿</span>
-          </span>
-        </div>
 
         <div class="confirmation-section">
           <div class="conf-status" [class.confirmed]="selectedSchedule.teacherConfirmed">
