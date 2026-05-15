@@ -140,10 +140,13 @@
               <td>{{ a.schedule?.startTime }} – {{ a.schedule?.endTime }}</td>
               <td>{{ formatDuration(a.schedule?.totalDurationMinutes || 0) }}</td>
               <td>
-                <span *ngIf="a.schedule?.coursePrice > 0" class="price-tag">
-                  ฿{{ a.schedule?.coursePrice | number }}
-                </span>
-                <span *ngIf="!a.schedule?.coursePrice" class="price-free">ฟรี</span>
+                <ng-container *ngIf="a.schedule?.coursePrice > 0; else freeCell">
+                  <span class="price-tag">฿{{ effectivePrice(a.schedule) | number }}</span>
+                  <span *ngIf="isPriceHourly(a.schedule) && classHours(a.schedule) > 0" class="price-rate-sub">
+                    ฿{{ a.schedule?.coursePrice | number }}/ชม. × {{ classHours(a.schedule) | number:'1.0-2' }} ชม.
+                  </span>
+                </ng-container>
+                <ng-template #freeCell><span class="price-free">ฟรี</span></ng-template>
               </td>
               <td>
                 <span *ngIf="a.paymentStatus === 'paid'" class="badge badge-paid">

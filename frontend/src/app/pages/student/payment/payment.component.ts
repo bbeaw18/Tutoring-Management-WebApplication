@@ -45,6 +45,9 @@ export class PaymentComponent implements OnInit, OnDestroy {
 
   private stopPolling$ = new Subject<void>();
 
+  // Classes on/after this date bill course price as rate × hours (matches backend)
+  private readonly PRICE_HOURLY_FROM = new Date('2026-05-09T00:00:00+07:00');
+
   constructor(
     private attendanceService: AttendanceService,
     private paymentService: PaymentService,
@@ -165,12 +168,39 @@ export class PaymentComponent implements OnInit, OnDestroy {
   get totalUnpaidAmount(): number {
     return this.filteredHistory
       .filter(a => !a.paymentStatus || a.paymentStatus === 'unpaid')
-      .reduce((s, a) => s + (a.schedule?.coursePrice || 0), 0);
+      .reduce((s, a) => s + this.effectivePrice(a.schedule), 0);
   }
   get totalPaidAmount(): number {
     return this.filteredHistory
       .filter(a => a.paymentStatus === 'paid')
-      .reduce((s, a) => s + (a.schedule?.coursePrice || 0), 0);
+      .reduce((s, a) => s + this.effectivePrice(a.schedule), 0);
+  }
+
+  // ─── Effective course price (rate/hr × class hours for hourly classes) ──
+  /** ชั่วโมงของคลาส — จาก totalDurationMinutes ก่อน, fallback start/end */
+  classHours(s: any): number {
+    if (s?.totalDurationMinutes > 0) return s.totalDurationMinutes / 60;
+    if (s?.startTime && s?.endTime) {
+      const [sh, sm] = String(s.startTime).split(':').map(Number);
+      const [eh, em] = String(s.endTime).split(':').map(Number);
+      const mins = (eh * 60 + em) - (sh * 60 + sm);
+      return mins > 0 ? mins / 60 : 0;
+    }
+    return 0;
+  }
+
+  /** คลาสตั้งแต่ 9 พ.ค. 2569 คิดค่าเรียนแบบ rate × ชม. */
+  isPriceHourly(s: any): boolean {
+    const d = s?.date ? new Date(s.date) : null;
+    return !!d && !isNaN(d.getTime()) && d >= this.PRICE_HOURLY_FROM;
+  }
+
+  /** ค่าเรียนจริงต่อคลาส = อัตรา × ชม. (คลาสใหม่) หรือ flat (คลาสเก่า) */
+  effectivePrice(s: any): number {
+    const rate = Number(s?.coursePrice || 0);
+    if (!rate) return 0;
+    if (this.isPriceHourly(s)) return Math.round(rate * this.classHours(s));
+    return rate;
   }
 
   // ─── Deadline: วันที่ 3 ของเดือนถัดไป ─────────────────────────
@@ -234,7 +264,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
   /** เปิดโมดอลชำระต่อคลาส */
   openPaymentQR(item: any): void {
     const scheduleId = item.schedule?._id || item.schedule;
-    const amount = item.schedule?.coursePrice || 0;
+    const amount = this.effectivePrice(item.schedule);
     const courseName = this.getCourseName(item);
     const dateStr = item.schedule?.date ? new Date(item.schedule.date).toLocaleDateString('th-TH') : '';
     this.openPaymentModal({ scheduleId }, amount, `ค่าเรียน ${courseName} ${dateStr}`);
