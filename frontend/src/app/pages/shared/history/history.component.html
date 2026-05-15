@@ -831,6 +831,15 @@
 
         <div *ngIf="paymentsLoading" class="hd-loading">กำลังโหลดข้อมูลการชำระเงิน...</div>
 
+        <div class="hd-mgr-confirm"
+             *ngIf="(role === 'manager' || role === 'admin') && selectedSchedule.status === 'awaiting_confirmation'">
+          <button class="btn-confirm hd-confirm-wide"
+                  [disabled]="confirmingId === selectedSchedule._id"
+                  (click)="confirmClass(selectedSchedule._id); closeDetail()">
+            ยืนยันเสร็จสิ้นการสอน (Manager)
+          </button>
+        </div>
+
       </div>
     </div>
   </div>

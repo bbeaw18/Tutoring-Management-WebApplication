@@ -5,6 +5,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { CourseService } from '../../../services/course.service';
 import { UserService } from '../../../services/user.service';
+import { ScheduleService } from '../../../services/schedule.service';
 import { ICourse } from '../../../interfaces/course.interface';
 import { IUser } from '../../../interfaces/user.interface';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
@@ -70,11 +71,29 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     'มหาวิทยาลัย', 'อื่นๆ'
   ];
 
+  /** schedule id currently being manager-confirmed */
+  confirmingId = '';
+
   constructor(
     private courseService: CourseService,
     private userService: UserService,
+    private scheduleService: ScheduleService,
     private fb: FormBuilder
   ) {}
+
+  /** Manager/Admin confirms class completion (awaiting_confirmation → completed) */
+  managerConfirmClass(course: any, ev?: Event): void {
+    ev?.stopPropagation();
+    const id = this.getId(course);
+    if (!id || this.confirmingId) return;
+    this.confirmingId = id;
+    this.scheduleService.managerConfirm(id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => { this.confirmingId = ''; this.loadAll(); },
+        error: () => { this.confirmingId = ''; }
+      });
+  }
 
   ngOnDestroy(): void {
     this.destroy$.next();

@@ -887,6 +887,15 @@
   font-style: italic;
 }
 
+.hd-mgr-confirm {
+  display: flex;
+  justify-content: center;
+  padding: 14px 0 4px;
+  border-top: 1px dashed #e2e8f0;
+  margin-top: 8px;
+}
+.hd-confirm-wide { padding: 10px 22px; font-size: 13px; }
+
 @media (max-width: 640px) {
   .hd-modal { border-radius: 16px; max-height: 95vh; }
   .hd-header { padding: 16px 18px; }

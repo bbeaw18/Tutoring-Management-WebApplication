@@ -759,6 +759,13 @@
             ครูยืนยันการสอนแล้ว
           </div>
           <div class="card-actions">
+            <button class="btn-manager-confirm"
+              *ngIf="resolveStatus(course) === 'awaiting_manager'"
+              (click)="$event.stopPropagation(); managerConfirmClass(course)"
+              [disabled]="confirmingId === getId(course)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              {{ confirmingId === getId(course) ? 'กำลังยืนยัน...' : 'ยืนยันเสร็จสิ้น (Manager)' }}
+            </button>
             <button class="btn-view-series" *ngIf="isSeriesCourse(course)"
               (click)="$event.stopPropagation(); openSeriesModal(course)"
               [title]="'ดูคลาสทั้งหมดในชุด (' + getSeriesCount(course) + ' คลาส)'">
