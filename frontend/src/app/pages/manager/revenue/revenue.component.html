@@ -523,8 +523,29 @@
       <p *ngIf="activeKpi !== 'teacherExpense' && activeKpi !== 'managerIncome' && activeKpi !== 'myIncome'">ยังไม่มีคลาสที่เสร็จสิ้นในเดือนนี้, ลองเปลี่ยนเดือนหรือสร้างนัดสอนใหม่</p>
     </div>
 
-    <!-- ── Teacher Income Table (สำหรับโหมด teacherExpense / managerIncome) ── -->
-    <div *ngIf="filteredSchedules.length > 0 && showTeacherIncomeColumn" class="payments-table">
+    <!-- ── Teacher nickname grid (KPI: รายจ่ายครู) — คลิกชื่อเล่นครู → modal รายละเอียดคลาส ── -->
+    <div *ngIf="filteredSchedules.length > 0 && activeKpi === 'teacherExpense'" class="rev-tx-wrap">
+      <div class="rev-nick-grid" *ngIf="uniqueTeachersInFilter.length > 0">
+        <button class="rev-nick-card" type="button"
+                *ngFor="let t of uniqueTeachersInFilter; trackBy: trackByTeacherNick"
+                (click)="openTeacherMonthlyModal(t.teacherId, t.nickname)"
+                [attr.aria-label]="'ดูคลาสของครู' + t.nickname">
+          <span class="rev-nick-avatar"
+                [style.background]="'linear-gradient(135deg, hsl(' + txAvatarHue(t.teacherId) + ', 75%, 58%), hsl(' + ((txAvatarHue(t.teacherId) + 30) % 360) + ', 80%, 42%))'"
+                aria-hidden="true">{{ t.nickname.charAt(0) }}</span>
+          <span class="rev-nick-body">
+            <span class="rev-nick-name">ครู{{ t.nickname }}</span>
+            <span class="rev-nick-count">{{ t.classCount }} คลาส · ฿{{ t.income | number:'1.0-0' }}</span>
+          </span>
+          <svg class="rev-nick-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Teacher Income Table (สำหรับโหมด managerIncome / myIncome) ── -->
+    <div *ngIf="filteredSchedules.length > 0 && showTeacherIncomeColumn && activeKpi !== 'teacherExpense'" class="payments-table">
       <table>
         <thead>
           <tr>
@@ -715,6 +736,76 @@
             </div>
           </div>
           <button class="btn-close-sm" (click)="closeStudentMonthlyModal()">ปิด</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Teacher Monthly Modal — คลาสที่ครูคนนี้สอนในเดือนนี้ (KPI รายจ่ายครู) ─── -->
+  <div class="modal-overlay" *ngIf="showTeacherMonthlyModal && teacherMonthlyTarget" (click)="closeTeacherMonthlyModal()">
+    <div class="modal-box student-monthly-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header student-monthly-header">
+        <div class="student-monthly-title-wrap">
+          <div class="student-monthly-avatar">{{ (teacherMonthlyTarget.nickname || '?').charAt(0) }}</div>
+          <div>
+            <h2>คลาสของครู{{ teacherMonthlyTarget.nickname }}</h2>
+            <p class="modal-subtitle">
+              เดือน <strong>{{ monthLabelTH(filterMonth) }}</strong>
+              <span class="student-monthly-sub-divider">·</span>
+              <strong>{{ teacherMonthlyClasses.length }}</strong> คลาส
+            </p>
+          </div>
+        </div>
+        <button class="close-btn" (click)="closeTeacherMonthlyModal()" aria-label="ปิด">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body student-monthly-body">
+        <div *ngIf="teacherMonthlyClasses.length === 0" class="student-monthly-empty">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <p>ยังไม่มีคลาสในเดือนนี้</p>
+        </div>
+
+        <div class="student-monthly-list" *ngIf="teacherMonthlyClasses.length > 0">
+          <div class="student-monthly-item" *ngFor="let s of teacherMonthlyClasses; let i = index">
+            <div class="sm-item-number">{{ i + 1 }}</div>
+            <div class="sm-item-main">
+              <div class="sm-item-row sm-item-row-top">
+                <strong class="sm-item-subject">{{ s.courseName || s.subject || 'คลาส' }}</strong>
+                <span class="sm-item-date">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  {{ formatDate(s.date) }}
+                  <span class="sm-item-time" *ngIf="s.startTime">· {{ s.startTime }}–{{ s.endTime }}</span>
+                </span>
+              </div>
+              <div class="sm-item-row sm-item-row-bottom">
+                <span class="sm-item-teacher">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                  {{ s.attendanceCount }} ผู้เข้าเรียน
+                </span>
+                <span class="sm-item-status" [ngClass]="getStatusClass(s.status)">{{ getStatusLabel(s.status) }}</span>
+              </div>
+            </div>
+            <div class="sm-item-finance">
+              <span class="sm-item-amount">฿{{ (s.actualTeacherIncome || 0) | number: '1.0-0' }}</span>
+              <span class="sm-item-pay-badge" *ngIf="isTeacherHourlyForSchedule(s) && getTeacherRate(s) > 0">
+                ชม.ละ ฿{{ getTeacherRate(s) | number:'1.0-0' }} × {{ formatHours(getScheduleHours(s)) }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="student-monthly-footer" *ngIf="teacherMonthlyClasses.length > 0">
+          <div class="sm-summary">
+            <div class="sm-summary-item">
+              <span class="sm-summary-label">รวมรายจ่ายครู</span>
+              <strong class="sm-summary-total">฿{{ teacherMonthlyTotal | number: '1.0-0' }}</strong>
+            </div>
+          </div>
+          <button class="btn-close-sm" (click)="closeTeacherMonthlyModal()">ปิด</button>
         </div>
       </div>
     </div>

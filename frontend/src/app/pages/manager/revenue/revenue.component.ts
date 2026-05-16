@@ -116,6 +116,12 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
   studentMonthlyTarget: { id: string; nickname: string } | null = null;
   studentMonthlyClasses: IRevenueSchedule[] = [];
 
+  // ── Teacher monthly classes modal (KPI รายจ่ายครู drill-down) ──
+  // เปิดเมื่อคลิกชื่อเล่นครูในกริด KPI "รายจ่ายครู"
+  showTeacherMonthlyModal = false;
+  teacherMonthlyTarget: { id: string; nickname: string } | null = null;
+  teacherMonthlyClasses: IRevenueSchedule[] = [];
+
   // Palette for teacher slices
   private readonly TEACHER_COLORS = [
     '#ec4899', '#1e3f80', '#22c55e', '#f59e0b', '#8b5cf6',
@@ -933,6 +939,75 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
       const e = this.getStudentEntry(s, sid);
       return sum + (e.status === 'confirmed' ? e.amount : 0);
     }, 0);
+  }
+
+  // ── Teacher drill-down (KPI รายจ่ายครู) ──────────────────────
+  /** ครูที่มีคลาสในรอบกรอง (โหมด teacherExpense) — 1 คน/แถว ไม่ซ้ำ
+   *  เรียงตามชื่อเล่น พร้อมจำนวนคลาส + รายจ่ายรวมของครูคนนั้น */
+  get uniqueTeachersInFilter(): { teacherId: string; nickname: string; classCount: number; income: number }[] {
+    const seen = new Map<string, { nickname: string; classCount: number; income: number }>();
+    for (const s of this.filteredSchedules) {
+      const tid = s.teacherId || '';
+      if (!tid) continue;
+      const cur = seen.get(tid);
+      if (cur) {
+        cur.classCount++;
+        cur.income += s.actualTeacherIncome || 0;
+      } else {
+        seen.set(tid, {
+          nickname: this.getTeacherNickname(tid, s.teacherName),
+          classCount: 1,
+          income: s.actualTeacherIncome || 0
+        });
+      }
+    }
+    return Array.from(seen.entries())
+      .map(([teacherId, v]) => ({ teacherId, nickname: v.nickname, classCount: v.classCount, income: v.income }))
+      .sort((a, b) => a.nickname.localeCompare(b.nickname, 'th'));
+  }
+
+  /** ชื่อเล่นครูจาก teacherId — fallback เป็นชื่อที่ backend ส่งมา */
+  getTeacherNickname(teacherId: string, fallback?: string): string {
+    const u = this.teachers.find(t => t._id === teacherId);
+    if (u) {
+      const nick = (u.nickname || '').trim();
+      if (nick) return nick;
+      const first = (u.firstName || '').trim();
+      if (first) return first;
+    }
+    if (fallback) {
+      const m = fallback.match(/\(([^)]+)\)/);
+      if (m) return m[1].trim();
+      return fallback.split(/\s+/)[0] || fallback;
+    }
+    return '—';
+  }
+
+  /** เปิด modal รายการคลาสที่ครูคนนี้สอน (รายจ่ายครู) ในเดือนที่เลือก */
+  openTeacherMonthlyModal(teacherId: string, fallbackName?: string): void {
+    if (!teacherId) return;
+    const nickname = this.getTeacherNickname(teacherId, fallbackName);
+    this.teacherMonthlyTarget = { id: teacherId, nickname };
+    this.teacherMonthlyClasses = this.filteredSchedules
+      .filter(s => s.teacherId === teacherId)
+      .slice()
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    this.showTeacherMonthlyModal = true;
+  }
+
+  closeTeacherMonthlyModal(): void {
+    this.showTeacherMonthlyModal = false;
+    this.teacherMonthlyTarget = null;
+    this.teacherMonthlyClasses = [];
+  }
+
+  /** รวมรายจ่ายครูในชุดของครูที่เลือก (ใช้ใน modal footer) */
+  get teacherMonthlyTotal(): number {
+    return this.teacherMonthlyClasses.reduce((sum, s) => sum + (s.actualTeacherIncome || 0), 0);
+  }
+
+  trackByTeacherNick(_i: number, u: { teacherId: string }): string {
+    return u.teacherId;
   }
 
   trackByExpenseId(_i: number, e: IExpense): string {
