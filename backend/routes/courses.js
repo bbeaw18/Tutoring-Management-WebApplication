@@ -14,6 +14,7 @@ const {
   sendCourseCreatedTeacherEmail, sendCourseCreatedStudentEmail, sendCourseAcceptedEmail,
   sendScheduleEditedTeacherEmail, sendScheduleEditedStudentEmail
 } = require('../services/emailService');
+const { reverseCompletedScheduleHours } = require('../services/hoursService');
 
 // =====================================================
 // POST / — Manager สร้างคอร์สการสอนใหม่
@@ -737,6 +738,12 @@ router.delete('/:id/permanent', authenticateToken, roleCheck(['admin', 'manager'
       return sendResponse(res, 400, false, null, 'ลบได้เฉพาะนัดสอนที่ถูกยกเลิกแล้วเท่านั้น กรุณายกเลิกก่อน');
     }
 
+    // กันชั่วโมงสะสมค้าง: ถ้ามี schedule ที่ยัง completed อยู่ (ไม่ได้ถูกย้อนตอน cancel) ให้ย้อนก่อนลบ
+    const stillCompleted = await Schedule.find({ course: course._id, status: 'completed' });
+    for (const sch of stillCompleted) {
+      await reverseCompletedScheduleHours(sch);
+    }
+
     await Schedule.deleteMany({ course: course._id });
     await Enrollment.deleteMany({ course: course._id });
     await Course.findByIdAndDelete(req.params.id);
@@ -761,6 +768,12 @@ router.delete('/:id', authenticateToken, roleCheck(['admin', 'manager']), async 
 
     if (!course) {
       return sendResponse(res, 404, false, null, 'Course not found');
+    }
+
+    // ย้อนชั่วโมงสะสมของคลาสที่ completed ก่อนเปลี่ยนสถานะเป็น cancelled
+    const completedSchedules = await Schedule.find({ course: req.params.id, status: 'completed' });
+    for (const sch of completedSchedules) {
+      await reverseCompletedScheduleHours(sch);
     }
 
     // Cancel related schedules and enrollments

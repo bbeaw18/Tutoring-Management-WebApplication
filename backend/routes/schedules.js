@@ -19,6 +19,7 @@ const {
 } = require('../utils/scheduleAggregation');
 const { sendScheduleCreatedEmail, sendScheduleConfirmedEmail, sendPaymentReminderEmail, sendScheduleRescheduledEmail, sendStudentBookingConfirmedEmail, sendStudentBookingDeclinedEmail, sendVideoLinkEmail } = require('../services/emailService');
 const { generateQRToken, generateQRCodeDataURL } = require('../services/qrService');
+const { reverseCompletedScheduleHours } = require('../services/hoursService');
 
 // ── Timezone helper — แปลง schedule.date + timeString "HH:mm" เป็น Date (Bangkok UTC+7) ──
 function bangkokClassTime(scheduleDate, timeStr) {
@@ -897,15 +898,17 @@ router.put('/:id', authenticateToken, roleCheck(['admin', 'manager']), async (re
 // ────────────────────────────────────────────────────────────────────────────
 router.delete('/:id', authenticateToken, roleCheck(['admin', 'manager']), async (req, res) => {
   try {
-    const schedule = await Schedule.findByIdAndUpdate(
-      req.params.id,
-      { status: 'cancelled' },
-      { new: true }
-    );
+    const schedule = await Schedule.findById(req.params.id);
 
     if (!schedule) {
       return sendResponse(res, 404, false, null, 'Schedule not found');
     }
+
+    // ย้อนชั่วโมงสะสมถ้าคลาสนี้ completed แล้ว ก่อนเปลี่ยนเป็น cancelled
+    await reverseCompletedScheduleHours(schedule);
+
+    schedule.status = 'cancelled';
+    await schedule.save();
 
     sendResponse(res, 200, true, schedule, 'Schedule cancelled');
   } catch (error) {
