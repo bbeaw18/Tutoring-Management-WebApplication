@@ -22,6 +22,30 @@ if (isEmailConfigured) {
 }
 
 /**
+ * จำนวนชั่วโมงสอนจาก startTime/endTime (รองรับข้ามเที่ยงคืน)
+ * — สูตรเดียวกับ Schedule.totalDurationMinutes
+ */
+function durationHours(startTime, endTime) {
+  if (!startTime || !endTime) return 0;
+  const [sh, sm] = String(startTime).split(':').map(Number);
+  const [eh, em] = String(endTime).split(':').map(Number);
+  let mins = (eh * 60 + em) - (sh * 60 + sm);
+  if (mins <= 0) mins += 24 * 60; // ข้ามเที่ยงคืน (เลิกวันถัดไป)
+  return mins / 60;
+}
+
+/**
+ * แปลงชั่วโมง (ทศนิยม) → ข้อความ "X ชั่วโมง Y นาที"
+ */
+function formatHours(hours) {
+  const total = Math.round(hours * 60);
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (h > 0) return `${h} ชั่วโมง${m > 0 ? ` ${m} นาที` : ''}`;
+  return `${m} นาที`;
+}
+
+/**
  * ส่งอีเมลแจ้งเตือนการนัดสอนไปยังครู (แสดงรายได้ที่จะได้รับ)
  */
 async function sendCourseCreatedTeacherEmail({
@@ -39,9 +63,14 @@ async function sendCourseCreatedTeacherEmail({
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
   });
   const typeLabel = courseType === 'individual' ? 'เดี่ยว' : 'กลุ่ม';
-  const incomeAmount = courseType === 'individual'
+  const hours = durationHours(startTime, endTime);
+  const hoursText = formatHours(hours);
+  const ratePerHour = courseType === 'individual'
     ? teacherIncomeIndividual
     : teacherIncomeGroup;
+  const incomeAmount = ratePerHour > 0 && hours > 0
+    ? Math.round(ratePerHour * hours)
+    : 0;
   const incomeText = incomeAmount > 0
     ? `฿${incomeAmount.toLocaleString('th-TH')}`
     : 'ยังไม่ระบุ';
@@ -70,20 +99,27 @@ async function sendCourseCreatedTeacherEmail({
         <h3 style="margin: 0 0 12px; color: #166534; font-size: 16px;">💰 รายได้ที่คุณจะได้รับ</h3>
         <table style="width: 100%; border-collapse: collapse;">
           <tr>
-            <td style="padding: 6px 0; color: #166534;">อัตราสอนเดี่ยว</td>
+            <td style="padding: 6px 0; color: #166534;">อัตราสอนเดี่ยว / ชม.</td>
             <td style="color: #15803d; font-weight: 700; text-align: right;">
               ${teacherIncomeIndividual > 0 ? `฿${teacherIncomeIndividual.toLocaleString('th-TH')}` : 'ไม่ระบุ'}
             </td>
           </tr>
           <tr>
-            <td style="padding: 6px 0; color: #166534;">อัตราสอนกลุ่ม</td>
+            <td style="padding: 6px 0; color: #166534;">อัตราสอนกลุ่ม / ชม.</td>
             <td style="color: #15803d; font-weight: 700; text-align: right;">
               ${teacherIncomeGroup > 0 ? `฿${teacherIncomeGroup.toLocaleString('th-TH')}` : 'ไม่ระบุ'}
             </td>
           </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #166534;">จำนวนชั่วโมงสอน</td>
+            <td style="color: #15803d; font-weight: 700; text-align: right;">${hoursText}</td>
+          </tr>
           <tr style="border-top: 1.5px solid #86efac;">
-            <td style="padding: 10px 0 0; color: #14532d; font-weight: 700; font-size: 15px;">รายได้ครั้งนี้ (${typeLabel})</td>
-            <td style="padding: 10px 0 0; color: #14532d; font-weight: 800; font-size: 20px; text-align: right;">${incomeText}</td>
+            <td style="padding: 10px 0 0; color: #14532d; font-weight: 700; font-size: 15px;">
+              รายได้ครั้งนี้ (${typeLabel})
+              ${ratePerHour > 0 && hours > 0 ? `<br><span style="font-weight: 400; font-size: 12px; color: #166534;">฿${ratePerHour.toLocaleString('th-TH')}/ชม. × ${hoursText}</span>` : ''}
+            </td>
+            <td style="padding: 10px 0 0; color: #14532d; font-weight: 800; font-size: 20px; text-align: right; vertical-align: top;">${incomeText}</td>
           </tr>
         </table>
         <p style="margin: 10px 0 0; color: #166534; font-size: 12px;">* รายได้จริงคำนวณหลังจากนักเรียนเช็คชื่อเรียบร้อยแล้ว</p>
@@ -129,8 +165,13 @@ async function sendCourseCreatedStudentEmail({
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
   });
   const typeLabel = courseType === 'individual' ? 'เดี่ยว' : 'กลุ่ม';
-  const priceText = coursePrice > 0
-    ? `฿${coursePrice.toLocaleString('th-TH')}`
+  const hours = durationHours(startTime, endTime);
+  const hoursText = formatHours(hours);
+  const totalPrice = coursePrice > 0 && hours > 0
+    ? Math.round(coursePrice * hours)
+    : 0;
+  const priceText = totalPrice > 0
+    ? `฿${totalPrice.toLocaleString('th-TH')}`
     : 'ไม่มีค่าใช้จ่าย';
 
   const html = `
@@ -157,8 +198,9 @@ async function sendCourseCreatedStudentEmail({
       <div style="background: #fef3c7; border-radius: 16px; padding: 20px; margin-bottom: 16px; border: 1.5px solid #fbbf24;">
         <h3 style="margin: 0 0 8px; color: #78350f; font-size: 16px;">💰 ค่าเรียนที่ต้องชำระ</h3>
         <p style="margin: 0; color: #78350f; font-size: 28px; font-weight: 800;">${priceText}</p>
-        ${coursePrice > 0
-          ? `<p style="margin: 8px 0 0; color: #92400e; font-size: 13px;">กรุณาชำระเงินผ่านระบบ Know More Sci หลังยืนยันการเข้าเรียน</p>`
+        ${totalPrice > 0
+          ? `<p style="margin: 6px 0 0; color: #92400e; font-size: 13px;">฿${coursePrice.toLocaleString('th-TH')}/ชม. × ${hoursText}</p>
+             <p style="margin: 8px 0 0; color: #92400e; font-size: 13px;">กรุณาชำระเงินผ่านระบบ Know More Sci หลังยืนยันการเข้าเรียน</p>`
           : `<p style="margin: 8px 0 0; color: #92400e; font-size: 13px;">การนัดสอนครั้งนี้ไม่มีค่าใช้จ่าย</p>`
         }
       </div>
