@@ -320,8 +320,12 @@ async function sendScheduleCreatedEmail({
     : `${mins} นาที`;
 
   const membersHtml = members.map(m => `<li style="padding: 4px 0; color: #1e293b;">${m}</li>`).join('');
-  const priceText = coursePrice > 0
-    ? `฿${coursePrice.toLocaleString('th-TH')}`
+  const courseHours = (Number(totalDurationMinutes) || 0) / 60;
+  const totalPrice = coursePrice > 0 && courseHours > 0
+    ? Math.round(coursePrice * courseHours)
+    : 0;
+  const priceText = totalPrice > 0
+    ? `฿${totalPrice.toLocaleString('th-TH')}`
     : 'ไม่มีค่าใช้จ่าย';
 
   const html = `
@@ -350,8 +354,9 @@ async function sendScheduleCreatedEmail({
         <div style="display: flex; align-items: center; gap: 8px;">
           <span style="font-size: 24px;">💰</span>
           <div>
-            <p style="margin: 0; color: #92400e; font-size: 13px;">ราคาคอร์ส</p>
+            <p style="margin: 0; color: #92400e; font-size: 13px;">ค่าเรียนที่ต้องชำระ</p>
             <p style="margin: 4px 0 0; color: #78350f; font-size: 20px; font-weight: 700;">${priceText}</p>
+            ${totalPrice > 0 ? `<p style="margin: 4px 0 0; color: #92400e; font-size: 12px;">฿${coursePrice.toLocaleString('th-TH')}/ชม. × ${durationText}</p>` : ''}
           </div>
         </div>
       </div>
@@ -517,7 +522,10 @@ async function sendScheduleEditedTeacherEmail({
   const oldDateFmt = fmtDate(oldDate);
   const newDateFmt = fmtDate(newDate);
   const typeLabel = courseType === 'individual' ? 'เดี่ยว' : 'กลุ่ม';
-  const incomeAmount = courseType === 'individual' ? teacherIncomeIndividual : teacherIncomeGroup;
+  const hours = durationHours(newStartTime, newEndTime);
+  const hoursText = formatHours(hours);
+  const ratePerHour = courseType === 'individual' ? teacherIncomeIndividual : teacherIncomeGroup;
+  const incomeAmount = ratePerHour > 0 && hours > 0 ? Math.round(ratePerHour * hours) : 0;
   const incomeText = incomeAmount > 0 ? `฿${incomeAmount.toLocaleString('th-TH')}` : 'ยังไม่ระบุ';
 
   const html = `
@@ -547,6 +555,7 @@ async function sendScheduleEditedTeacherEmail({
       <div style="background: #f0fdf4; border-radius: 16px; padding: 20px; margin-bottom: 16px; border: 1.5px solid #86efac;">
         <h3 style="margin: 0 0 8px; color: #166534; font-size: 15px;">💰 รายได้ที่คุณจะได้รับ (${typeLabel})</h3>
         <p style="margin: 0; color: #14532d; font-size: 22px; font-weight: 800;">${incomeText}</p>
+        ${ratePerHour > 0 && hours > 0 ? `<p style="margin: 6px 0 0; color: #166534; font-size: 12px;">฿${ratePerHour.toLocaleString('th-TH')}/ชม. × ${hoursText}</p>` : ''}
       </div>
       <p style="text-align: center; color: #94a3b8; font-size: 12px; margin-top: 24px;">อีเมลนี้ส่งจากระบบ Know More Sci โดยอัตโนมัติ</p>
     </div>
@@ -580,7 +589,10 @@ async function sendScheduleEditedStudentEmail({
   const fmtDate = (d) => new Date(d).toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const oldDateFmt = fmtDate(oldDate);
   const newDateFmt = fmtDate(newDate);
-  const priceText = coursePrice > 0 ? `฿${coursePrice.toLocaleString('th-TH')}` : 'ไม่มีค่าใช้จ่าย';
+  const hours = durationHours(newStartTime, newEndTime);
+  const hoursText = formatHours(hours);
+  const totalPrice = coursePrice > 0 && hours > 0 ? Math.round(coursePrice * hours) : 0;
+  const priceText = totalPrice > 0 ? `฿${totalPrice.toLocaleString('th-TH')}` : 'ไม่มีค่าใช้จ่าย';
 
   const html = `
     <div style="font-family: 'Sarabun', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 20px;">
@@ -608,8 +620,9 @@ async function sendScheduleEditedStudentEmail({
         </div>
       </div>
       <div style="background: #fef3c7; border-radius: 16px; padding: 20px; margin-bottom: 16px; border: 1.5px solid #fbbf24;">
-        <h3 style="margin: 0 0 8px; color: #78350f; font-size: 15px;">💰 ค่าเรียน</h3>
+        <h3 style="margin: 0 0 8px; color: #78350f; font-size: 15px;">💰 ค่าเรียนที่ต้องชำระ</h3>
         <p style="margin: 0; color: #78350f; font-size: 22px; font-weight: 800;">${priceText}</p>
+        ${totalPrice > 0 ? `<p style="margin: 6px 0 0; color: #92400e; font-size: 12px;">฿${coursePrice.toLocaleString('th-TH')}/ชม. × ${hoursText}</p>` : ''}
       </div>
       <p style="text-align: center; color: #94a3b8; font-size: 12px; margin-top: 24px;">อีเมลนี้ส่งจากระบบ Know More Sci โดยอัตโนมัติ</p>
     </div>
