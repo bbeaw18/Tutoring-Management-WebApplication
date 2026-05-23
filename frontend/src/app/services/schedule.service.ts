@@ -107,6 +107,13 @@ export class ScheduleService {
     );
   }
 
+  // ─── ครูเลื่อนคลาสของตัวเอง (drag ในปฏิทินครู) ─────────────────
+  teacherReschedule(id: string, date: string, startTime: string, endTime: string): Observable<ISchedule> {
+    return this.http.patch<IApiResponse<ISchedule>>(`${this.apiUrl}/${id}/teacher-reschedule`, { date, startTime, endTime }).pipe(
+      map(res => res.data)
+    );
+  }
+
   // ─── Admin: เพิ่มนักเรียนเข้าเรียนด้วยตนเอง (ทดสอบระบบ) ──────
   manualAddAttendance(scheduleId: string, studentId: string): Observable<{
     student: { _id: string; firstName: string; lastName: string; profileImage?: string };

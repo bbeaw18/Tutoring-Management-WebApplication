@@ -84,10 +84,11 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
   /** Manager/Admin confirms class completion (awaiting_confirmation → completed) */
   managerConfirmClass(course: any, ev?: Event): void {
     ev?.stopPropagation();
-    const id = this.getId(course);
-    if (!id || this.confirmingId) return;
-    this.confirmingId = id;
-    this.scheduleService.managerConfirm(id)
+    const scheduleId = course?.scheduleId;
+    const courseId = this.getId(course);
+    if (!scheduleId || !courseId || this.confirmingId) return;
+    this.confirmingId = courseId;
+    this.scheduleService.managerConfirm(scheduleId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => { this.confirmingId = ''; this.loadAll(); },
@@ -528,6 +529,14 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
         const db = b.scheduledDate ? new Date(b.scheduledDate).getTime() : 0;
         return da - db;
       });
+  }
+
+  /** จำนวนคลาสในชุดที่ Manager ยืนยันเสร็จสิ้นแล้ว (displayStatus === 'completed') */
+  getSeriesCompletedCount(course: any): number {
+    if (!this.isSeriesCourse(course)) return 0;
+    return this.getSeriesCourses(course.seriesId)
+      .filter(c => resolveDisplayStatus(c) === 'completed')
+      .length;
   }
 
   /** ลำดับของคลาสนี้ในชุด (1-based) — สำหรับแสดง "1/4" บนการ์ด */

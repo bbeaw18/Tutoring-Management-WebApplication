@@ -185,7 +185,17 @@
             รายจ่ายครู
           </h3>
           <div class="amount"><span class="thb">฿</span><span [kmsCountUp]="kpiTeacherExpense" kmsCountFormat="1.0-0">0</span></div>
-          <div class="amount-change">เฉพาะคลาสที่ Manager ยืนยันแล้ว</div>
+          <div class="te-split">
+            <div class="te-split-col te-unpaid">
+              <span class="te-split-label">ค้างชำระ</span>
+              <strong class="te-split-val">฿<span [kmsCountUp]="teacherExpenseUnpaidTotal" kmsCountFormat="1.0-0">0</span></strong>
+            </div>
+            <span class="te-split-sep">|</span>
+            <div class="te-split-col te-paid">
+              <span class="te-split-label">ชำระแล้ว</span>
+              <strong class="te-split-val">฿<span [kmsCountUp]="teacherExpensePaidTotal" kmsCountFormat="1.0-0">0</span></strong>
+            </div>
+          </div>
         </div>
 
         <div class="revenue-card net-institute">
@@ -196,7 +206,7 @@
           <div class="amount" [class.negative-amt]="kpiNetInstitute < 0">
             <span class="thb">฿</span><span [kmsCountUp]="kpiNetInstitute" kmsCountFormat="1.0-0">0</span>
           </div>
-          <div class="amount-change">ยอดชำระแล้ว − รายจ่ายครู</div>
+          <div class="amount-change">รายรับทั้งหมดของสถาบัน − ค่าสอนครู (รวม Manager)</div>
         </div>
       </div>
     </section>
@@ -241,46 +251,6 @@
             <ng-container *ngIf="!filterStudent">ยอดค้างชำระ</ng-container>
             <ng-container *ngIf="filterStudent">ยอดค้างชำระของ {{ studentFilterLabel }}</ng-container>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── Section C: รายได้บุคลากร (กรองตามครูผู้สอน) ── -->
-    <section class="kpi-section">
-      <div class="kpi-section-head">
-        <div class="kpi-section-label">
-          <span class="kpi-section-pill kpi-pill-teacher">บุคลากร</span>
-          <span class="kpi-section-title">รายได้บุคลากร</span>
-        </div>
-        <div class="kpi-section-filter" [class.is-self]="isFilteringSelf">
-          <label class="filter-label-inline">กรองตามครูผู้สอน</label>
-          <span class="filter-current-chip" [class.is-active]="!!filterTeacher">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-            </svg>
-            {{ teacherFilterDisplay }}<span *ngIf="isFilteringSelf" class="filter-self-badge">คุณ</span>
-          </span>
-          <select class="filter-select"
-                  [(ngModel)]="filterTeacher"
-                  (change)="onPersonFilterChange()">
-            <option value="">ทั้งหมด</option>
-            <option *ngFor="let t of teachersForFilter" [value]="t._id">
-              {{ t | displayName }}<ng-container *ngIf="t._id === currentUser?._id"> (คุณ)</ng-container>
-            </option>
-          </select>
-        </div>
-      </div>
-      <div class="revenue-cards kpi-row-1">
-        <div class="revenue-card manager-income"
-             [class.active]="activeKpi === 'myIncome'"
-             (click)="selectKpi('myIncome')"
-             role="button" tabindex="0">
-          <h3>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M20 7h-9M14 17H5M21 17a4 4 0 1 0-8 0M11 7a4 4 0 1 1-8 0"/></svg>
-            {{ myIncomeTitle }}
-          </h3>
-          <div class="amount"><span class="thb">฿</span><span [kmsCountUp]="myIncomeAmount" kmsCountFormat="1.0-0">0</span></div>
-          <div class="amount-change">{{ myIncomeSubtitle }}</div>
         </div>
       </div>
     </section>
@@ -431,6 +401,46 @@
 
     </div>
 
+    <!-- ── Section C: รายได้บุคลากร (กรองตามครูผู้สอน) ── -->
+    <section class="kpi-section">
+      <div class="kpi-section-head">
+        <div class="kpi-section-label">
+          <span class="kpi-section-pill kpi-pill-teacher">บุคลากร</span>
+          <span class="kpi-section-title">รายได้บุคลากร</span>
+        </div>
+        <div class="kpi-section-filter" [class.is-self]="isFilteringSelf">
+          <label class="filter-label-inline">กรองตามครูผู้สอน</label>
+          <span class="filter-current-chip" [class.is-active]="!!filterTeacher">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+            {{ teacherFilterDisplay }}<span *ngIf="isFilteringSelf" class="filter-self-badge">คุณ</span>
+          </span>
+          <select class="filter-select"
+                  [(ngModel)]="filterTeacher"
+                  (change)="onPersonFilterChange()">
+            <option value="">ทั้งหมด</option>
+            <option *ngFor="let t of teachersForFilter" [value]="t._id">
+              {{ t | displayName }}<ng-container *ngIf="t._id === currentUser?._id"> (คุณ)</ng-container>
+            </option>
+          </select>
+        </div>
+      </div>
+      <div class="revenue-cards kpi-row-1">
+        <div class="revenue-card manager-income"
+             [class.active]="activeKpi === 'myIncome'"
+             (click)="selectKpi('myIncome')"
+             role="button" tabindex="0">
+          <h3>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M20 7h-9M14 17H5M21 17a4 4 0 1 0-8 0M11 7a4 4 0 1 1-8 0"/></svg>
+            {{ myIncomeTitle }}
+          </h3>
+          <div class="amount"><span class="thb">฿</span><span [kmsCountUp]="myIncomeAmount" kmsCountFormat="1.0-0">0</span></div>
+          <div class="amount-change">{{ myIncomeSubtitle }}</div>
+        </div>
+      </div>
+    </section>
+
     <!-- ── Add Income/Expense Modal ── -->
     <div class="exp-modal-backdrop" *ngIf="showExpenseModal" (click)="closeExpenseModal()">
       <div class="exp-modal" (click)="$event.stopPropagation()">
@@ -528,13 +538,20 @@
       <div class="rev-nick-grid" *ngIf="uniqueTeachersInFilter.length > 0">
         <button class="rev-nick-card" type="button"
                 *ngFor="let t of uniqueTeachersInFilter; trackBy: trackByTeacherNick"
+                [class.is-paid]="isTeacherPaid(t.teacherId)"
                 (click)="openTeacherMonthlyModal(t.teacherId, t.nickname)"
                 [attr.aria-label]="'ดูคลาสของครู' + t.nickname">
           <span class="rev-nick-avatar"
                 [style.background]="'linear-gradient(135deg, hsl(' + txAvatarHue(t.teacherId) + ', 75%, 58%), hsl(' + ((txAvatarHue(t.teacherId) + 30) % 360) + ', 80%, 42%))'"
                 aria-hidden="true">{{ t.nickname.charAt(0) }}</span>
           <span class="rev-nick-body">
-            <span class="rev-nick-name">ครู{{ t.nickname }}</span>
+            <span class="rev-nick-name">
+              ครู{{ t.nickname }}
+              <span class="rev-nick-paid-badge" *ngIf="isTeacherPaid(t.teacherId)" title="ชำระค่าจ้างแล้ว">
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                ชำระแล้ว
+              </span>
+            </span>
             <span class="rev-nick-count">{{ t.classCount }} คลาส · ฿{{ t.income | number:'1.0-0' }}</span>
           </span>
           <svg class="rev-nick-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -805,9 +822,160 @@
               <strong class="sm-summary-total">฿{{ teacherMonthlyTotal | number: '1.0-0' }}</strong>
             </div>
           </div>
+          <button class="btn-payout-teacher" type="button" (click)="openPayoutModal()" [disabled]="teacherMonthlyTotal <= 0">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            ชำระค่าจ้างครู
+          </button>
           <button class="btn-close-sm" (click)="closeTeacherMonthlyModal()">ปิด</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ─── Payout Modal — ยืนยันชำระค่าจ้างสอนครู ─── -->
+  <div class="modal-overlay payout-overlay" *ngIf="showPayoutModal" (click)="closePayoutModal()">
+    <div class="modal-box payout-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+
+      <!-- ─ Success state (full takeover) ─ -->
+      <div *ngIf="payoutSuccess" class="payout-success-state">
+        <button class="payout-close-x" (click)="closePayoutModal()" aria-label="ปิด">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <div class="payout-check-ring">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="payout-check-svg">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <h2 class="payout-success-title">ชำระค่าจ้างเรียบร้อย</h2>
+        <p class="payout-success-sub">
+          ครู<strong>{{ teacherMonthlyTarget?.nickname }}</strong> · <strong>฿{{ payoutAmount | number: '1.0-0' }}</strong>
+        </p>
+        <p class="payout-success-note">ระบบส่งการแจ้งเตือนไปยังครูแล้ว</p>
+        <button class="btn-payout-done" type="button" (click)="closePayoutModal()">เสร็จสิ้น</button>
+      </div>
+
+      <!-- ─ Default state ─ -->
+      <ng-container *ngIf="!payoutSuccess">
+        <!-- Header -->
+        <div class="payout-modal-header">
+          <div class="payout-header-decor"></div>
+          <button class="payout-close-x" (click)="closePayoutModal()" aria-label="ปิด">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+          <div class="payout-header-content">
+            <div class="payout-eyebrow">
+              <span class="payout-eyebrow-dot"></span>
+              ชำระค่าจ้างสอน
+            </div>
+            <div class="payout-recipient">
+              <div class="payout-avatar">{{ (teacherMonthlyTarget?.nickname || '?').charAt(0) }}</div>
+              <div class="payout-recipient-text">
+                <div class="payout-recipient-name">ครู{{ teacherMonthlyTarget?.nickname }}</div>
+                <div class="payout-recipient-meta">เดือน{{ monthLabelTH(filterMonth) }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hero amount -->
+          <div class="payout-hero">
+            <div class="payout-hero-label">ยอดที่ต้องโอน</div>
+            <div class="payout-hero-amount">
+              <span class="payout-hero-currency">฿</span>
+              <span class="payout-hero-value">{{ payoutAmount | number: '1.0-0' }}</span>
+            </div>
+            <div class="payout-hero-classes">{{ teacherMonthlyClasses.length }} คลาส</div>
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div class="payout-modal-body">
+          <!-- Skeleton -->
+          <div *ngIf="loadingPayoutInfo" class="payout-skel-list">
+            <div class="payout-skel-row" *ngFor="let _ of [1,2,3]">
+              <div class="payout-skel-bar payout-skel-bar-sm"></div>
+              <div class="payout-skel-bar payout-skel-bar-lg"></div>
+            </div>
+          </div>
+
+          <ng-container *ngIf="!loadingPayoutInfo">
+            <div class="payout-section-label">
+              <span class="payout-section-line"></span>
+              <span>โอนเงินไปยัง</span>
+              <span class="payout-section-line"></span>
+            </div>
+
+            <div class="payout-info-card">
+              <div class="payout-info-row">
+                <div class="payout-info-key">
+                  <span class="payout-info-icon">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                  </span>
+                  ช่องทางรับเงิน
+                </div>
+                <div class="payout-info-val">{{ payoutTeacher?.paymentChannel || '—' }}</div>
+              </div>
+              <div class="payout-info-divider"></div>
+
+              <div class="payout-info-row">
+                <div class="payout-info-key">
+                  <span class="payout-info-icon">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
+                  </span>
+                  เลขบัญชี
+                </div>
+                <div class="payout-info-val payout-info-val-account">
+                  <span class="payout-mono">{{ payoutTeacher?.bankAccountNumber || '—' }}</span>
+                  <button *ngIf="payoutTeacher?.bankAccountNumber"
+                          class="payout-copy-btn"
+                          type="button"
+                          (click)="copyText(payoutTeacher?.bankAccountNumber || '')"
+                          [title]="copiedKey === payoutTeacher?.bankAccountNumber ? 'คัดลอกแล้ว' : 'คัดลอก'">
+                    <svg *ngIf="copiedKey !== payoutTeacher?.bankAccountNumber" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    <svg *ngIf="copiedKey === payoutTeacher?.bankAccountNumber" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="payout-info-divider"></div>
+
+              <div class="payout-info-row">
+                <div class="payout-info-key">
+                  <span class="payout-info-icon">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  </span>
+                  ชื่อบัญชี
+                </div>
+                <div class="payout-info-val">{{ payoutTeacher?.bankAccountName || '—' }}</div>
+              </div>
+            </div>
+
+            <div *ngIf="!payoutTeacher?.bankAccountNumber" class="payout-warn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span><strong>ครูยังไม่ตั้งค่าบัญชีรับเงิน</strong> — แจ้งครูให้กรอกในโปรไฟล์ก่อนโอน</span>
+            </div>
+
+            <div *ngIf="payoutError" class="payout-error">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              {{ payoutError }}
+            </div>
+          </ng-container>
+        </div>
+
+        <!-- Footer -->
+        <div class="payout-modal-footer">
+          <button class="payout-btn payout-btn-ghost" type="button" (click)="closePayoutModal()" [disabled]="payingOut">
+            ยกเลิก
+          </button>
+          <button class="payout-btn payout-btn-primary" type="button"
+                  (click)="confirmPayout()"
+                  [disabled]="payingOut || loadingPayoutInfo">
+            <svg *ngIf="!payingOut" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg *ngIf="payingOut" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="payout-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+            {{ payingOut ? 'กำลังยืนยัน...' : 'ยืนยันการชำระค่าจ้างสอน' }}
+          </button>
+        </div>
+      </ng-container>
     </div>
   </div>
 </div>

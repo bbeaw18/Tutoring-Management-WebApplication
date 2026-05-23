@@ -23,6 +23,7 @@ export class TeacherCalendarComponent implements OnInit, OnDestroy, AfterViewIni
   private destroy$ = new Subject<void>();
 
   @ViewChild('calScroll') calScrollRef!: ElementRef<HTMLElement>;
+  @ViewChild('calInner') calInnerRef!: ElementRef<HTMLElement>;
   @ViewChild('weekTotalEl') weekTotalEl?: ElementRef<HTMLElement>;
   private lastCountedTotal = -1;
   private scrolledToNow = false;
@@ -41,6 +42,37 @@ export class TeacherCalendarComponent implements OnInit, OnDestroy, AfterViewIni
   selectedSchedule: ISchedule | null = null;
   showDetailModal = false;
   confirmLoading = false;
+
+  // ─── Drag-to-reschedule (snap 30 min, cross-column = เปลี่ยนวัน) ─
+  private readonly SNAP_MINUTES = 30;
+  private readonly DRAG_THRESHOLD_PX = 3;
+  // ── Click-and-hold gate: ครูต้องกดค้าง 1.3 วินาที ก่อน drag จะ arm ──
+  readonly HOLD_DURATION_MS = 1300;
+  readonly HOLD_MOVE_TOLERANCE_PX = 6;
+  draggingId: string | null = null;
+  private dragSch: ISchedule | null = null;
+  private dragStartX = 0;
+  private dragStartY = 0;
+  private dragOriginalTop = 0;
+  private dragOriginalDayIndex = 0;
+  dragPreviewTop = 0;
+  dragPreviewStart = '';
+  dragPreviewEnd = '';
+  dragPreviewDayIndex = 0;
+  dragPreviewTranslateX = 0;
+  private dragColRects: { left: number; width: number }[] = [];
+  private dragMoved = false;
+  private dragSubmitting = false;
+  dragError = '';
+  // hold state
+  holdScheduleId: string | null = null;
+  holdProgress = 0;
+  private holdStartX = 0;
+  private holdStartY = 0;
+  private holdStartTime = 0;
+  private holdTimer: any = null;
+  private holdProgressInterval: any = null;
+  private holdContext: { sch: ISchedule; dayIndex: number; ev: MouseEvent } | null = null;
 
   // ─── Time Grid Config ─────────────────────────────────────
   readonly START_HOUR = 0;
@@ -288,6 +320,194 @@ export class TeacherCalendarComponent implements OnInit, OnDestroy, AfterViewIni
     if (sch.isFullyConfirmed) return '#1d4ed8';
     if (!sch.teacherConfirmed) return '#92400e';
     return '#3730a3';
+  }
+
+  // ─── Drag-to-reschedule ───────────────────────────────────
+  /** คลาสนี้ครูเลื่อนได้หรือไม่ (เฉพาะคลาสยังไม่จบ/ยกเลิก/รอ manager) */
+  canDragSchedule(sch: ISchedule): boolean {
+    const blocked = ['completed', 'cancelled', 'awaiting_confirmation'];
+    return !blocked.includes(sch.status as string);
+  }
+
+  onEventMouseDown(sch: ISchedule, dayIndex: number, ev: MouseEvent): void {
+    if (ev.button !== 0) return;
+    if (!this.canDragSchedule(sch)) {
+      this.openDetail(sch, ev);
+      return;
+    }
+    // อย่า preventDefault ตอนนี้ — ถ้าผู้ใช้ปล่อยก่อนครบ 1.3s ให้ click ปกติ (เปิด detail)
+    ev.stopPropagation();
+    this.cancelHold();
+    this.holdScheduleId = sch._id;
+    this.holdProgress = 0;
+    this.holdStartX = ev.clientX;
+    this.holdStartY = ev.clientY;
+    this.holdStartTime = Date.now();
+    this.holdContext = { sch, dayIndex, ev };
+    this.holdProgressInterval = setInterval(() => {
+      const elapsed = Date.now() - this.holdStartTime;
+      this.holdProgress = Math.min(100, Math.round((elapsed / this.HOLD_DURATION_MS) * 100));
+    }, 33);
+    this.holdTimer = setTimeout(() => this.armDrag(), this.HOLD_DURATION_MS);
+    document.addEventListener('mousemove', this.onHoldMove);
+    document.addEventListener('mouseup', this.onHoldRelease);
+  }
+
+  private onHoldMove = (ev: MouseEvent): void => {
+    if (!this.holdScheduleId || this.draggingId) return;
+    const dx = ev.clientX - this.holdStartX;
+    const dy = ev.clientY - this.holdStartY;
+    if (dx * dx + dy * dy > this.HOLD_MOVE_TOLERANCE_PX * this.HOLD_MOVE_TOLERANCE_PX) {
+      this.cancelHold();
+    }
+  };
+
+  private onHoldRelease = (ev: MouseEvent): void => {
+    if (!this.holdScheduleId || this.draggingId) return;
+    const ctx = this.holdContext;
+    this.cancelHold();
+    if (ctx) this.openDetail(ctx.sch, ev);
+  };
+
+  private cancelHold(): void {
+    if (this.holdTimer) { clearTimeout(this.holdTimer); this.holdTimer = null; }
+    if (this.holdProgressInterval) { clearInterval(this.holdProgressInterval); this.holdProgressInterval = null; }
+    document.removeEventListener('mousemove', this.onHoldMove);
+    document.removeEventListener('mouseup', this.onHoldRelease);
+    this.holdScheduleId = null;
+    this.holdProgress = 0;
+    this.holdContext = null;
+  }
+
+  /** ครบ 1.3 วินาที — เริ่ม drag จริง */
+  private armDrag(): void {
+    const ctx = this.holdContext;
+    if (!ctx) return;
+    if (this.holdProgressInterval) { clearInterval(this.holdProgressInterval); this.holdProgressInterval = null; }
+    document.removeEventListener('mousemove', this.onHoldMove);
+    document.removeEventListener('mouseup', this.onHoldRelease);
+    const { sch, dayIndex, ev } = ctx;
+    this.holdScheduleId = null;
+    this.holdProgress = 100;
+    this.holdContext = null;
+    try { (navigator as any).vibrate?.(35); } catch { /* ignore */ }
+    this.draggingId = sch._id;
+    this.dragSch = sch;
+    this.dragStartX = ev.clientX;
+    this.dragStartY = ev.clientY;
+    this.dragOriginalTop = this.getEventTop(sch);
+    this.dragOriginalDayIndex = dayIndex;
+    this.dragPreviewTop = this.dragOriginalTop;
+    this.dragPreviewStart = sch.startTime;
+    this.dragPreviewEnd = sch.endTime;
+    this.dragPreviewDayIndex = dayIndex;
+    this.dragPreviewTranslateX = 0;
+    this.dragMoved = false;
+    this.dragColRects = this.captureColRects();
+    document.addEventListener('mousemove', this.onDragMove);
+    document.addEventListener('mouseup', this.onDragUp);
+  }
+
+  /** Cache bounding rects ของ 7 day columns (สำหรับ hit-test ตอน drag) */
+  private captureColRects(): { left: number; width: number }[] {
+    const inner = this.calInnerRef?.nativeElement;
+    if (!inner) return [];
+    const cols = Array.from(inner.querySelectorAll<HTMLElement>('.gcal-day-col'));
+    return cols.map(c => {
+      const r = c.getBoundingClientRect();
+      return { left: r.left, width: r.width };
+    });
+  }
+
+  private onDragMove = (ev: MouseEvent): void => {
+    if (!this.draggingId || !this.dragSch) return;
+    const deltaY = ev.clientY - this.dragStartY;
+    const deltaX = ev.clientX - this.dragStartX;
+    if (Math.abs(deltaY) > this.DRAG_THRESHOLD_PX || Math.abs(deltaX) > this.DRAG_THRESHOLD_PX) {
+      this.dragMoved = true;
+    }
+    if (!this.dragMoved) return;
+
+    // ── vertical: เวลาใหม่ (snap 30 min) ──
+    const snapPx = this.HOUR_HEIGHT * (this.SNAP_MINUTES / 60);
+    const snappedDeltaY = Math.round(deltaY / snapPx) * snapPx;
+    const startMinOrig = this.minOf(this.dragSch.startTime);
+    const endMinOrig = this.minOf(this.dragSch.endTime);
+    let dur = endMinOrig - startMinOrig;
+    if (dur <= 0) dur = (this.END_HOUR * 60) - startMinOrig;
+    let newStartMin = startMinOrig + (snappedDeltaY / this.HOUR_HEIGHT) * 60;
+    const minStart = this.START_HOUR * 60;
+    const maxStart = this.END_HOUR * 60 - dur;
+    newStartMin = Math.max(minStart, Math.min(newStartMin, maxStart));
+    this.dragPreviewTop = (newStartMin - this.START_HOUR * 60) / 60 * this.HOUR_HEIGHT;
+    this.dragPreviewStart = this.minToTimeStr(newStartMin);
+    this.dragPreviewEnd = this.minToTimeStr(newStartMin + dur);
+
+    // ── horizontal: วันใหม่ (hit-test กับ day columns) ──
+    let newDayIndex = this.dragOriginalDayIndex;
+    for (let i = 0; i < this.dragColRects.length; i++) {
+      const r = this.dragColRects[i];
+      if (ev.clientX >= r.left && ev.clientX < r.left + r.width) {
+        newDayIndex = i;
+        break;
+      }
+    }
+    if (this.dragColRects.length > 0) {
+      const first = this.dragColRects[0];
+      const last = this.dragColRects[this.dragColRects.length - 1];
+      if (ev.clientX < first.left) newDayIndex = 0;
+      else if (ev.clientX >= last.left + last.width) newDayIndex = this.dragColRects.length - 1;
+    }
+    this.dragPreviewDayIndex = newDayIndex;
+    const origRect = this.dragColRects[this.dragOriginalDayIndex];
+    const newRect = this.dragColRects[newDayIndex];
+    this.dragPreviewTranslateX = (origRect && newRect) ? (newRect.left - origRect.left) : 0;
+  };
+
+  private onDragUp = (ev: MouseEvent): void => {
+    document.removeEventListener('mousemove', this.onDragMove);
+    document.removeEventListener('mouseup', this.onDragUp);
+    const sch = this.dragSch;
+    const moved = this.dragMoved;
+    const newStart = this.dragPreviewStart;
+    const newEnd = this.dragPreviewEnd;
+    const newDayIndex = this.dragPreviewDayIndex;
+    const origDayIndex = this.dragOriginalDayIndex;
+    this.draggingId = null;
+    this.dragSch = null;
+    this.dragMoved = false;
+    this.dragPreviewTranslateX = 0;
+    if (!sch) return;
+    if (!moved) return; // ครบ hold แล้ว แต่ไม่ลาก — ไม่เปิด detail (กันชน hold gesture)
+    const sameTime = (newStart === sch.startTime && newEnd === sch.endTime);
+    const sameDay = (newDayIndex === origDayIndex);
+    if (sameTime && sameDay) return;
+    if (this.dragSubmitting) return;
+
+    const targetDay = this.weekDays[newDayIndex];
+    if (!targetDay) return;
+    const dateStr = this.toLocalDateStr(targetDay.date);
+
+    this.dragSubmitting = true;
+    this.dragError = '';
+    this.scheduleService.teacherReschedule(sch._id, dateStr, newStart, newEnd)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => { this.dragSubmitting = false; this.loadCalendar(); },
+        error: (err) => {
+          this.dragSubmitting = false;
+          this.dragError = err?.error?.message || 'เลื่อนคลาสไม่สำเร็จ';
+          this.loadCalendar();
+          setTimeout(() => { this.dragError = ''; }, 5000);
+        }
+      });
+  };
+
+  private minToTimeStr(min: number): string {
+    const total = Math.max(0, Math.round(min));
+    const h = Math.floor(total / 60) % 24;
+    const m = total % 60;
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
   }
 
   // ─── Modal ────────────────────────────────────────────────

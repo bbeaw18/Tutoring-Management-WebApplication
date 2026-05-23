@@ -36,6 +36,12 @@
 
   <app-loading *ngIf="loading"></app-loading>
 
+  <!-- Drag-reschedule error toast -->
+  <div *ngIf="dragError" class="tc-drag-error" role="alert">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    {{ dragError }}
+  </div>
+
   <!-- ─── Status Legend ────────────────────────────────────── -->
   <div *ngIf="!loading" class="tc-legend" role="list" aria-label="ความหมายของสีสถานะ">
     <span class="tc-legend-item" role="listitem">
@@ -194,7 +200,7 @@
 
     <!-- Scrollable time-grid body -->
     <div class="gcal-scroll" #calScroll>
-      <div class="gcal-inner" [style.height.px]="totalGridHeight">
+      <div class="gcal-inner" #calInner [style.height.px]="totalGridHeight">
 
         <!-- Time labels -->
         <div class="gcal-time-col">
@@ -218,17 +224,31 @@
           <!-- Events -->
           <div class="gcal-event"
                *ngFor="let sch of day.schedules"
-               [style.top.px]="getEventTop(sch)"
+               [class.is-draggable]="canDragSchedule(sch)"
+               [class.is-dragging]="draggingId === sch._id"
+               [class.is-holding]="holdScheduleId === sch._id"
+               [style.top.px]="draggingId === sch._id ? dragPreviewTop : getEventTop(sch)"
                [style.height.px]="getEventHeight(sch)"
+               [style.transform]="draggingId === sch._id ? 'translateX(' + dragPreviewTranslateX + 'px)' : null"
                [style.background]="getEventBg(sch)"
                [style.borderLeftColor]="getEventBorder(sch)"
                [style.color]="getEventText(sch)"
-               (click)="openDetail(sch, $event)">
-            <div class="gcal-event-time">{{ sch.startTime }}–{{ sch.endTime }}</div>
+               (mousedown)="onEventMouseDown(sch, di, $event)">
+            <div class="gcal-event-time">
+              {{ draggingId === sch._id ? dragPreviewStart : sch.startTime }}–{{ draggingId === sch._id ? dragPreviewEnd : sch.endTime }}
+            </div>
             <div class="gcal-event-title">{{ getCourseName(sch) }}</div>
             <div class="gcal-event-warn" *ngIf="!sch.teacherConfirmed && getEventHeight(sch) > 44">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               รอยืนยัน
+            </div>
+            <!-- Hold progress (1.3s click-and-hold to start drag) -->
+            <div class="gcal-hold-bar" *ngIf="holdScheduleId === sch._id">
+              <div class="gcal-hold-bar-fill" [style.width.%]="holdProgress"></div>
+            </div>
+            <div class="gcal-hold-hint" *ngIf="holdScheduleId === sch._id">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              ค้างไว้เพื่อย้ายเวลา
             </div>
           </div>
 

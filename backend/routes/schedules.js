@@ -795,6 +795,127 @@ router.patch('/:id/reschedule', authenticateToken, roleCheck(['admin', 'manager'
 });
 
 // ────────────────────────────────────────────────────────────────────────────
+// PATCH /:id/teacher-reschedule — ครูเลื่อนคลาสของตัวเอง (เฉพาะวัน/เวลา)
+// Body: { date: 'YYYY-MM-DD', startTime: 'HH:mm', endTime: 'HH:mm' }
+// ────────────────────────────────────────────────────────────────────────────
+router.patch('/:id/teacher-reschedule', authenticateToken, roleCheck(['teacher', 'manager', 'admin']), async (req, res) => {
+  try {
+    const { date, startTime, endTime } = req.body;
+    if (!date || !startTime || !endTime) {
+      return sendResponse(res, 400, false, null, 'Missing required fields: date, startTime, endTime');
+    }
+
+    const schedule = await Schedule.findById(req.params.id)
+      .populate('course', 'name subject createdBy')
+      .populate('teacher', 'firstName lastName nickname email')
+      .populate('students', 'firstName lastName nickname email grade academicYear');
+    if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
+
+    // เฉพาะครูเจ้าของคลาส (manager/admin ใช้ /reschedule ปกติ)
+    if (req.user.role === 'teacher' && schedule.teacher?._id.toString() !== req.user.id) {
+      return sendResponse(res, 403, false, null, 'ไม่มีสิทธิ์เลื่อนคลาสนี้ (ครูเลื่อนได้เฉพาะคลาสของตัวเอง)');
+    }
+
+    // คลาสที่จบ/ยกเลิก/รอ manager แล้ว ไม่ให้เลื่อน
+    if (['completed', 'cancelled', 'awaiting_confirmation'].includes(schedule.status)) {
+      return sendResponse(res, 400, false, null, `ไม่สามารถเลื่อนคลาสนี้ได้: สถานะปัจจุบันคือ "${schedule.status}"`);
+    }
+
+    const oldDate      = schedule.date;
+    const oldStartTime = schedule.startTime;
+    const oldEndTime   = schedule.endTime;
+
+    const [sh, sm] = startTime.split(':').map(Number);
+    const [eh, em] = endTime.split(':').map(Number);
+    const totalDurationMinutes = (eh * 60 + em) - (sh * 60 + sm);
+    if (totalDurationMinutes <= 0) {
+      return sendResponse(res, 400, false, null, 'เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่ม');
+    }
+
+    schedule.date              = new Date(date);
+    schedule.startTime         = startTime;
+    schedule.endTime           = endTime;
+    schedule.totalDurationMinutes = totalDurationMinutes;
+    await schedule.save();
+    await schedule.populate('studentConfirmations.student', 'firstName lastName nickname');
+
+    // Sync Course (เฉพาะ date/time)
+    if (schedule.course?._id) {
+      try {
+        await Course.findByIdAndUpdate(schedule.course._id, {
+          scheduledDate: schedule.date,
+          startTime:     schedule.startTime,
+          endTime:       schedule.endTime
+        });
+      } catch (syncErr) {
+        console.error('[TeacherReschedule] Course sync failed (non-blocking):', syncErr.message);
+      }
+    }
+
+    const courseObj   = schedule.course;
+    const teacherObj  = schedule.teacher;
+    const studentObjs = schedule.students || [];
+    const teacherName = teacherObj ? (teacherObj.nickname || `${teacherObj.firstName} ${teacherObj.lastName}`) : 'ครู';
+    const subjectName = courseObj?.subject || courseObj?.name || 'นัดสอน';
+    const newDateFmt  = new Date(date).toLocaleDateString('th-TH', {
+      weekday: 'short', year: 'numeric', month: 'short', day: 'numeric'
+    });
+    const msg = `วิชา: ${subjectName} | ครู ${teacherName} เลื่อนเป็น ${newDateFmt} ${startTime}–${endTime}`;
+
+    // แจ้ง manager ที่สร้างคลาส (Course.createdBy)
+    const managerId = courseObj?.createdBy;
+    if (managerId) {
+      await new Notification({
+        recipient: managerId,
+        sender:    req.user.id,
+        type:      'schedule',
+        title:     '🕐 ครูเลื่อนเวลานัดสอน',
+        message:   msg,
+        relatedId: schedule._id
+      }).save();
+    }
+
+    // แจ้งนักเรียนทุกคน
+    for (const student of studentObjs) {
+      await new Notification({
+        recipient: student._id,
+        sender:    req.user.id,
+        type:      'schedule',
+        title:     '🕐 ครูเลื่อนเวลานัดสอน',
+        message:   msg,
+        relatedId: schedule._id
+      }).save();
+    }
+
+    // อีเมล: ส่งนักเรียน + manager (ไม่ส่งครูเอง — ครูเป็นคนเลื่อน)
+    let managerEmail = null;
+    if (managerId) {
+      try {
+        const managerUser = await User.findById(managerId).select('email');
+        managerEmail = managerUser?.email || null;
+      } catch (_) { /* ignore */ }
+    }
+    sendScheduleRescheduledEmail({
+      teacherRecipient:  managerEmail ? { email: managerEmail } : null,
+      studentRecipients: studentObjs.map(s => ({ email: s.email })),
+      courseName:        subjectName,
+      teacherName:       teacherObj ? `${teacherObj.firstName} ${teacherObj.lastName}` : '-',
+      oldDate,
+      oldStartTime,
+      oldEndTime,
+      newDate:      new Date(date),
+      newStartTime: startTime,
+      newEndTime:   endTime
+    }).catch(e => console.error('[Email] TeacherReschedule email error:', e));
+
+    sendResponse(res, 200, true, schedule, 'Schedule rescheduled by teacher');
+  } catch (error) {
+    console.error('Teacher reschedule error:', error);
+    sendResponse(res, 500, false, null, error.message);
+  }
+});
+
+// ────────────────────────────────────────────────────────────────────────────
 // GET /:id — ดึง Schedule โดย ID
 // ────────────────────────────────────────────────────────────────────────────
 router.get('/:id', authenticateToken, async (req, res) => {

@@ -289,6 +289,7 @@ router.get('/', authenticateToken, async (req, res) => {
       const sch = latestScheduleByCourseId.get(c._id.toString());
       return {
         ...c.toObject(),
+        scheduleId: sch ? sch._id.toString() : null,
         displayStatus: deriveDisplayStatus(sch || { status: c.status, teacherConfirmed: c.teacherAccepted, isFullyConfirmed: false, students: c.students })
       };
     });

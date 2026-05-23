@@ -27,6 +27,9 @@ export interface ICourse {
   seriesSize?: number;
   /** Unified display status — แนบโดย backend (GET /courses) เพื่อให้ทุกหน้าใช้ค่าตรงกัน */
   displayStatus?: 'pending_teacher' | 'pending_students' | 'confirmed' | 'awaiting_manager' | 'completed' | 'cancelled';
+  /** id ของ Schedule ล่าสุดที่ผูกกับคอร์สนี้ — แนบโดย backend (GET /courses)
+   *  ใช้สำหรับ action ที่ต้องอ้าง Schedule (เช่น manager-confirm) */
+  scheduleId?: string | null;
   status: 'pending' | 'approved' | 'active' | 'completed' | 'cancelled';
   teacherAccepted?: boolean;
   createdBy?: any;

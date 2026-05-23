@@ -596,7 +596,14 @@
 
         <!-- Card Header -->
         <div class="card-header">
-          <div class="card-subject">{{ course.subject }}</div>
+          <div class="card-subject">
+            {{ course.subject }}
+            <span class="series-progress" *ngIf="isSeriesCourse(course)"
+                  [title]="'ยืนยันเสร็จสิ้นแล้ว ' + getSeriesCompletedCount(course) + ' จาก ' + getSeriesCount(course) + ' คลาสในชุด'">
+              {{ getSeriesCompletedCount(course) }}/{{ getSeriesCount(course) }}
+              <span class="series-progress-text">ครั้งที่เสร็จสิ้นคลาส</span>
+            </span>
+          </div>
           <span class="status-badge" [ngClass]="getStatusClass(course)">
             {{ getStatusLabel(course) }}
           </span>
@@ -1057,6 +1064,16 @@
               </div>
             </div>
             <div class="series-item-actions">
+              <button class="series-item-btn series-item-btn-confirm"
+                      *ngIf="resolveStatus(c) === 'awaiting_manager'"
+                      (click)="managerConfirmClass(c, $event)"
+                      [disabled]="confirmingId === getId(c)"
+                      title="ยืนยันเสร็จสิ้นการสอน">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>{{ confirmingId === getId(c) ? 'กำลังยืนยัน...' : 'ยืนยันเสร็จสิ้น' }}</span>
+              </button>
               <button class="series-item-btn series-item-btn-edit"
                       (click)="closeSeriesModal(); openEditModal(c)"
                       title="แก้ไขคลาสนี้">

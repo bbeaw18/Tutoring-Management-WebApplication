@@ -937,6 +937,30 @@
   color: var(--gray-900);
   flex: 1;
   min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.series-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: var(--r-full);
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: help;
+}
+.series-progress-text {
+  font-weight: 600;
+  font-size: 10.5px;
+  color: #065f46;
+  opacity: 0.85;
 }
 
 /* Status Badges */
@@ -2186,6 +2210,20 @@
   border-color: #fca5a5;
 }
 .series-item-btn-cancel:hover { background: #fef2f2; border-color: #f87171; }
+.series-item-btn-confirm {
+  width: auto;
+  height: 28px;
+  padding: 0 10px;
+  gap: 4px;
+  background: #059669;
+  color: #fff;
+  border-color: #059669;
+  font-family: var(--font-th);
+  font-size: 11px;
+  font-weight: 700;
+}
+.series-item-btn-confirm:hover:not(:disabled) { background: #047857; border-color: #047857; }
+.series-item-btn-confirm:disabled { opacity: .6; cursor: not-allowed; }
 
 .series-modal-footer {
   display: flex;

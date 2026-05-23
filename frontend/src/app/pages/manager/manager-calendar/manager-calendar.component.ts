@@ -65,7 +65,7 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
   rescheduling = false;
 
   // ─── Click-and-hold-to-drag ──────────────────────────────────────────────
-  readonly HOLD_DURATION_MS = 2000;
+  readonly HOLD_DURATION_MS = 1300;
   readonly HOLD_MOVE_TOLERANCE_PX = 6;
   dragArmed = false;             // true after 2s hold elapsed
   holdScheduleId: string | null = null; // id of the event currently in hold state (for visual)

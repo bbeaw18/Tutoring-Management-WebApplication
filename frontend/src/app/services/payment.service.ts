@@ -18,6 +18,20 @@ export class PaymentService {
     return this.http.get<IApiResponse<IPayment[]>>(this.apiUrl, { params: params as any });
   }
 
+  /** Manager: ยืนยันชำระค่าจ้างสอนให้ครู — บันทึก payout + ส่ง notification */
+  payoutTeacher(teacherId: string, amount: number, month: string): Observable<any> {
+    return this.http.post<IApiResponse<any>>(`${this.apiUrl}/teacher-payout`, { teacherId, amount, month }).pipe(
+      map(res => res.data)
+    );
+  }
+
+  /** รายการครูที่ชำระค่าจ้างแล้วในเดือนที่ระบุ */
+  getTeacherPayouts(month: string): Observable<any[]> {
+    return this.http.get<IApiResponse<any[]>>(`${this.apiUrl}/teacher-payouts`, { params: { month } as any }).pipe(
+      map(res => res.data || [])
+    );
+  }
+
   getPaymentById(id: string): Observable<IPayment> {
     return this.http.get<IApiResponse<IPayment>>(`${this.apiUrl}/${id}`).pipe(
       map(res => res.data)

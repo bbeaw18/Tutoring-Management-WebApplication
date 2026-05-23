@@ -74,7 +74,7 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
   // KPI ใหม่ (ผูกกับสถานะ completed/manager-confirmed เท่านั้น)
   kpiTeacherExpense = 0;   // รายจ่ายสถาบัน — รายได้ครู (role='teacher')
   kpiManagerIncome  = 0;   // รายได้ Manager (role='manager' ที่สอน)
-  kpiNetInstitute   = 0;   // กำไรสุทธิสถาบัน = paid - teacherExpense
+  kpiNetInstitute   = 0;   // กำไรสุทธิสถาบัน = total − (teacherExpense + managerIncome)
 
   // Active KPI filter
   activeKpi: KpiMode = 'all';
@@ -120,6 +120,19 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
   // เปิดเมื่อคลิกชื่อเล่นครูในกริด KPI "รายจ่ายครู"
   showTeacherMonthlyModal = false;
   teacherMonthlyTarget: { id: string; nickname: string } | null = null;
+
+  // ─── Payout modal (ยืนยันชำระค่าจ้างครู) ──────────────────────
+  showPayoutModal = false;
+  payoutTeacher: IUser | null = null;
+  payoutAmount = 0;
+  loadingPayoutInfo = false;
+  payingOut = false;
+  payoutSuccess = false;
+  payoutError = '';
+  copiedKey = '';
+
+  // ─── Teacher payouts (ครูที่ชำระค่าจ้างแล้วในเดือนปัจจุบัน) ──
+  teacherPayouts: any[] = [];
   teacherMonthlyClasses: IRevenueSchedule[] = [];
 
   // Palette for teacher slices
@@ -155,6 +168,7 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
     this.loadDropdowns();
     this.loadReport();
     this.loadExpenses();
+    this.loadTeacherPayouts();
   }
 
   ngOnDestroy(): void {
@@ -258,6 +272,37 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
     // teacher/student filters are frontend-only — only month change refetches data
     this.loadReport();
     this.loadExpenses();
+    this.loadTeacherPayouts();
+  }
+
+  /** โหลดรายการครูที่ชำระค่าจ้างแล้วในเดือนที่เลือก */
+  loadTeacherPayouts(): void {
+    if (!this.filterMonth) { this.teacherPayouts = []; return; }
+    this.paymentService.getTeacherPayouts(this.filterMonth)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (list) => { this.teacherPayouts = list || []; },
+        error: () => { this.teacherPayouts = []; }
+      });
+  }
+
+  /** ครูคนนี้ในเดือนปัจจุบันถูกชำระค่าจ้างแล้วหรือยัง */
+  isTeacherPaid(teacherId: string): boolean {
+    if (!teacherId || !this.teacherPayouts.length) return false;
+    return this.teacherPayouts.some(p => {
+      const id = (p.teacher && (p.teacher._id || p.teacher.id || p.teacher)) || '';
+      return String(id) === String(teacherId);
+    });
+  }
+
+  /** รวมยอดที่ Manager ชำระค่าจ้างครูแล้วในเดือนนี้ */
+  get teacherExpensePaidTotal(): number {
+    return this.teacherPayouts.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  }
+
+  /** ยอดค้างชำระค่าจ้างครู = รายจ่ายครูทั้งหมด − ที่ชำระแล้ว (ไม่ต่ำกว่า 0) */
+  get teacherExpenseUnpaidTotal(): number {
+    return Math.max(0, this.kpiTeacherExpense - this.teacherExpensePaidTotal);
   }
 
   /** Called when teacher or student dropdown changes — frontend filter only, no reload */
@@ -1004,6 +1049,58 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
   /** รวมรายจ่ายครูในชุดของครูที่เลือก (ใช้ใน modal footer) */
   get teacherMonthlyTotal(): number {
     return this.teacherMonthlyClasses.reduce((sum, s) => sum + (s.actualTeacherIncome || 0), 0);
+  }
+
+  // ─── Payout (ชำระค่าจ้างครู) ─────────────────────────────────
+  openPayoutModal(): void {
+    if (!this.teacherMonthlyTarget) return;
+    this.payoutAmount = this.teacherMonthlyTotal;
+    this.payoutTeacher = null;
+    this.payoutSuccess = false;
+    this.payoutError = '';
+    this.loadingPayoutInfo = true;
+    this.showPayoutModal = true;
+    this.userService.getUserById(this.teacherMonthlyTarget.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (u) => { this.payoutTeacher = u; this.loadingPayoutInfo = false; },
+        error: () => { this.loadingPayoutInfo = false; this.payoutError = 'ดึงข้อมูลครูไม่สำเร็จ'; }
+      });
+  }
+
+  closePayoutModal(): void {
+    this.showPayoutModal = false;
+    this.payoutTeacher = null;
+    this.payingOut = false;
+    this.payoutSuccess = false;
+    this.payoutError = '';
+  }
+
+  /** Copy bank account number / text → clipboard + show "copied" feedback */
+  copyText(text: string): void {
+    if (!text) return;
+    try {
+      navigator.clipboard?.writeText(text);
+    } catch { /* ignore */ }
+    this.copiedKey = text;
+    setTimeout(() => { if (this.copiedKey === text) this.copiedKey = ''; }, 1500);
+  }
+
+  confirmPayout(): void {
+    if (!this.payoutTeacher || this.payingOut || this.payoutSuccess) return;
+    this.payingOut = true;
+    this.payoutError = '';
+    const month = this.filterMonth || '';
+    this.paymentService.payoutTeacher(this.payoutTeacher._id || (this.payoutTeacher as any).id, this.payoutAmount, month)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.payingOut = false;
+          this.payoutSuccess = true;
+          this.loadTeacherPayouts(); // refresh KPI + badge
+        },
+        error: (err) => { this.payingOut = false; this.payoutError = err?.error?.message || 'ชำระไม่สำเร็จ'; }
+      });
   }
 
   trackByTeacherNick(_i: number, u: { teacherId: string }): string {

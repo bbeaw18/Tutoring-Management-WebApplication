@@ -12,6 +12,7 @@ const Attendance = require('../models/Attendance');
 const User = require('../models/User');
 const Course = require('../models/Course');
 const Notification = require('../models/Notification');
+const TeacherPayout = require('../models/TeacherPayout');
 const { authenticateToken } = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
 const { sendResponse, getPaginationParams, createPaginationObject, computeEffectivePrice, computeEffectiveTeacherIncome } = require('../utils/helpers');
@@ -500,7 +501,7 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
         unpaid: kpiTotal - kpiPaid,
         teacherExpense: kpiTeacherExpense,
         managerIncome:  kpiManagerIncome,
-        netInstitute:   kpiPaid - kpiTeacherExpense  // กำไรสถาบัน = รายได้รวม - รายจ่ายครู
+        netInstitute:   kpiTotal - kpiTeacherExpense - kpiManagerIncome  // กำไรสถาบัน = ยอดที่นักเรียนต้องจ่ายทั้งหมด − ค่าสอนครูทั้งสถาบัน (รวม Manager)
       },
       schedules: scheduleList
     }, 'Revenue report retrieved');
@@ -599,6 +600,70 @@ router.put('/:id/reject', authenticateToken, roleCheck(['admin', 'manager']), as
     sendResponse(res, 200, true, payment, 'Payment rejected');
   } catch (error) {
     console.error('Reject payment error:', error);
+    sendResponse(res, 500, false, null, error.message);
+  }
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// POST /teacher-payout — Manager ยืนยันชำระค่าจ้างสอนให้ครู
+// Body: { teacherId, amount, month: 'YYYY-MM' }
+// ── upsert TeacherPayout (1 record ต่อ ครู × เดือน) + ส่ง Notification ──
+// ────────────────────────────────────────────────────────────────────────────
+router.post('/teacher-payout', authenticateToken, roleCheck(['admin', 'manager']), async (req, res) => {
+  try {
+    const { teacherId, amount, month } = req.body;
+    if (!teacherId || amount === undefined || amount === null || !month) {
+      return sendResponse(res, 400, false, null, 'Missing required fields: teacherId, amount, month');
+    }
+    if (!/^\d{4}-\d{2}$/.test(month)) {
+      return sendResponse(res, 400, false, null, 'Invalid month format (expected YYYY-MM)');
+    }
+    const teacher = await User.findById(teacherId).select('firstName lastName nickname role');
+    if (!teacher || !['teacher', 'manager', 'admin'].includes(teacher.role)) {
+      return sendResponse(res, 404, false, null, 'Teacher not found');
+    }
+    // กันซ้ำ: ถ้ามี payout เดือนนี้แล้ว → return existing
+    const existing = await TeacherPayout.findOne({ teacher: teacherId, month });
+    if (existing) {
+      return sendResponse(res, 200, true, existing, 'Already paid for this month');
+    }
+    const payout = await TeacherPayout.create({
+      teacher: teacherId,
+      amount:  Number(amount),
+      month,
+      paidBy:  req.user.id
+    });
+    const monthLabel = new Date(`${month}-01T00:00:00+07:00`).toLocaleDateString('th-TH', { year: 'numeric', month: 'long' });
+    await Notification.create({
+      recipient: teacher._id,
+      sender:    req.user.id,
+      type:      'general',
+      title:     '💰 ชำระค่าจ้างสอนแล้ว',
+      message:   `Manager ยืนยันชำระค่าจ้างสอน ${monthLabel} จำนวน ฿${Number(amount).toLocaleString('th-TH')} แล้ว`,
+      relatedId: teacher._id
+    });
+    sendResponse(res, 200, true, payout, 'Teacher payout recorded');
+  } catch (error) {
+    console.error('Teacher payout error:', error);
+    sendResponse(res, 500, false, null, error.message);
+  }
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// GET /teacher-payouts?month=YYYY-MM — รายการครูที่ชำระค่าจ้างแล้วในเดือนนั้น
+// ────────────────────────────────────────────────────────────────────────────
+router.get('/teacher-payouts', authenticateToken, roleCheck(['admin', 'manager']), async (req, res) => {
+  try {
+    const { month } = req.query;
+    const filter = {};
+    if (month && /^\d{4}-\d{2}$/.test(String(month))) filter.month = month;
+    const payouts = await TeacherPayout.find(filter)
+      .populate('teacher', 'firstName lastName nickname')
+      .populate('paidBy', 'firstName lastName nickname')
+      .sort({ paidAt: -1 });
+    sendResponse(res, 200, true, payouts, 'Teacher payouts retrieved');
+  } catch (error) {
+    console.error('Get teacher payouts error:', error);
     sendResponse(res, 500, false, null, error.message);
   }
 });
