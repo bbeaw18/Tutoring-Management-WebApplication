@@ -121,6 +121,14 @@ export class AuthService {
     }
   }
 
+  forgotPassword(email: string): Observable<IApiResponse<null>> {
+    return this.http.post<IApiResponse<null>>(`${this.apiUrl}/forgot-password`, { email });
+  }
+
+  resetPassword(token: string, password: string): Observable<IApiResponse<null>> {
+    return this.http.post<IApiResponse<null>>(`${this.apiUrl}/reset-password`, { token, password });
+  }
+
   refreshToken(): Observable<string> {
     return this.http.post<IApiResponse<{ token: string }>>(`${this.apiUrl}/refresh-token`, {}).pipe(
       map(res => res.data.token),

@@ -1,10 +1,18 @@
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const User = require('../models/User');
 const { generateToken, sendResponse } = require('../utils/helpers');
 const { authenticateToken } = require('../middleware/auth');
+const { sendPasswordResetEmail } = require('../services/emailService');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
+
+const RESET_TOKEN_TTL_MINUTES = 60;
+
+function hashResetToken(rawToken) {
+  return crypto.createHash('sha256').update(rawToken).digest('hex');
+}
 
 router.post('/register', async (req, res) => {
   try {
@@ -337,6 +345,87 @@ router.post('/verify-totp', async (req, res) => {
   } catch (error) {
     console.error('Verify TOTP error:', error);
     sendResponse(res, 500, false, null, error.message);
+  }
+});
+
+// ── ลืมรหัสผ่าน — สร้าง token + ส่งอีเมล ─────────────────────────
+// ไม่บอก client ว่าอีเมลมีในระบบหรือไม่ (กัน user enumeration)
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body || {};
+    if (!email || typeof email !== 'string') {
+      return sendResponse(res, 400, false, null, 'กรุณากรอกอีเมล');
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    if (!emailRegex.test(normalizedEmail)) {
+      return sendResponse(res, 400, false, null, 'รูปแบบอีเมลไม่ถูกต้อง');
+    }
+
+    const genericMessage = 'หากอีเมลนี้มีในระบบ เราได้ส่งลิงก์ตั้งรหัสผ่านใหม่ไปยังอีเมลของคุณแล้ว';
+
+    const user = await User.findOne({ email: normalizedEmail });
+
+    if (user && user.isActive) {
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      const tokenHash = hashResetToken(rawToken);
+      const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MINUTES * 60 * 1000);
+
+      user.resetPasswordTokenHash = tokenHash;
+      user.resetPasswordExpires = expiresAt;
+      await user.save();
+
+      const frontendBase = (process.env.FRONTEND_URL || 'http://localhost:4200').replace(/\/+$/, '');
+      const resetLink = `${frontendBase}/reset-password?token=${rawToken}`;
+
+      // อย่า await — ส่งอีเมลพื้นหลัง กัน timing-attack
+      // (ถึงไม่ส่งได้/ส่งช้า client ก็ได้ response เหมือนเดิม)
+      sendPasswordResetEmail({
+        email: user.email,
+        userName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+        resetLink,
+        expiresInMinutes: RESET_TOKEN_TTL_MINUTES
+      }).catch(err => console.error('[ForgotPassword] email error:', err.message));
+    }
+
+    return sendResponse(res, 200, true, null, genericMessage);
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    return sendResponse(res, 500, false, null, error.message);
+  }
+});
+
+// ── ตั้งรหัสผ่านใหม่ด้วย token ─────────────────────────────────────
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body || {};
+    if (!token || !password) {
+      return sendResponse(res, 400, false, null, 'token และ password จำเป็นต้องระบุ');
+    }
+    if (typeof password !== 'string' || password.length < 6) {
+      return sendResponse(res, 400, false, null, 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+    }
+
+    const tokenHash = hashResetToken(String(token));
+    const user = await User.findOne({
+      resetPasswordTokenHash: tokenHash,
+      resetPasswordExpires: { $gt: new Date() }
+    }).select('+password +resetPasswordTokenHash +resetPasswordExpires');
+
+    if (!user) {
+      return sendResponse(res, 400, false, null, 'ลิงก์ตั้งรหัสผ่านไม่ถูกต้องหรือหมดอายุแล้ว');
+    }
+
+    user.password = password;            // pre-save hook จะ hash อัตโนมัติ
+    user.resetPasswordTokenHash = null;
+    user.resetPasswordExpires = null;
+    await user.save();
+
+    return sendResponse(res, 200, true, null, 'ตั้งรหัสผ่านใหม่สำเร็จ กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่');
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return sendResponse(res, 500, false, null, error.message);
   }
 });
 

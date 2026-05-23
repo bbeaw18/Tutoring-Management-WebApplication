@@ -850,6 +850,61 @@ async function sendVideoLinkEmail({ studentEmail, studentName, teacherName, cour
   }
 }
 
+/**
+ * ส่งอีเมล reset password — ลิงก์ใช้ได้ภายใน 1 ชม.
+ */
+async function sendPasswordResetEmail({ email, userName, resetLink, expiresInMinutes = 60 }) {
+  if (!isEmailConfigured || !transporter) {
+    console.log('[EmailService] SMTP ไม่ได้ตั้งค่า — ข้ามการส่งอีเมล reset password');
+    return { skipped: true };
+  }
+
+  const html = `
+    <div style="font-family: 'Sarabun', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 20px;">
+      <div style="background: linear-gradient(135deg, #1e3f80 0%, #3b5fc0 100%); border-radius: 16px; padding: 32px; text-align: center; color: white; margin-bottom: 24px;">
+        <h1 style="margin: 0; font-size: 24px;">🔐 ตั้งรหัสผ่านใหม่</h1>
+        <p style="margin: 8px 0 0; opacity: 0.9;">คำขอตั้งรหัสผ่านใหม่สำหรับบัญชี Know More Sci</p>
+      </div>
+      <div style="background: white; border-radius: 16px; padding: 28px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);">
+        <p style="color: #1e293b; font-size: 16px; margin-top: 0;">สวัสดี <strong>${userName || 'ผู้ใช้งาน'}</strong>,</p>
+        <p style="color: #475569; line-height: 1.7;">
+          เราได้รับคำขอตั้งรหัสผ่านใหม่สำหรับบัญชีอีเมล <strong>${email}</strong><br>
+          คลิกปุ่มด้านล่างเพื่อตั้งรหัสผ่านใหม่ (ลิงก์ใช้ได้ ${expiresInMinutes} นาที)
+        </p>
+        <div style="text-align: center; margin: 28px 0;">
+          <a href="${resetLink}" target="_blank"
+             style="display: inline-block; background: linear-gradient(135deg, #1e3f80, #3b5fc0); color: white; padding: 14px 36px; border-radius: 12px; text-decoration: none; font-size: 16px; font-weight: 700; box-shadow: 0 4px 16px rgba(30,63,128,0.35);">
+            🔑 ตั้งรหัสผ่านใหม่
+          </a>
+        </div>
+        <p style="font-size: 12px; color: #94a3b8; word-break: break-all;">
+          หากปุ่มไม่ทำงาน คัดลอกลิงก์นี้ไปวางในเบราว์เซอร์:<br>
+          <a href="${resetLink}" style="color: #1e3f80;">${resetLink}</a>
+        </p>
+        <div style="background: #fff7ed; border-radius: 12px; padding: 14px 16px; margin-top: 20px; border-left: 4px solid #f97316;">
+          <p style="margin: 0; color: #9a3412; font-size: 13px;">
+            ⚠️ หากคุณไม่ได้ขอเปลี่ยนรหัสผ่าน โปรดเพิกเฉยอีเมลนี้ — รหัสผ่านเดิมจะยังคงใช้งานได้ตามปกติ
+          </p>
+        </div>
+      </div>
+      <p style="text-align: center; color: #94a3b8; font-size: 12px; margin-top: 24px;">อีเมลนี้ส่งจากระบบ Know More Sci โดยอัตโนมัติ</p>
+    </div>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: `"Know More Sci" <${process.env.SMTP_USER}>`,
+      to: email,
+      subject: `[Know More Sci] 🔐 คำขอตั้งรหัสผ่านใหม่`,
+      html
+    });
+    return { email, success: true };
+  } catch (err) {
+    console.error(`[EmailService] ส่งอีเมล reset password ไปยัง ${email} ล้มเหลว:`, err.message);
+    return { email, success: false, error: err.message };
+  }
+}
+
 async function sendStudentBookingDeclinedEmail({ teacherEmail, teacherName, studentName, courseName, date, startTime, endTime }) {
   if (!isEmailConfigured || !transporter) {
     console.log('[EmailService] SMTP ไม่ได้ตั้งค่า — ข้ามการส่งอีเมล');
@@ -910,5 +965,6 @@ module.exports = {
   sendStudentBookingConfirmedEmail,
   sendStudentBookingDeclinedEmail,
   sendVideoLinkEmail,
+  sendPasswordResetEmail,
   isEmailConfigured
 };

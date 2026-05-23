@@ -4,6 +4,8 @@ import { guestGuard } from './guards/guest.guard';
 import { roleGuard } from './guards/role.guard';
 import { LoginComponent } from './pages/auth/login/login.component';
 import { RegisterComponent } from './pages/auth/register/register.component';
+import { ForgotPasswordComponent } from './pages/auth/forgot-password/forgot-password.component';
+import { ResetPasswordComponent } from './pages/auth/reset-password/reset-password.component';
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { VideoReplayComponent } from './pages/student/video-replay/video-replay.component';
 import { PaymentComponent } from './pages/student/payment/payment.component';
@@ -31,6 +33,8 @@ export const appRoutes: Routes = [
   { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
   { path: 'login', component: LoginComponent, canActivate: [guestGuard] },
   { path: 'register', component: RegisterComponent, canActivate: [guestGuard] },
+  { path: 'forgot-password', component: ForgotPasswordComponent, canActivate: [guestGuard] },
+  { path: 'reset-password', component: ResetPasswordComponent, canActivate: [guestGuard] },
 
   // ─── QR Scan: นักเรียนสแกนแล้วเปิด URL นี้ → เช็คชื่ออัตโนมัติ ───────────
   { path: 'scan', component: ScanComponent, canActivate: [authGuard] },

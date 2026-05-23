@@ -148,6 +148,17 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  // เก็บเฉพาะ hash ของ reset token (ไม่เก็บ raw token) — แม้ DB หลุดก็ใช้ไม่ได้
+  resetPasswordTokenHash: {
+    type: String,
+    select: false,
+    default: null
+  },
+  resetPasswordExpires: {
+    type: Date,
+    select: false,
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -180,6 +191,8 @@ UserSchema.methods.toJSON = function () {
   // Mongoose 7 does NOT include virtuals by default in toObject()
   const user = this.toObject({ virtuals: true });
   delete user.password;
+  delete user.resetPasswordTokenHash;
+  delete user.resetPasswordExpires;
   return user;
 };
 
