@@ -5,6 +5,7 @@ const User = require('../models/User');
 const { generateToken, sendResponse } = require('../utils/helpers');
 const { authenticateToken } = require('../middleware/auth');
 const { sendPasswordResetEmail } = require('../services/emailService');
+const { verifyEmailDomain } = require('../utils/emailValidator');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 
@@ -86,6 +87,13 @@ router.post('/register', async (req, res) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
     if (!emailRegex.test(email)) {
       return sendResponse(res, 400, false, null, 'รูปแบบอีเมลไม่ถูกต้อง (ตัวอย่าง: name@domain.com)');
+    }
+
+    // Verify email domain — DNS MX lookup + disposable blocklist
+    // ป้องกัน typo (gmial.com, hotnail.com) และ throwaway email
+    const emailCheck = await verifyEmailDomain(email);
+    if (!emailCheck.ok) {
+      return sendResponse(res, 400, false, null, emailCheck.reason);
     }
 
     // Validate phone format (Thai: 9–10 digits, starting with 0)
