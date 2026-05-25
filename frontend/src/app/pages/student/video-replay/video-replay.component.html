@@ -28,6 +28,8 @@
             <iframe
               [src]="selectedVideo.zoomRecordingUrl | safe"
               class="video-frame"
+              sandbox="allow-scripts allow-presentation allow-popups allow-popups-to-escape-sandbox"
+              referrerpolicy="no-referrer"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowfullscreen
             ></iframe>

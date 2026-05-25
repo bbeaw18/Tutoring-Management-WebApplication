@@ -9,12 +9,46 @@ const { authenticateToken } = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
 const { sendResponse, getPaginationParams, createPaginationObject } = require('../utils/helpers');
 
+// Whitelist of host suffixes allowed for zoomRecordingUrl. Anything outside
+// these hosts is rejected because the URL is rendered inside an <iframe> on
+// the student player — a non-https URL (or javascript:/data:) would XSS via
+// the frontend's DomSanitizer bypass.
+const ALLOWED_VIDEO_HOST_SUFFIXES = [
+  'zoom.us',
+  'zoomgov.com',
+  'youtube.com',
+  'youtu.be',
+  'youtube-nocookie.com',
+  'vimeo.com',
+  'player.vimeo.com'
+];
+
+function isAllowedVideoUrl(value) {
+  if (typeof value !== 'string' || value.length === 0 || value.length > 2048) return false;
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== 'https:') return false;
+  const host = parsed.hostname.toLowerCase();
+  return ALLOWED_VIDEO_HOST_SUFFIXES.some(suffix =>
+    host === suffix || host.endsWith('.' + suffix)
+  );
+}
+
 router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req, res) => {
   try {
     const { title, description, zoomRecordingUrl, zoomMeetingId, course, duration, recordedAt } = req.body;
 
     if (!title || !description || !zoomRecordingUrl || !course || !recordedAt) {
       return sendResponse(res, 400, false, null, 'Missing required fields');
+    }
+
+    if (!isAllowedVideoUrl(zoomRecordingUrl)) {
+      return sendResponse(res, 400, false, null,
+        'zoomRecordingUrl ต้องเป็น https URL จาก host ที่อนุญาตเท่านั้น (zoom.us, youtube.com, vimeo.com)');
     }
 
     const courseExists = await Course.findById(course);
