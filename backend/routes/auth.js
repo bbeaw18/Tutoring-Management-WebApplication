@@ -5,7 +5,7 @@ const User = require('../models/User');
 const { generateToken, sendResponse } = require('../utils/helpers');
 const { authenticateToken } = require('../middleware/auth');
 const { sendPasswordResetEmail } = require('../services/emailService');
-const { verifyEmailDomain } = require('../utils/emailValidator');
+const { verifyEmailDomain, isDisposableDomain } = require('../utils/emailValidator');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 
@@ -89,13 +89,6 @@ router.post('/register', async (req, res) => {
       return sendResponse(res, 400, false, null, 'รูปแบบอีเมลไม่ถูกต้อง (ตัวอย่าง: name@domain.com)');
     }
 
-    // Verify email domain — DNS MX lookup + disposable blocklist
-    // ป้องกัน typo (gmial.com, hotnail.com) และ throwaway email
-    const emailCheck = await verifyEmailDomain(email);
-    if (!emailCheck.ok) {
-      return sendResponse(res, 400, false, null, emailCheck.reason);
-    }
-
     // Validate phone format (Thai: 9–10 digits, starting with 0)
     const phoneRegex = /^0[0-9]{8,9}$/;
     if (!phoneRegex.test(phone.replace(/[-\s]/g, ''))) {
@@ -112,6 +105,16 @@ router.post('/register', async (req, res) => {
     const existingPhone = await User.findOne({ phone: normalizedPhone });
     if (existingPhone) {
       return sendResponse(res, 400, false, null, 'เบอร์โทรนี้ถูกใช้งานในระบบแล้ว');
+    }
+
+    // Verify email domain — IDN + suffix-disposable + DNS MX/A with timeout
+    // ตั้งหลัง duplicate check เพื่อ:
+    //   1) กัน DNS amplification (cheap checks ก่อน expensive network call)
+    //   2) ไม่เสีย DNS query สำหรับ user ที่อีเมล/เบอร์ซ้ำอยู่แล้ว
+    // transient resolver issues fail-open (validator return ok:true, transient:true)
+    const emailCheck = await verifyEmailDomain(email);
+    if (!emailCheck.ok) {
+      return sendResponse(res, 400, false, null, emailCheck.reason);
     }
 
     // Generate TOTP secret
@@ -372,6 +375,16 @@ router.post('/forgot-password', async (req, res) => {
     }
 
     const genericMessage = 'หากอีเมลนี้มีในระบบ เราได้ส่งลิงก์ตั้งรหัสผ่านใหม่ไปยังอีเมลของคุณแล้ว';
+
+    // Reject disposable domains (sync — no DNS). Sync check keeps response timing
+    // identical for non-disposable hits/misses, preserving the user-enumeration defense.
+    // Disposable accounts predate this commit; refusing to send reset links to public
+    // throwaway inboxes (mailinator etc.) prevents trivial account takeover.
+    const atIdx = normalizedEmail.lastIndexOf('@');
+    const domain = atIdx > 0 ? normalizedEmail.slice(atIdx + 1) : '';
+    if (isDisposableDomain(domain)) {
+      return sendResponse(res, 200, true, null, genericMessage);
+    }
 
     const user = await User.findOne({ email: normalizedEmail });
 

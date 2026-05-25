@@ -18,7 +18,8 @@ const UserSchema = new mongoose.Schema({
     unique: true,
     lowercase: true,
     trim: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email']
+    // ตรงกับ route-level regex — รับ TLD ยาว (.email, .museum, .info, .photography ฯลฯ)
+    match: [/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/, 'Please provide a valid email']
   },
   password: {
     type: String,

@@ -358,6 +358,14 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
       return 'อีเมลนี้ถูกใช้งานแล้ว กรุณาใช้อีเมลอื่น หรือเข้าสู่ระบบด้วยอีเมลนี้';
     if (msg.includes('เบอร์โทรนี้ถูกใช้งาน') || msg.includes('phone already'))
       return 'เบอร์โทรนี้ถูกใช้งานในระบบแล้ว กรุณาใช้เบอร์อื่น (1 เบอร์ ต่อ 1 บัญชี)';
+    if (msg.includes('ไม่อนุญาตให้ใช้อีเมลชั่วคราว'))
+      return 'อีเมลชั่วคราว (disposable) ใช้สมัครไม่ได้ กรุณาใช้อีเมลถาวร เช่น Gmail / Outlook / มหาวิทยาลัย';
+    if (msg.includes('ไม่พบโดเมน'))
+      return 'ไม่พบโดเมนอีเมลนี้ กรุณาตรวจสอบการสะกด (เช่น gmail.com ไม่ใช่ gmial.com)';
+    if (msg.includes('ไม่มี mail server') || msg.includes('ไม่สามารถยืนยันได้'))
+      return 'โดเมนอีเมลนี้ไม่มี mail server กรุณาตรวจสอบการสะกด หรือใช้อีเมลอื่น';
+    if (msg.includes('เป็นโดเมนสำรอง'))
+      return 'โดเมนนี้เป็นโดเมนสำรองที่ใช้ทดสอบเท่านั้น กรุณาใช้อีเมลจริง';
     if (msg.includes('รูปแบบอีเมลไม่ถูกต้อง'))
       return 'รูปแบบอีเมลไม่ถูกต้อง (ตัวอย่าง: name@gmail.com)';
     if (msg.includes('รูปแบบเบอร์โทรไม่ถูกต้อง'))
