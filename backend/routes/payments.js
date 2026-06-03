@@ -511,6 +511,78 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
   }
 });
 
+// ────────────────────────────────────────────────────────────────────────────
+// Literal GET routes MUST be declared before '/:id' below, otherwise Express
+// will match '/:id' first and attempt to cast the literal path to ObjectId.
+// ────────────────────────────────────────────────────────────────────────────
+
+// GET /teacher-payouts?month=YYYY-MM — รายการครูที่ชำระค่าจ้างแล้วในเดือนนั้น
+router.get('/teacher-payouts', authenticateToken, roleCheck(['admin', 'manager']), async (req, res) => {
+  try {
+    const { month } = req.query;
+    const filter = {};
+    if (month && /^\d{4}-\d{2}$/.test(String(month))) filter.month = month;
+    const payouts = await TeacherPayout.find(filter)
+      .populate('teacher', 'firstName lastName nickname')
+      .populate('paidBy', 'firstName lastName nickname')
+      .sort({ paidAt: -1 });
+    sendResponse(res, 200, true, payouts, 'Teacher payouts retrieved');
+  } catch (error) {
+    console.error('Get teacher payouts error:', error);
+    sendResponse(res, 500, false, null, error.message);
+  }
+});
+
+// GET /bank-info — ดึงข้อมูลบัญชีธนาคารสำหรับโอน (แสดงให้นักเรียน)
+router.get('/bank-info', authenticateToken, async (req, res) => {
+  sendResponse(res, 200, true, {
+    bankName:      process.env.BANK_NAME          || 'ธนาคารกสิกรไทย (K-BANK)',
+    accountNumber: process.env.BANK_ACCOUNT_NUMBER || '140-1-28661-2',
+    accountName:   process.env.BANK_ACCOUNT_NAME   || 'น.ส. ณัฐบุษย์ เหมธนาพิพัฒน์',
+    promptpayId:   process.env.PROMPTPAY_ID        || ''
+  }, 'Bank info retrieved');
+});
+
+// GET /pending-verification — Manager ดูรายการที่รอตรวจสอบ
+router.get('/pending-verification', authenticateToken, roleCheck(['admin', 'manager']), async (req, res) => {
+  try {
+    const payments = await Payment.find({ status: 'pending' })
+      .populate('student', 'firstName lastName nickname email phone')
+      .populate('course', 'name subject')
+      .populate({
+        path: 'schedule',
+        select: 'date startTime endTime',
+        populate: { path: 'course', select: 'name subject' }
+      })
+      .sort({ createdAt: -1 });
+
+    sendResponse(res, 200, true, payments, 'Pending payments retrieved');
+  } catch (error) {
+    console.error('Pending verification error:', error);
+    sendResponse(res, 500, false, null, error.message);
+  }
+});
+
+// GET /my-status — นักเรียนดูสถานะการชำระของตัวเอง (รวม pending/confirmed)
+router.get('/my-status', authenticateToken, roleCheck(['student']), async (req, res) => {
+  try {
+    const payments = await Payment.find({ student: req.user.id })
+      .populate('course', 'name subject')
+      .populate({
+        path: 'schedule',
+        select: 'date startTime endTime',
+        populate: { path: 'course', select: 'name subject' }
+      })
+      .populate('confirmedBy', 'firstName lastName nickname')
+      .sort({ createdAt: -1 });
+
+    sendResponse(res, 200, true, payments, 'Payment statuses retrieved');
+  } catch (error) {
+    console.error('My status error:', error);
+    sendResponse(res, 500, false, null, error.message);
+  }
+});
+
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const payment = await Payment.findById(req.params.id)
@@ -650,37 +722,6 @@ router.post('/teacher-payout', authenticateToken, roleCheck(['admin', 'manager']
 });
 
 // ────────────────────────────────────────────────────────────────────────────
-// GET /teacher-payouts?month=YYYY-MM — รายการครูที่ชำระค่าจ้างแล้วในเดือนนั้น
-// ────────────────────────────────────────────────────────────────────────────
-router.get('/teacher-payouts', authenticateToken, roleCheck(['admin', 'manager']), async (req, res) => {
-  try {
-    const { month } = req.query;
-    const filter = {};
-    if (month && /^\d{4}-\d{2}$/.test(String(month))) filter.month = month;
-    const payouts = await TeacherPayout.find(filter)
-      .populate('teacher', 'firstName lastName nickname')
-      .populate('paidBy', 'firstName lastName nickname')
-      .sort({ paidAt: -1 });
-    sendResponse(res, 200, true, payouts, 'Teacher payouts retrieved');
-  } catch (error) {
-    console.error('Get teacher payouts error:', error);
-    sendResponse(res, 500, false, null, error.message);
-  }
-});
-
-// ────────────────────────────────────────────────────────────────────────────
-// GET /bank-info — ดึงข้อมูลบัญชีธนาคารสำหรับโอน (แสดงให้นักเรียน)
-// ────────────────────────────────────────────────────────────────────────────
-router.get('/bank-info', authenticateToken, async (req, res) => {
-  sendResponse(res, 200, true, {
-    bankName:      process.env.BANK_NAME          || 'ธนาคารกสิกรไทย (K-BANK)',
-    accountNumber: process.env.BANK_ACCOUNT_NUMBER || '140-1-28661-2',
-    accountName:   process.env.BANK_ACCOUNT_NAME   || 'น.ส. ณัฐบุษย์ เหมธนาพิพัฒน์',
-    promptpayId:   process.env.PROMPTPAY_ID        || ''
-  }, 'Bank info retrieved');
-});
-
-// ────────────────────────────────────────────────────────────────────────────
 // POST /claim-transfer — นักเรียนยืนยันว่า "โอนเงินแล้ว" รอ Manager ตรวจสอบ
 // Body: { scheduleId } หรือ { month: "YYYY-MM" }, transactionRef? (ref slip), note?
 // ────────────────────────────────────────────────────────────────────────────
@@ -809,50 +850,6 @@ router.post('/claim-transfer', authenticateToken, roleCheck(['student']), async 
     }, 'Transfer claimed — awaiting verification');
   } catch (error) {
     console.error('Claim transfer error:', error);
-    sendResponse(res, 500, false, null, error.message);
-  }
-});
-
-// ────────────────────────────────────────────────────────────────────────────
-// GET /pending-verification — Manager ดูรายการที่รอตรวจสอบ
-// ────────────────────────────────────────────────────────────────────────────
-router.get('/pending-verification', authenticateToken, roleCheck(['admin', 'manager']), async (req, res) => {
-  try {
-    const payments = await Payment.find({ status: 'pending' })
-      .populate('student', 'firstName lastName nickname email phone')
-      .populate('course', 'name subject')
-      .populate({
-        path: 'schedule',
-        select: 'date startTime endTime',
-        populate: { path: 'course', select: 'name subject' }
-      })
-      .sort({ createdAt: -1 });
-
-    sendResponse(res, 200, true, payments, 'Pending payments retrieved');
-  } catch (error) {
-    console.error('Pending verification error:', error);
-    sendResponse(res, 500, false, null, error.message);
-  }
-});
-
-// ────────────────────────────────────────────────────────────────────────────
-// GET /my-status — นักเรียนดูสถานะการชำระของตัวเอง (รวม pending/confirmed)
-// ────────────────────────────────────────────────────────────────────────────
-router.get('/my-status', authenticateToken, roleCheck(['student']), async (req, res) => {
-  try {
-    const payments = await Payment.find({ student: req.user.id })
-      .populate('course', 'name subject')
-      .populate({
-        path: 'schedule',
-        select: 'date startTime endTime',
-        populate: { path: 'course', select: 'name subject' }
-      })
-      .populate('confirmedBy', 'firstName lastName nickname')
-      .sort({ createdAt: -1 });
-
-    sendResponse(res, 200, true, payments, 'Payment statuses retrieved');
-  } catch (error) {
-    console.error('My status error:', error);
     sendResponse(res, 500, false, null, error.message);
   }
 });
