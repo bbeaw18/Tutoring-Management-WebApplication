@@ -899,6 +899,9 @@ router.post('/manual-confirm', authenticateToken, roleCheck(['admin', 'manager']
       return sendResponse(res, 400, false, null, 'คลาสนี้ไม่มีค่าเรียน');
     }
 
+    const manager = await User.findById(req.user.id).select('nickname firstName');
+    const managerNick = (manager?.nickname || manager?.firstName || 'unknown').trim();
+
     const payment = new Payment({
       student: studentId,
       course: schedule.course._id,
@@ -909,7 +912,7 @@ router.post('/manual-confirm', authenticateToken, roleCheck(['admin', 'manager']
       method: 'transfer',
       status: 'confirmed',
       confirmedBy: req.user.id,
-      note: 'Manager confirm'
+      note: `manager_${managerNick} ยืนยันเอง (ไม่มี slip จากนักเรียน)`
     });
     await payment.save();
 
@@ -955,6 +958,11 @@ router.post('/bulk-confirm-month', authenticateToken, roleCheck(['admin', 'manag
       coursePrice: { $gt: 0 }
     }).populate('course', 'name subject _id');
 
+    const manager = await User.findById(req.user.id).select('nickname firstName');
+    const managerNick = (manager?.nickname || manager?.firstName || 'unknown').trim();
+    const managerSelfNote = `manager_${managerNick} ยืนยันเอง (ไม่มี slip จากนักเรียน)`;
+    const managerBulkNote = `manager_${managerNick} bulk confirm`;
+
     let confirmedFromPending = 0;
     let createdConfirmed = 0;
     let totalAmount = 0;
@@ -978,7 +986,8 @@ router.post('/bulk-confirm-month', authenticateToken, roleCheck(['admin', 'manag
         if (existing.status === 'confirmed') continue;
         existing.status = 'confirmed';
         existing.confirmedBy = req.user.id;
-        existing.note = existing.note ? `${existing.note} | Manager bulk confirm` : 'Manager bulk confirm';
+        // นักเรียนได้แจ้งชำระมาแล้ว — ไม่ใช่ "manager ยืนยันเอง" ปกติ แค่บันทึก bulk action
+        existing.note = existing.note ? `${existing.note} | ${managerBulkNote}` : managerBulkNote;
         await existing.save();
         confirmedFromPending++;
         totalAmount += existing.amount || 0;
@@ -995,7 +1004,8 @@ router.post('/bulk-confirm-month', authenticateToken, roleCheck(['admin', 'manag
           method: 'transfer',
           status: 'confirmed',
           confirmedBy: req.user.id,
-          note: 'Manager bulk confirm'
+          // unpaid → manager กดยืนยันเอง (ไม่มี slip)
+          note: managerSelfNote
         });
         await p.save();
         createdConfirmed++;
