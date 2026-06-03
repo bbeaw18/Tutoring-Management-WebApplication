@@ -894,10 +894,7 @@ router.post('/manual-confirm', authenticateToken, roleCheck(['admin', 'manager']
 
     if (!schedule.course?._id) return sendResponse(res, 400, false, null, 'ไม่พบคอร์สที่เชื่อมโยง');
 
-    const amount = computeEffectivePrice(schedule);
-    if (!amount || amount <= 0) {
-      return sendResponse(res, 400, false, null, 'คลาสนี้ไม่มีค่าเรียน');
-    }
+    const amount = computeEffectivePrice(schedule) || 0;
 
     const manager = await User.findById(req.user.id).select('nickname firstName');
     const managerNick = (manager?.nickname || manager?.firstName || 'unknown').trim();
@@ -992,8 +989,7 @@ router.post('/bulk-confirm-month', authenticateToken, roleCheck(['admin', 'manag
         confirmedFromPending++;
         totalAmount += existing.amount || 0;
       } else {
-        const amount = computeEffectivePrice(s);
-        if (!amount || amount <= 0) continue;
+        const amount = computeEffectivePrice(s) || 0;
         const p = new Payment({
           student: studentId,
           course: s.course._id,
