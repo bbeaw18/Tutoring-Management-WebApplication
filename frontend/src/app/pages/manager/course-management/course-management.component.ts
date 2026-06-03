@@ -707,8 +707,57 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
   cmTab: 'all' | 'pending_teacher' | 'pending_students' | 'confirmed' | 'awaiting_manager' | 'completed' | 'cancelled' = 'all';
   cmSearch = '';
 
+  // Quick date filter — limits the timeline to today / this week / this month
+  cmDateFilter: 'all' | 'today' | 'week' | 'month' = 'all';
+
   setCmTab(t: typeof this.cmTab): void {
     this.cmTab = t;
+  }
+
+  setCmDateFilter(f: typeof this.cmDateFilter): void {
+    this.cmDateFilter = f;
+  }
+
+  /** [startMs, endMs] for the active date filter, or null when filter is 'all'.
+   *  - today: 00:00 → 23:59:59 ของวันนี้
+   *  - week:  อาทิตย์ 00:00 → เสาร์ 23:59:59 ของสัปดาห์ปัจจุบัน
+   *  - month: 1 → วันสุดท้ายของเดือนปัจจุบัน */
+  private computeDateRange(): { start: number; end: number } | null {
+    if (this.cmDateFilter === 'all') return null;
+    const now = new Date();
+    if (this.cmDateFilter === 'today') {
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      const end   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      return { start: start.getTime(), end: end.getTime() };
+    }
+    if (this.cmDateFilter === 'week') {
+      const dow = now.getDay(); // 0 = Sun
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow, 0, 0, 0, 0);
+      const end   = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 6, 23, 59, 59, 999);
+      return { start: start.getTime(), end: end.getTime() };
+    }
+    // month
+    const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    const end   = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    return { start: start.getTime(), end: end.getTime() };
+  }
+
+  /** Count classes that match a given date-filter preset — for chip badges */
+  cmDateFilterCount(filter: 'all' | 'today' | 'week' | 'month'): number {
+    if (filter === 'all') return this.representativeCourses.length;
+    const saved = this.cmDateFilter;
+    this.cmDateFilter = filter;
+    const range = this.computeDateRange();
+    this.cmDateFilter = saved;
+    if (!range) return this.representativeCourses.length;
+    let n = 0;
+    for (const c of this.representativeCourses) {
+      const raw = (c as any).scheduledDate;
+      if (!raw) continue;
+      const t = new Date(raw).getTime();
+      if (t >= range.start && t <= range.end) n++;
+    }
+    return n;
   }
 
   /** รายการคอร์สสำหรับการแสดงผล — แสดงทุกคลาสจริง รวมทุก member ของชุด
@@ -747,6 +796,7 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
 
   get cmFiltered(): ICourse[] {
     const term = this.cmSearch.trim().toLowerCase();
+    const dateRange = this.computeDateRange();
     return this.representativeCourses.filter(c => {
       if (this.cmTab !== 'all' && resolveDisplayStatus(c) !== this.cmTab) return false;
       if (this.cmSubjectFilter && (c.subject || '') !== this.cmSubjectFilter) return false;
@@ -754,6 +804,12 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
         const t: any = c.teacher;
         const tid = (t && typeof t === 'object') ? (t._id || t.id || '') : (t || '');
         if (tid !== this.cmTeacherFilter) return false;
+      }
+      if (dateRange) {
+        const raw = (c as any).scheduledDate;
+        if (!raw) return false;
+        const t = new Date(raw).getTime();
+        if (t < dateRange.start || t > dateRange.end) return false;
       }
       if (term) {
         const teacher: any = c.teacher;

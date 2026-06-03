@@ -503,6 +503,23 @@
       </div>
     </div>
 
+    <!-- ── Date quick-filter chips ────────────────────────────────────────────── -->
+    <div class="cm-date-chips" *ngIf="courses.length > 0">
+      <span class="cm-axis-label">ช่วงเวลา</span>
+      <button class="cm-date-chip" [class.active]="cmDateFilter === 'all'" (click)="setCmDateFilter('all')">
+        ทั้งหมด <span class="cm-axis-count">{{ cmDateFilterCount('all') }}</span>
+      </button>
+      <button class="cm-date-chip" [class.active]="cmDateFilter === 'today'" (click)="setCmDateFilter('today')">
+        วันนี้ <span class="cm-axis-count">{{ cmDateFilterCount('today') }}</span>
+      </button>
+      <button class="cm-date-chip" [class.active]="cmDateFilter === 'week'" (click)="setCmDateFilter('week')">
+        สัปดาห์นี้ <span class="cm-axis-count">{{ cmDateFilterCount('week') }}</span>
+      </button>
+      <button class="cm-date-chip" [class.active]="cmDateFilter === 'month'" (click)="setCmDateFilter('month')">
+        เดือนนี้ <span class="cm-axis-count">{{ cmDateFilterCount('month') }}</span>
+      </button>
+    </div>
+
     <!-- ── v2: Multi-axis filter chips (subject + teacher) ────────────────────────── -->
     <div class="cm-axis-chips" *ngIf="courses.length > 0 && (cmSubjectOptions.length > 0 || cmTeacherOptions.length > 0)">
       <ng-container *ngIf="cmSubjectOptions.length > 0">
