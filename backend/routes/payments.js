@@ -951,8 +951,7 @@ router.post('/bulk-confirm-month', authenticateToken, roleCheck(['admin', 'manag
     const schedules = await Schedule.find({
       students: studentId,
       date: { $gte: startDate, $lte: endDate },
-      status: { $in: ['completed', 'awaiting_confirmation'] },
-      coursePrice: { $gt: 0 }
+      status: { $in: ['completed', 'awaiting_confirmation'] }
     }).populate('course', 'name subject _id');
 
     const manager = await User.findById(req.user.id).select('nickname firstName');
