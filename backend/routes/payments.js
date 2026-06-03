@@ -931,6 +931,105 @@ router.post('/manual-confirm', authenticateToken, roleCheck(['admin', 'manager']
 });
 
 // ────────────────────────────────────────────────────────────────────────────
+// POST /bulk-confirm-month — Manager/Admin ยืนยันการชำระทั้งเดือนของนักเรียน
+// Body: { studentId, month: "YYYY-MM" }
+// - คลาสที่มี Payment pending → update status=confirmed
+// - คลาสที่ไม่มี Payment (unpaid) แต่ attended + completed → create Payment status=confirmed
+// - คลาสที่ confirmed อยู่แล้ว → skip
+// ────────────────────────────────────────────────────────────────────────────
+router.post('/bulk-confirm-month', authenticateToken, roleCheck(['admin', 'manager']), async (req, res) => {
+  try {
+    const { studentId, month } = req.body;
+    if (!studentId || !month || !/^\d{4}-\d{2}$/.test(String(month))) {
+      return sendResponse(res, 400, false, null, 'ต้องระบุ studentId และ month (YYYY-MM)');
+    }
+
+    const [y, m] = month.split('-').map(Number);
+    const startDate = new Date(y, m - 1, 1);
+    const endDate   = new Date(y, m, 0, 23, 59, 59);
+
+    const schedules = await Schedule.find({
+      students: studentId,
+      date: { $gte: startDate, $lte: endDate },
+      status: { $in: ['completed', 'awaiting_confirmation'] },
+      coursePrice: { $gt: 0 }
+    }).populate('course', 'name subject _id');
+
+    let confirmedFromPending = 0;
+    let createdConfirmed = 0;
+    let totalAmount = 0;
+    const skippedNoAttendance = [];
+
+    for (const s of schedules) {
+      const attended = await Attendance.findOne({ schedule: s._id, student: studentId });
+      if (!attended) {
+        skippedNoAttendance.push(s._id);
+        continue;
+      }
+      if (!s.course?._id) continue;
+
+      const existing = await Payment.findOne({
+        student: studentId,
+        schedule: s._id,
+        status: { $in: ['pending', 'confirmed'] }
+      });
+
+      if (existing) {
+        if (existing.status === 'confirmed') continue;
+        existing.status = 'confirmed';
+        existing.confirmedBy = req.user.id;
+        existing.note = existing.note ? `${existing.note} | Manager bulk confirm` : 'Manager bulk confirm';
+        await existing.save();
+        confirmedFromPending++;
+        totalAmount += existing.amount || 0;
+      } else {
+        const amount = computeEffectivePrice(s);
+        if (!amount || amount <= 0) continue;
+        const p = new Payment({
+          student: studentId,
+          course: s.course._id,
+          schedule: s._id,
+          paymentMonth: null,
+          paymentType: 'per_class',
+          amount,
+          method: 'transfer',
+          status: 'confirmed',
+          confirmedBy: req.user.id,
+          note: 'Manager bulk confirm'
+        });
+        await p.save();
+        createdConfirmed++;
+        totalAmount += amount;
+      }
+    }
+
+    const totalConfirmed = confirmedFromPending + createdConfirmed;
+    if (totalConfirmed > 0) {
+      await Notification.create({
+        recipient: studentId,
+        sender: req.user.id,
+        type: 'payment',
+        title: '✅ ยืนยันการชำระเงินรายเดือน',
+        message: `Manager ได้ยืนยันการชำระเงินของคุณในเดือน ${month} จำนวน ${totalConfirmed} คลาส รวม ฿${totalAmount.toLocaleString('th-TH')}`,
+      });
+    }
+
+    sendResponse(res, 200, true, {
+      confirmedFromPending,
+      createdConfirmed,
+      totalConfirmed,
+      totalAmount,
+      skippedNoAttendance: skippedNoAttendance.length
+    }, totalConfirmed > 0
+        ? `ยืนยันการชำระสำเร็จ ${totalConfirmed} คลาส รวม ฿${totalAmount.toLocaleString('th-TH')}`
+        : 'ไม่มีคลาสที่ต้องยืนยัน');
+  } catch (error) {
+    console.error('Bulk confirm month error:', error);
+    sendResponse(res, 500, false, null, error.message);
+  }
+});
+
+// ────────────────────────────────────────────────────────────────────────────
 // POST /generate-promptpay-qr — สร้าง PromptPay QR สำหรับชำระเงิน
 // Body: { scheduleId } หรือ { month: "YYYY-MM" } (monthly payment)
 // ────────────────────────────────────────────────────────────────────────────

@@ -100,6 +100,9 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
   // (for unpaid rows where no Payment record exists yet)
   confirmingUnpaidKey: string | null = null;
 
+  // Tracks bulk monthly confirm in progress (per student)
+  bulkConfirmingStudentId: string | null = null;
+
   // ── Expenses (per month) ─────────────────────────────────────
   manualExpenses: IExpense[] = [];
 
@@ -892,6 +895,55 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
         error: (err) => {
           this.confirmingPaymentId = null;
           alert(err?.error?.message || 'ไม่สามารถยืนยันการชำระเงินได้');
+        }
+      });
+  }
+
+  /** จำนวนคลาสที่ยังไม่ได้ confirmed ของนักเรียนใน student-monthly modal (pending + unpaid) */
+  get studentMonthlyOutstandingCount(): number {
+    if (!this.studentMonthlyTarget) return 0;
+    const sid = this.studentMonthlyTarget.id;
+    let n = 0;
+    for (const s of this.studentMonthlyClasses) {
+      const e = this.getStudentEntry(s, sid);
+      if (e.status !== 'confirmed') n++;
+    }
+    return n;
+  }
+
+  /** Manager กดยืนยันการชำระทั้งเดือนของนักเรียน — handle ทั้ง pending + unpaid */
+  bulkConfirmMonthForStudent(): void {
+    if (!this.studentMonthlyTarget) return;
+    if (!this.filterMonth) {
+      alert('กรุณาเลือกเดือนก่อน');
+      return;
+    }
+    if (this.bulkConfirmingStudentId) return;
+
+    const outstanding = this.studentMonthlyOutstandingCount;
+    if (outstanding === 0) return;
+
+    const remaining = this.studentMonthlyTotal - this.studentMonthlyPaidTotal;
+    const nickname = this.studentMonthlyTarget.nickname;
+    if (!confirm(`ยืนยันการชำระทั้งเดือนของน้อง${nickname}?\n\n${outstanding} คลาส · รวม ฿${remaining.toLocaleString('th-TH')}\n\n(รวมคลาสที่นักเรียนแจ้งชำระแล้วและคลาสที่ยังไม่ได้แจ้ง)`)) return;
+
+    const studentId = this.studentMonthlyTarget.id;
+    this.bulkConfirmingStudentId = studentId;
+
+    this.paymentService.bulkConfirmMonth(studentId, this.filterMonth)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (result) => {
+          this.bulkConfirmingStudentId = null;
+          if (result.totalConfirmed === 0) {
+            alert('ไม่มีคลาสที่ต้องยืนยัน');
+          }
+          this.loadReport();
+          this.closeStudentMonthlyModal();
+        },
+        error: (err) => {
+          this.bulkConfirmingStudentId = null;
+          alert(err?.error?.message || 'ไม่สามารถยืนยันการชำระทั้งเดือนได้');
         }
       });
   }

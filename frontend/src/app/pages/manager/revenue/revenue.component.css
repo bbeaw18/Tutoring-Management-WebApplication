@@ -2842,6 +2842,37 @@ tbody tr:hover { background: rgba(30,63,128,0.03); }
 }
 .btn-close-sm:disabled { opacity: .6; cursor: not-allowed; }
 
+/* Bulk-confirm-month button — ยืนยันทุกคลาสค้างของนักเรียนในเดือนเดียว */
+.btn-bulk-confirm-month {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-th);
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.30);
+  transition: all 0.12s ease;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.btn-bulk-confirm-month:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.42);
+  filter: brightness(1.05);
+}
+.btn-bulk-confirm-month:disabled {
+  opacity: .65;
+  cursor: not-allowed;
+  transform: none;
+}
+.btn-bulk-confirm-month svg { flex-shrink: 0; }
+
 /* ══════════════════════════════════════════════════════════════
    KPI รายจ่ายครู — split (ค้างชำระ | ชำระแล้ว)
 ══════════════════════════════════════════════════════════════ */

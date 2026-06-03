@@ -71,6 +71,20 @@ export class PaymentService {
     );
   }
 
+  // POST /payments/bulk-confirm-month  (manager/admin only)
+  // Manager ยืนยันการชำระทั้งเดือนของนักเรียน — confirm pending + create-confirmed for unpaid
+  bulkConfirmMonth(studentId: string, month: string): Observable<{
+    confirmedFromPending: number;
+    createdConfirmed: number;
+    totalConfirmed: number;
+    totalAmount: number;
+    skippedNoAttendance: number;
+  }> {
+    return this.http.post<IApiResponse<any>>(`${this.apiUrl}/bulk-confirm-month`, { studentId, month }).pipe(
+      map(res => res.data)
+    );
+  }
+
   // PUT /payments/:id/reject  (manager/admin only)
   rejectPayment(paymentId: string, note?: string): Observable<IPayment> {
     return this.http.put<IApiResponse<IPayment>>(`${this.apiUrl}/${paymentId}/reject`, { note }).pipe(
