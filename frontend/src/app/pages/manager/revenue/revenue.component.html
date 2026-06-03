@@ -721,7 +721,14 @@
                     [class.sm-pay-unpaid]="getStudentEntry(s, studentMonthlyTarget.id).status === 'unpaid' || !getStudentEntry(s, studentMonthlyTarget.id).status">
                 <ng-container [ngSwitch]="getStudentEntry(s, studentMonthlyTarget.id).status">
                   <ng-container *ngSwitchCase="'confirmed'">ชำระแล้ว</ng-container>
-                  <ng-container *ngSwitchCase="'pending'">รอ Manager ยืนยัน</ng-container>
+                  <ng-container *ngSwitchCase="'pending'">
+                    <svg class="sm-pay-claim-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"
+                         title="นักเรียนกดชำระเงินใน KMS-Website แล้ว"
+                         aria-label="นักเรียนแจ้งชำระเงินผ่านเว็บแล้ว">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <span title="นักเรียนกดชำระเงินใน KMS-Website แล้ว — รอ Manager ตรวจสอบและยืนยัน">รอ Manager ยืนยัน</span>
+                  </ng-container>
                   <ng-container *ngSwitchDefault>ค้างชำระ</ng-container>
                 </ng-container>
               </span>
@@ -732,6 +739,15 @@
                 <svg *ngIf="confirmingPaymentId !== getStudentEntry(s, studentMonthlyTarget.id).paymentId" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                 <span *ngIf="confirmingPaymentId !== getStudentEntry(s, studentMonthlyTarget.id).paymentId">ยืนยัน</span>
                 <span *ngIf="confirmingPaymentId === getStudentEntry(s, studentMonthlyTarget.id).paymentId">กำลังยืนยัน…</span>
+              </button>
+              <button *ngIf="(getStudentEntry(s, studentMonthlyTarget.id).status === 'unpaid' || !getStudentEntry(s, studentMonthlyTarget.id).status)"
+                      class="sm-confirm-btn sm-confirm-btn-manual"
+                      [disabled]="confirmingUnpaidKey === (s.scheduleId + '|' + studentMonthlyTarget.id)"
+                      (click)="confirmUnpaidStudent(s.scheduleId, studentMonthlyTarget.id, studentMonthlyTarget.nickname)"
+                      title="บันทึกว่ารับเงินสด/โอนนอกระบบจากนักเรียนแล้ว">
+                <svg *ngIf="confirmingUnpaidKey !== (s.scheduleId + '|' + studentMonthlyTarget.id)" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span *ngIf="confirmingUnpaidKey !== (s.scheduleId + '|' + studentMonthlyTarget.id)">ยืนยันการชำระ</span>
+                <span *ngIf="confirmingUnpaidKey === (s.scheduleId + '|' + studentMonthlyTarget.id)">กำลังยืนยัน…</span>
               </button>
             </div>
           </div>

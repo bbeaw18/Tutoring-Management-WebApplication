@@ -63,6 +63,14 @@ export class PaymentService {
     );
   }
 
+  // POST /payments/manual-confirm  (manager/admin only)
+  // Manager ยืนยันการชำระเงินของนักเรียนเอง (กรณีนักเรียนไม่ได้ claim-transfer)
+  manualConfirmPayment(scheduleId: string, studentId: string): Observable<IPayment> {
+    return this.http.post<IApiResponse<IPayment>>(`${this.apiUrl}/manual-confirm`, { scheduleId, studentId }).pipe(
+      map(res => res.data)
+    );
+  }
+
   // PUT /payments/:id/reject  (manager/admin only)
   rejectPayment(paymentId: string, note?: string): Observable<IPayment> {
     return this.http.put<IApiResponse<IPayment>>(`${this.apiUrl}/${paymentId}/reject`, { note }).pipe(

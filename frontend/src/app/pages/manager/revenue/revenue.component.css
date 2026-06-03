@@ -2529,6 +2529,22 @@ tbody tr:hover { background: rgba(30,63,128,0.03); }
 }
 .sm-confirm-btn svg { flex-shrink: 0; }
 
+/* Manual-confirm variant (Manager บันทึกการชำระเอง — เงินสด/นอกระบบ)
+   ใช้สีน้ำเงิน-ม่วงเพื่อแยกจากปุ่มยืนยัน pending payment ปกติ */
+.sm-confirm-btn-manual {
+  background: linear-gradient(135deg, #4f46e5, #4338ca);
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.30);
+}
+.sm-confirm-btn-manual:hover:not(:disabled) {
+  box-shadow: 0 4px 10px rgba(79, 70, 229, 0.40);
+}
+
+/* Icon ที่บอกว่า "นักเรียนกดชำระเงินผ่านเว็บมาแล้ว" — อยู่ใน pending badge */
+.sm-pay-claim-icon {
+  vertical-align: -1px;
+  margin-right: 3px;
+}
+
 /* ═══════════════════════════════════════════════════════
    Student Monthly Modal — รายการคลาสของเด็กในเดือนนั้น
    ═══════════════════════════════════════════════════════ */

@@ -96,6 +96,10 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
   // Tracks the paymentId currently being confirmed (for button disable state)
   confirmingPaymentId: string | null = null;
 
+  // Tracks "scheduleId|studentId" currently being manually confirmed by manager
+  // (for unpaid rows where no Payment record exists yet)
+  confirmingUnpaidKey: string | null = null;
+
   // ── Expenses (per month) ─────────────────────────────────────
   manualExpenses: IExpense[] = [];
 
@@ -887,6 +891,31 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
         },
         error: (err) => {
           this.confirmingPaymentId = null;
+          alert(err?.error?.message || 'ไม่สามารถยืนยันการชำระเงินได้');
+        }
+      });
+  }
+
+  /** Manager ยืนยันการชำระเงินเอง (นักเรียนยังไม่ได้ claim-transfer)
+   *  สร้าง Payment status='confirmed' ทันที */
+  confirmUnpaidStudent(scheduleId: string, studentId: string, nickname: string): void {
+    if (!scheduleId || !studentId) return;
+    const key = `${scheduleId}|${studentId}`;
+    if (this.confirmingUnpaidKey) return;
+
+    if (!confirm(`ยืนยันการชำระเงินของน้อง${nickname} สำหรับคลาสนี้?\n\n(กรณีรับเงินสด/โอนนอกระบบที่นักเรียนยังไม่ได้แจ้งผ่านเว็บ)`)) return;
+
+    this.confirmingUnpaidKey = key;
+
+    this.paymentService.manualConfirmPayment(scheduleId, studentId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.confirmingUnpaidKey = null;
+          this.loadReport();
+        },
+        error: (err) => {
+          this.confirmingUnpaidKey = null;
           alert(err?.error?.message || 'ไม่สามารถยืนยันการชำระเงินได้');
         }
       });

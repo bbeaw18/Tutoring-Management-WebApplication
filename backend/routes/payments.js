@@ -855,6 +855,82 @@ router.post('/claim-transfer', authenticateToken, roleCheck(['student']), async 
 });
 
 // ────────────────────────────────────────────────────────────────────────────
+// POST /manual-confirm — Manager/Admin ยืนยันชำระเงินของนักเรียนเอง
+// (กรณีรับเงินสด/นอกระบบ ที่นักเรียนไม่ได้ claim-transfer ผ่านเว็บ)
+// Body: { scheduleId, studentId }
+// สร้าง Payment status='confirmed' ทันที, method='transfer', note='Manager confirm'
+// ────────────────────────────────────────────────────────────────────────────
+router.post('/manual-confirm', authenticateToken, roleCheck(['admin', 'manager']), async (req, res) => {
+  try {
+    const { scheduleId, studentId } = req.body;
+
+    if (!scheduleId || !studentId) {
+      return sendResponse(res, 400, false, null, 'ต้องระบุ scheduleId และ studentId');
+    }
+
+    const schedule = await Schedule.findById(scheduleId).populate('course', 'name subject _id');
+    if (!schedule) return sendResponse(res, 404, false, null, 'ไม่พบ schedule');
+
+    const isStudent = schedule.students.some(s => s.toString() === studentId);
+    if (!isStudent) return sendResponse(res, 400, false, null, 'นักเรียนไม่ได้ลงทะเบียนในคลาสนี้');
+
+    if (!['completed', 'awaiting_confirmation'].includes(schedule.status)) {
+      return sendResponse(res, 400, false, null, 'ยังไม่สามารถยืนยันได้: คลาสยังไม่เสร็จสิ้น');
+    }
+
+    const attended = await Attendance.findOne({ schedule: scheduleId, student: studentId });
+    if (!attended) return sendResponse(res, 400, false, null, 'นักเรียนยังไม่ได้เช็คชื่อในคลาสนี้');
+
+    const existing = await Payment.findOne({
+      student: studentId, schedule: scheduleId,
+      status: { $in: ['pending', 'confirmed'] }
+    });
+    if (existing) {
+      const msg = existing.status === 'confirmed'
+        ? 'นักเรียนชำระเงินสำหรับคลาสนี้เรียบร้อยแล้ว'
+        : 'คลาสนี้มีคำขอยืนยันการชำระอยู่แล้ว — ใช้ปุ่ม "ยืนยัน" ที่ payment ที่รออยู่';
+      return sendResponse(res, 400, false, null, msg);
+    }
+
+    if (!schedule.course?._id) return sendResponse(res, 400, false, null, 'ไม่พบคอร์สที่เชื่อมโยง');
+
+    const amount = computeEffectivePrice(schedule);
+    if (!amount || amount <= 0) {
+      return sendResponse(res, 400, false, null, 'คลาสนี้ไม่มีค่าเรียน');
+    }
+
+    const payment = new Payment({
+      student: studentId,
+      course: schedule.course._id,
+      schedule: scheduleId,
+      paymentMonth: null,
+      paymentType: 'per_class',
+      amount,
+      method: 'transfer',
+      status: 'confirmed',
+      confirmedBy: req.user.id,
+      note: 'Manager confirm'
+    });
+    await payment.save();
+
+    const subjectLabel = schedule.course?.subject || schedule.course?.name || 'คลาส';
+    await Notification.create({
+      recipient: studentId,
+      sender: req.user.id,
+      type: 'payment',
+      title: '✅ ยืนยันการชำระเงิน',
+      message: `Manager ได้บันทึกการชำระเงิน ${subjectLabel} ${new Date(schedule.date).toLocaleDateString('th-TH')} จำนวน ฿${amount.toLocaleString('th-TH')} แล้ว`,
+      relatedId: payment._id
+    });
+
+    sendResponse(res, 201, true, payment, 'Payment confirmed manually');
+  } catch (error) {
+    console.error('Manual confirm error:', error);
+    sendResponse(res, 500, false, null, error.message);
+  }
+});
+
+// ────────────────────────────────────────────────────────────────────────────
 // POST /generate-promptpay-qr — สร้าง PromptPay QR สำหรับชำระเงิน
 // Body: { scheduleId } หรือ { month: "YYYY-MM" } (monthly payment)
 // ────────────────────────────────────────────────────────────────────────────
