@@ -43,6 +43,7 @@ export interface IUser {
   country?: string;         // ประเทศ
   addressNote?: string;     // หมายเหตุเพิ่มเติม
   totpEnabled?: boolean;
+  twoFactorMethod?: 'totp' | 'password';
   registrationStatus?: 'registered' | 'unregistered';
   approvedBy?: string;
   approvedAt?: Date;
@@ -74,6 +75,7 @@ export interface IAuthResponse {
   user?: IUser;
   requireOtp?: boolean;
   userId?: string;
+  twoFactorMethod?: 'totp' | 'password';
   qrCode?: string;
   secret?: string;
 }

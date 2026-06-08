@@ -40,6 +40,9 @@ export class MyProfileComponent implements OnInit, OnDestroy {
   toastType: 'success' | 'error' = 'success';
   toastTimer: any;
 
+  /** กำลังบันทึกการเปลี่ยนวิธี 2FA — disable ปุ่มระหว่าง request */
+  twoFactorSaving = false;
+
   // For subjects array editing
   newSubjectInput = '';
 
@@ -250,4 +253,28 @@ export class MyProfileComponent implements OnInit, OnDestroy {
   }
 
   get isComplete(): boolean { return this.completeness >= 90; }
+
+  /** เปลี่ยนวิธี 2FA ระหว่าง 'totp' (Google Authenticator) กับ 'password' (พิมพ์รหัสซ้ำ) */
+  changeTwoFactorMethod(method: 'totp' | 'password'): void {
+    if (!this.profile) return;
+    if ((this.profile.twoFactorMethod || 'totp') === method) return;
+    if (this.twoFactorSaving) return;
+
+    this.twoFactorSaving = true;
+    this.authService.updateTwoFactorMethod(method)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (res) => {
+          this.twoFactorSaving = false;
+          if (this.profile) this.profile = { ...this.profile, twoFactorMethod: res.data.twoFactorMethod };
+          this.showToast(method === 'totp'
+            ? 'เปลี่ยนเป็น Google Authenticator แล้ว'
+            : 'เปลี่ยนเป็นพิมพ์รหัสผ่านซ้ำแล้ว', 'success');
+        },
+        error: (err) => {
+          this.twoFactorSaving = false;
+          this.showToast(err?.error?.message || 'เปลี่ยนวิธี 2FA ไม่สำเร็จ', 'error');
+        }
+      });
+  }
 }

@@ -133,6 +133,14 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  // 2FA method choice — 'totp' = Google Authenticator code, 'password' = re-enter login password
+  // Only meaningful when totpEnabled === true (= 2FA active). Defaults to 'totp' for parity with
+  // existing accounts that completed TOTP setup via /verify-totp-setup.
+  twoFactorMethod: {
+    type: String,
+    enum: ['totp', 'password'],
+    default: 'totp'
+  },
   registrationStatus: {
     type: String,
     enum: ['registered', 'unregistered'],

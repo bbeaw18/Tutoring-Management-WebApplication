@@ -211,13 +211,14 @@ router.post('/login', async (req, res) => {
       }, 'บัญชีของคุณอยู่ในสถานะรอการยืนยันจาก Manager โปรดติดต่อ Manager เพื่อขออนุมัติการลงทะเบียน');
     }
 
-    // Step 2: Check TOTP — if enabled, require OTP first
+    // Step 2: Check 2FA — if enabled, require second-factor challenge first
     if (user.totpEnabled) {
       return sendResponse(res, 200, true, {
         requireOtp: true,
         userId: user._id,
+        twoFactorMethod: user.twoFactorMethod || 'totp',
         registrationStatus: user.registrationStatus
-      }, 'OTP required');
+      }, '2FA required');
     }
 
     // Step 3: Generate JWT
@@ -355,6 +356,76 @@ router.post('/verify-totp', async (req, res) => {
     }, 'Login successful');
   } catch (error) {
     console.error('Verify TOTP error:', error);
+    sendResponse(res, 500, false, null, error.message);
+  }
+});
+
+// ── 2FA Method: ยืนยันด้วยการพิมพ์รหัสผ่านอีกครั้ง ──────────────
+// ใช้สำหรับผู้ใช้ที่ตั้ง twoFactorMethod === 'password'
+// (ผู้ใช้ "ผ่าน" login ขั้นแรกด้วยรหัสที่ถูกต้องแล้ว — ขั้นนี้คือพิมพ์ซ้ำเป็น 2nd factor)
+router.post('/verify-password-2fa', async (req, res) => {
+  try {
+    const { userId, password } = req.body;
+
+    if (!userId || !password) {
+      return sendResponse(res, 400, false, null, 'userId และรหัสผ่านจำเป็นต้องระบุ');
+    }
+
+    const user = await User.findById(userId).select('+password');
+    if (!user) {
+      return sendResponse(res, 404, false, null, 'User not found');
+    }
+
+    if (!user.totpEnabled || user.twoFactorMethod !== 'password') {
+      return sendResponse(res, 400, false, null, 'บัญชีนี้ไม่ได้ตั้งค่ารหัสผ่านเป็น 2FA');
+    }
+
+    const isValid = await user.comparePassword(password);
+    if (!isValid) {
+      return sendResponse(res, 401, false, null, 'รหัสผ่านไม่ถูกต้อง');
+    }
+
+    // Block unconfirmed teachers — must be approved before getting a JWT
+    if (user.role === 'teacher' && user.registrationStatus === 'unregistered') {
+      return sendResponse(res, 403, false, {
+        pendingApproval: true,
+        registrationStatus: 'unregistered'
+      }, 'บัญชีของคุณอยู่ในสถานะรอการยืนยันจาก Manager โปรดติดต่อ Manager เพื่อขออนุมัติการลงทะเบียน');
+    }
+
+    const jwtToken = generateToken(user._id, user.role);
+    sendResponse(res, 200, true, {
+      user: user.toJSON(),
+      token: jwtToken
+    }, 'Login successful');
+  } catch (error) {
+    console.error('Verify password 2FA error:', error);
+    sendResponse(res, 500, false, null, error.message);
+  }
+});
+
+// ── 2FA Method: เปลี่ยนวิธี 2FA ของผู้ใช้ (ต้อง login แล้ว) ──────
+router.patch('/two-factor-method', authenticateToken, async (req, res) => {
+  try {
+    const { method } = req.body || {};
+    if (!['totp', 'password'].includes(method)) {
+      return sendResponse(res, 400, false, null, 'method ต้องเป็น "totp" หรือ "password"');
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return sendResponse(res, 404, false, null, 'User not found');
+    }
+
+    if (!user.totpEnabled) {
+      return sendResponse(res, 400, false, null, 'ต้องเปิดใช้งาน 2FA ก่อน');
+    }
+
+    user.twoFactorMethod = method;
+    await user.save();
+    sendResponse(res, 200, true, { twoFactorMethod: user.twoFactorMethod }, 'อัปเดตวิธี 2FA สำเร็จ');
+  } catch (error) {
+    console.error('Update 2FA method error:', error);
     sendResponse(res, 500, false, null, error.message);
   }
 });

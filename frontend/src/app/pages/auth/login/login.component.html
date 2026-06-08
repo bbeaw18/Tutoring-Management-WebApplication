@@ -251,8 +251,8 @@
         <p class="form-link-row">ยังไม่มีบัญชี? <a routerLink="/register">สมัครสมาชิกฟรี</a></p>
       </section>
 
-      <!-- Step 2: OTP -->
-      <section *ngIf="currentStep === 'otp'" class="form-card otp-card" aria-labelledby="otpHeading">
+      <!-- Step 2a: OTP (Google Authenticator) -->
+      <section *ngIf="currentStep === 'otp' && twoFactorMethod === 'totp'" class="form-card otp-card" aria-labelledby="otpHeading">
         <div class="otp-shield" aria-hidden="true">
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -303,6 +303,88 @@
 
           <button type="submit" class="cta" #ctaBtn [disabled]="loading">
             <span class="cta-label" *ngIf="!loading">ยืนยัน OTP</span>
+            <span class="cta-label cta-loading" *ngIf="loading">
+              <span class="cta-skeleton"></span>
+              <span>กำลังยืนยัน…</span>
+            </span>
+            <span class="cta-ripple" aria-hidden="true"></span>
+          </button>
+
+          <button type="button" class="cta cta-ghost" (click)="goBackToLogin()" [disabled]="loading">
+            ← ย้อนกลับ
+          </button>
+        </form>
+      </section>
+
+      <!-- Step 2b: Password re-entry (anti-autofill) -->
+      <section *ngIf="currentStep === 'otp' && twoFactorMethod === 'password'" class="form-card otp-card" aria-labelledby="p2faHeading">
+        <div class="otp-shield" aria-hidden="true">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <rect x="3" y="11" width="18" height="11" rx="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+
+        <header class="form-head form-head-center">
+          <p class="form-eyebrow">Two-factor · 2FA</p>
+          <h2 id="p2faHeading" class="form-title">ยืนยันตัวตน</h2>
+          <p class="form-sub">พิมพ์รหัสผ่านอีกครั้งเพื่อยืนยันว่าเป็นคุณ</p>
+        </header>
+
+        <form [formGroup]="password2faForm" (ngSubmit)="verifyPassword2fa()" class="auth-form"
+              autocomplete="off"
+              [class.is-erroring]="!!errorMessage">
+          <!-- Honeypot/decoy fields — กัน password manager บางตัวมัด autofill กับช่องแรก -->
+          <input type="text" name="username" autocomplete="username" tabindex="-1"
+                 style="display:none" aria-hidden="true" readonly />
+          <input type="password" name="password" autocomplete="current-password" tabindex="-1"
+                 style="display:none" aria-hidden="true" readonly />
+
+          <div *ngIf="errorMessage" class="alert alert-error" role="alert" aria-live="assertive">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>{{ errorMessage }}</span>
+          </div>
+
+          <div class="field has-trailing" [class.has-value]="!!password2faForm.value.password" data-anim="field">
+            <div class="field-control">
+              <input
+                [type]="showPassword2fa ? 'text' : 'password'"
+                id="p2faInput"
+                formControlName="password"
+                [name]="password2faFieldName"
+                placeholder=" "
+                [class.is-error]="password2faSubmitted && p2fa['password'].invalid"
+                autocomplete="new-password"
+                autocorrect="off"
+                autocapitalize="off"
+                spellcheck="false"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-bwignore="true"
+                data-form-type="other"
+              />
+              <label for="p2faInput" class="field-label">รหัสผ่านของคุณ</label>
+              <button type="button" class="field-trailing" (click)="toggleShowPassword2fa()" tabindex="-1"
+                      [attr.aria-label]="showPassword2fa ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'">
+                <svg *ngIf="!showPassword2fa" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg *ngIf="showPassword2fa" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+              <span class="field-underline" aria-hidden="true"></span>
+            </div>
+          </div>
+
+          <div class="otp-hint">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            ต้องพิมพ์เองทุกครั้ง ระบบไม่บันทึกและไม่ยอมให้ browser auto-fill
+          </div>
+
+          <div *ngIf="password2faSubmitted && p2fa['password'].invalid" class="field-error otp-error" role="alert">
+            <span *ngIf="p2fa['password'].hasError('required')">กรุณาป้อนรหัสผ่าน</span>
+            <span *ngIf="p2fa['password'].hasError('minlength')">รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร</span>
+          </div>
+
+          <button type="submit" class="cta" [disabled]="loading">
+            <span class="cta-label" *ngIf="!loading">ยืนยันรหัสผ่าน</span>
             <span class="cta-label cta-loading" *ngIf="loading">
               <span class="cta-skeleton"></span>
               <span>กำลังยืนยัน…</span>

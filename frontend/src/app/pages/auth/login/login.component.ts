@@ -17,8 +17,16 @@ import { IAuthResponse, IOtpVerifyResponse } from '../../../interfaces/user.inte
 })
 export class LoginComponent implements OnInit, OnDestroy, AfterViewInit {
   currentStep: 'login' | 'otp' = 'login';
+  /** 2FA method ของผู้ใช้ — set จาก backend response ตอน login. กำหนด UI ของ step 2 */
+  twoFactorMethod: 'totp' | 'password' = 'totp';
   loginForm!: FormGroup;
   otpForm!: FormGroup;
+  /** form สำหรับ "พิมพ์รหัสผ่านซ้ำ" (2FA = password). value ไม่เก็บใน localStorage / saver */
+  password2faForm!: FormGroup;
+  password2faSubmitted = false;
+  showPassword2fa = false;
+  /** ชื่อสุ่มของ password field — กัน password manager match กับ login password */
+  password2faFieldName = 'p2fa_' + Math.random().toString(36).slice(2);
   loading = false;
   submitted = false;
   otpSubmitted = false;
@@ -227,6 +235,14 @@ export class LoginComponent implements OnInit, OnDestroy, AfterViewInit {
     this.otpForm = this.formBuilder.group({
       otp: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]]
     });
+
+    this.password2faForm = this.formBuilder.group({
+      password: ['', [Validators.required, Validators.minLength(6)]]
+    });
+  }
+
+  get p2fa() {
+    return this.password2faForm.controls;
   }
 
   get f() {
@@ -262,9 +278,16 @@ export class LoginComponent implements OnInit, OnDestroy, AfterViewInit {
             this.loading = false;
           });
         } else if (response.requireOtp && response.userId) {
+          this.twoFactorMethod = response.twoFactorMethod === 'password' ? 'password' : 'totp';
           this.currentStep = 'otp';
           this.loading = false;
-          this.startOtpCountdown();
+          // เคลียร์ฟิลด์ทุกครั้ง — ห้าม browser หรือ password manager มาทำงานล่วงหน้า
+          this.password2faForm.reset({ password: '' });
+          this.password2faSubmitted = false;
+          this.password2faFieldName = 'p2fa_' + Math.random().toString(36).slice(2);
+          if (this.twoFactorMethod === 'totp') {
+            this.startOtpCountdown();
+          }
         } else {
           this.errorMessage = 'เกิดข้อผิดพลาด โปรดลองอีกครั้ง';
           this.loading = false;
@@ -335,6 +358,52 @@ export class LoginComponent implements OnInit, OnDestroy, AfterViewInit {
     this.currentStep = 'login';
     this.otpSubmitted = false;
     this.otpForm.reset();
+    this.password2faSubmitted = false;
+    this.password2faForm.reset({ password: '' });
     this.errorMessage = '';
+  }
+
+  /** 2FA: ยืนยันด้วยรหัสผ่านซ้ำ — ส่ง password ใหม่ทุกครั้ง ห้ามให้ browser autofill */
+  verifyPassword2fa(): void {
+    this.password2faSubmitted = true;
+    this.errorMessage = '';
+
+    if (this.password2faForm.invalid) return;
+
+    const userId = this.authService.getTempUserId();
+    const password = this.password2faForm.get('password')?.value;
+    if (!userId) {
+      this.errorMessage = 'เกิดข้อผิดพลาด โปรดเข้าสู่ระบบใหม่';
+      return;
+    }
+
+    this.loading = true;
+    this.authService.verifyPasswordTwoFactor(userId, password).subscribe({
+      next: () => {
+        this.router.navigateByUrl(this.returnUrl).catch(() => {
+          this.loading = false;
+        });
+      },
+      error: (error: any) => {
+        const data = error.error?.data;
+        if (error.status === 403 && data?.pendingApproval) {
+          this.pendingModalMessage = error.error?.message
+            || 'บัญชีของคุณอยู่ในสถานะรอการยืนยันจาก Manager โปรดติดต่อ Manager เพื่อขออนุมัติการลงทะเบียน';
+          this.showPendingModal = true;
+          this.errorMessage = '';
+          this.currentStep = 'login';
+        } else {
+          this.errorMessage = error.error?.message || 'รหัสผ่านไม่ถูกต้อง โปรดลองอีกครั้ง';
+        }
+        // เคลียร์ฟิลด์เพื่อบังคับให้พิมพ์ใหม่
+        this.password2faForm.reset({ password: '' });
+        this.password2faSubmitted = false;
+        this.loading = false;
+      }
+    });
+  }
+
+  toggleShowPassword2fa(): void {
+    this.showPassword2fa = !this.showPassword2fa;
   }
 }
