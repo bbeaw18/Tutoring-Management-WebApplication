@@ -847,76 +847,116 @@
   </div>
 
   <!-- ─── Edit Modal ──────────────────────────────────────────── -->
-  <div class="modal-overlay" *ngIf="showEditModal && editingCourse" (click)="closeEditModal()">
-    <div class="modal-box edit-modal" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <div>
-          <h2>แก้ไขนัดสอน</h2>
-          <p class="modal-subtitle">{{ editingCourse?.subject }} — {{ getTeacherName(editingCourse?.teacher) }}</p>
+  <div class="modal-overlay edit-overlay" *ngIf="showEditModal && editingCourse" (click)="closeEditModal()">
+    <div class="modal-box edit-modal v2" (click)="$event.stopPropagation()">
+
+      <!-- Header: accent gradient stripe + icon + title -->
+      <div class="edit-hero">
+        <div class="edit-hero-bg" aria-hidden="true"></div>
+        <div class="edit-hero-row">
+          <div class="edit-hero-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </div>
+          <div class="edit-hero-title-wrap">
+            <h2 class="edit-hero-title">แก้ไขนัดสอน</h2>
+            <p class="edit-hero-sub">
+              <span class="edit-hero-chip">{{ editingCourse?.subject || '—' }}</span>
+              <span class="edit-hero-dot">·</span>
+              {{ getTeacherName(editingCourse?.teacher) }}
+            </p>
+          </div>
+          <button class="close-btn v2" (click)="closeEditModal()" aria-label="ปิด">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
         </div>
-        <button class="close-btn" (click)="closeEditModal()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
       </div>
-      <div class="modal-body">
 
-        <div class="edit-row">
-          <div class="edit-group">
-            <label class="edit-label">วิชา</label>
-            <input type="text" class="edit-input" [(ngModel)]="editSubject" list="edit-subjects-list" placeholder="ชื่อวิชา"/>
-            <datalist id="edit-subjects-list">
-              <option *ngFor="let s of savedSubjects" [value]="s"></option>
-            </datalist>
-          </div>
-          <div class="edit-group">
-            <label class="edit-label">ครู</label>
-            <select class="edit-input" [(ngModel)]="editTeacherId">
-              <option value="">— เลือกครู —</option>
-              <option *ngFor="let t of teachers" [value]="t._id">{{ t | displayName:'teacher' }}</option>
-            </select>
-          </div>
-        </div>
+      <div class="modal-body edit-body v2">
 
-        <div class="edit-row">
-          <div class="edit-group">
-            <label class="edit-label">วันที่นัดสอน</label>
-            <kms-date-picker [(ngModel)]="editDate" placeholder="เลือกวันที่"></kms-date-picker>
+        <!-- Section 1: ข้อมูลพื้นฐาน -->
+        <section class="edit-section">
+          <div class="edit-section-head">
+            <span class="edit-section-bullet" style="background:#3b82f6"></span>
+            <h3 class="edit-section-title">ข้อมูลพื้นฐาน</h3>
           </div>
-          <div class="edit-group">
-            <label class="edit-label">เวลาเริ่ม</label>
-            <kms-time-picker [(ngModel)]="editStartTime" placeholder="เริ่ม" [minuteStep]="30"></kms-time-picker>
+          <div class="edit-grid edit-grid-2">
+            <div class="edit-group">
+              <label class="edit-label">วิชา</label>
+              <div class="edit-field-wrap">
+                <svg class="edit-field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                <input type="text" class="edit-input has-icon" [(ngModel)]="editSubject" list="edit-subjects-list" placeholder="ชื่อวิชา"/>
+                <datalist id="edit-subjects-list">
+                  <option *ngFor="let s of savedSubjects" [value]="s"></option>
+                </datalist>
+              </div>
+            </div>
+            <div class="edit-group">
+              <label class="edit-label">ครู</label>
+              <div class="edit-field-wrap">
+                <svg class="edit-field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <select class="edit-input has-icon edit-select" [(ngModel)]="editTeacherId">
+                  <option value="">— เลือกครู —</option>
+                  <option *ngFor="let t of teachers" [value]="t._id">{{ t | displayName:'teacher' }}</option>
+                </select>
+              </div>
+            </div>
           </div>
-          <div class="edit-group">
-            <label class="edit-label">เวลาสิ้นสุด</label>
-            <kms-time-picker [(ngModel)]="editEndTime" placeholder="สิ้นสุด" [minuteStep]="30"></kms-time-picker>
-          </div>
-        </div>
+        </section>
 
-        <div class="edit-row">
-          <div class="edit-group">
-            <label class="edit-label">ประเภทการสอน</label>
-            <input type="text" class="edit-input" [(ngModel)]="editTeachingType" list="edit-teaching-list" placeholder="เช่น Individual, Group"/>
-            <datalist id="edit-teaching-list">
-              <option *ngFor="let t of savedTeachingTypes" [value]="t"></option>
-            </datalist>
+        <!-- Section 2: วันเวลานัดสอน -->
+        <section class="edit-section">
+          <div class="edit-section-head">
+            <span class="edit-section-bullet" style="background:#8b5cf6"></span>
+            <h3 class="edit-section-title">วันเวลานัดสอน</h3>
           </div>
-          <div class="edit-group">
-            <label class="edit-label">ระดับชั้น</label>
-            <input type="text" class="edit-input" [(ngModel)]="editGradeLevel" placeholder="เช่น ม.3, ป.6"/>
+          <div class="edit-grid edit-grid-3">
+            <div class="edit-group">
+              <label class="edit-label">วันที่นัดสอน</label>
+              <kms-date-picker [(ngModel)]="editDate" placeholder="เลือกวันที่"></kms-date-picker>
+            </div>
+            <div class="edit-group">
+              <label class="edit-label">เวลาเริ่ม</label>
+              <kms-time-picker [(ngModel)]="editStartTime" placeholder="เริ่ม" [minuteStep]="30"></kms-time-picker>
+            </div>
+            <div class="edit-group">
+              <label class="edit-label">เวลาสิ้นสุด</label>
+              <kms-time-picker [(ngModel)]="editEndTime" placeholder="สิ้นสุด" [minuteStep]="30"></kms-time-picker>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <!-- ประเภทการนัดสอน (toggle) -->
-        <div class="edit-row" style="margin-bottom:8px;">
-          <div class="edit-group" style="flex:1;">
+        <!-- Section 3: รายละเอียดคลาส -->
+        <section class="edit-section">
+          <div class="edit-section-head">
+            <span class="edit-section-bullet" style="background:#0ea5e9"></span>
+            <h3 class="edit-section-title">รายละเอียดคลาส</h3>
+          </div>
+          <div class="edit-grid edit-grid-2">
+            <div class="edit-group">
+              <label class="edit-label">ประเภทการสอน</label>
+              <input type="text" class="edit-input" [(ngModel)]="editTeachingType" list="edit-teaching-list" placeholder="เช่น Individual, Group"/>
+              <datalist id="edit-teaching-list">
+                <option *ngFor="let t of savedTeachingTypes" [value]="t"></option>
+              </datalist>
+            </div>
+            <div class="edit-group">
+              <label class="edit-label">ระดับชั้น</label>
+              <input type="text" class="edit-input" [(ngModel)]="editGradeLevel" placeholder="เช่น ม.3, ป.6"/>
+            </div>
+          </div>
+
+          <div class="edit-group edit-mt-2">
             <label class="edit-label">ประเภทการนัดสอน</label>
-            <div class="edit-type-toggle">
+            <div class="edit-type-toggle v2">
               <button type="button" class="edit-toggle-btn"
                       [class.active]="editType === 'group'"
                       (click)="editType = 'group'; onEditTypeChange()">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
@@ -925,91 +965,115 @@
               <button type="button" class="edit-toggle-btn"
                       [class.active]="editType === 'individual'"
                       (click)="editType = 'individual'; onEditTypeChange()">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                 </svg>
                 สอนเดี่ยว
               </button>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div class="edit-income-section">
-          <!-- เมื่อเป็นกลุ่ม: แสดงทั้ง 2 อัตราเพื่อรองรับกรณีนักเรียนมาคนเดียว -->
-          <ng-container *ngIf="editType === 'group'">
-            <div class="edit-group">
-              <label class="edit-label">รายได้ครู (กลุ่ม) ฿</label>
-              <div class="income-input-wrap">
-                <span class="income-currency">฿</span>
-                <input type="number" inputmode="numeric" class="edit-input" [(ngModel)]="editIncomeGrp" min="0" placeholder="ระบุจำนวนเงิน" (wheel)="$event.preventDefault()"/>
+        <!-- Section 4: รายได้ครู / ค่าเรียน -->
+        <section class="edit-section">
+          <div class="edit-section-head">
+            <span class="edit-section-bullet" style="background:#10b981"></span>
+            <h3 class="edit-section-title">รายได้ครู &amp; ค่าเรียน</h3>
+            <span class="edit-section-meta">บาท/ชั่วโมง</span>
+          </div>
+          <div class="edit-income-section v2">
+            <ng-container *ngIf="editType === 'group'">
+              <div class="edit-money-card">
+                <div class="edit-money-head">
+                  <span class="edit-money-label">รายได้ครู (กลุ่ม)</span>
+                  <span class="edit-money-pill">มี ≥ 2 คน</span>
+                </div>
+                <div class="income-input-wrap v2">
+                  <span class="income-currency">฿</span>
+                  <input type="number" inputmode="numeric" class="edit-input money-input" [(ngModel)]="editIncomeGrp" min="0" placeholder="0" (wheel)="$event.preventDefault()"/>
+                </div>
               </div>
-              <span class="field-hint" style="font-size:10px;color:#9ca3af;margin-top:3px;display:block;">ใช้เมื่อมี ≥ 2 คน</span>
-            </div>
-            <div class="edit-group">
-              <label class="edit-label">รายได้ครู (เดี่ยว — สำรอง) ฿</label>
-              <div class="income-input-wrap">
-                <span class="income-currency">฿</span>
-                <input type="number" inputmode="numeric" class="edit-input" [(ngModel)]="editIncomeInd" min="0" placeholder="ระบุจำนวนเงิน" (wheel)="$event.preventDefault()"/>
+              <div class="edit-money-card subtle">
+                <div class="edit-money-head">
+                  <span class="edit-money-label">รายได้ครู (เดี่ยว — สำรอง)</span>
+                  <span class="edit-money-pill">มีคนเดียว</span>
+                </div>
+                <div class="income-input-wrap v2">
+                  <span class="income-currency">฿</span>
+                  <input type="number" inputmode="numeric" class="edit-input money-input" [(ngModel)]="editIncomeInd" min="0" placeholder="0" (wheel)="$event.preventDefault()"/>
+                </div>
               </div>
-              <span class="field-hint" style="font-size:10px;color:#9ca3af;margin-top:3px;display:block;">ใช้เมื่อมีคนเดียว</span>
-            </div>
-          </ng-container>
+            </ng-container>
 
-          <!-- เมื่อเป็นเดี่ยว: แสดงเฉพาะอัตราเดี่ยว -->
-          <div class="edit-group" *ngIf="editType === 'individual'">
-            <label class="edit-label">รายได้ครู (เดี่ยว) ฿</label>
-            <div class="income-input-wrap">
-              <span class="income-currency">฿</span>
-              <input type="number" inputmode="numeric" class="edit-input" [(ngModel)]="editIncomeInd" min="0" placeholder="ระบุจำนวนเงิน" (wheel)="$event.preventDefault()"/>
+            <div class="edit-money-card" *ngIf="editType === 'individual'">
+              <div class="edit-money-head">
+                <span class="edit-money-label">รายได้ครู (เดี่ยว)</span>
+              </div>
+              <div class="income-input-wrap v2">
+                <span class="income-currency">฿</span>
+                <input type="number" inputmode="numeric" class="edit-input money-input" [(ngModel)]="editIncomeInd" min="0" placeholder="0" (wheel)="$event.preventDefault()"/>
+              </div>
+            </div>
+
+            <div class="edit-money-card price-card">
+              <div class="edit-money-head">
+                <span class="edit-money-label">ค่าเรียน/คน</span>
+              </div>
+              <div class="income-input-wrap v2">
+                <span class="income-currency">฿</span>
+                <input type="number" inputmode="numeric" class="edit-input money-input" [(ngModel)]="editPrice" min="0" placeholder="0" (wheel)="$event.preventDefault()"/>
+              </div>
             </div>
           </div>
+        </section>
 
-          <div class="edit-group">
-            <label class="edit-label">ค่าเรียน/คน ฿</label>
-            <div class="income-input-wrap">
-              <span class="income-currency">฿</span>
-              <input type="number" inputmode="numeric" class="edit-input" [(ngModel)]="editPrice" min="0" placeholder="ระบุจำนวนเงิน" (wheel)="$event.preventDefault()"/>
-            </div>
+        <!-- Section 5: หมายเหตุ -->
+        <section class="edit-section">
+          <div class="edit-section-head">
+            <span class="edit-section-bullet" style="background:#64748b"></span>
+            <h3 class="edit-section-title">หมายเหตุ</h3>
           </div>
-        </div>
+          <textarea class="edit-textarea v2" [(ngModel)]="editDescription" rows="3" placeholder="รายละเอียดเพิ่มเติม หรือคำชี้แจง..."></textarea>
+        </section>
 
-        <div class="edit-group" style="margin-top:12px;">
-          <label class="edit-label">หมายเหตุ / คำอธิบาย</label>
-          <textarea class="edit-textarea" [(ngModel)]="editDescription" rows="3" placeholder="รายละเอียดเพิ่มเติม..."></textarea>
-        </div>
-
-        <div class="edit-email-notice">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <!-- Email notice -->
+        <div class="edit-email-notice v2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
             <polyline points="22,6 12,13 2,6"/>
           </svg>
-          ระบบจะส่งอีเมลแจ้งเวลาใหม่ไปยัง <strong>ครู</strong> และ <strong>นักเรียนทุกคน</strong> โดยอัตโนมัติ
+          <span>ระบบจะส่งอีเมลแจ้งเวลาใหม่ไปยัง <strong>ครู</strong> และ <strong>นักเรียนทุกคน</strong> อัตโนมัติ</span>
         </div>
 
-        <div class="edit-error" *ngIf="editErrorMessage">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <div class="edit-error v2" *ngIf="editErrorMessage">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
             <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
             <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
-          {{ editErrorMessage }}
-        </div>
-
-        <div class="edit-actions">
-          <button class="btn-cancel-edit" (click)="closeEditModal()" [disabled]="editSubmitting">ยกเลิก</button>
-          <button class="btn-submit-edit" (click)="submitEdit()" [disabled]="editSubmitting">
-            <ng-container *ngIf="!editSubmitting">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                <polyline points="17 21 17 13 7 13 7 21"/>
-                <polyline points="7 3 7 8 15 8"/>
-              </svg>
-              บันทึกการแก้ไข
-            </ng-container>
-            <span *ngIf="editSubmitting">กำลังบันทึก...</span>
-          </button>
+          <span>{{ editErrorMessage }}</span>
         </div>
 
       </div>
+
+      <!-- Footer: sticky -->
+      <div class="edit-footer">
+        <button class="btn-cancel-edit v2" (click)="closeEditModal()" [disabled]="editSubmitting">ยกเลิก</button>
+        <button class="btn-submit-edit v2" (click)="submitEdit()" [disabled]="editSubmitting">
+          <ng-container *ngIf="!editSubmitting">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+            บันทึกการแก้ไข
+          </ng-container>
+          <span class="btn-loader" *ngIf="editSubmitting">
+            <span class="spinner" aria-hidden="true"></span>
+            กำลังบันทึก...
+          </span>
+        </button>
+      </div>
+
     </div>
   </div>
 
