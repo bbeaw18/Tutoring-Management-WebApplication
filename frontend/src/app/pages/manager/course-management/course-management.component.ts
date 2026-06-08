@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { CourseService } from '../../../services/course.service';
@@ -74,10 +75,15 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
   /** schedule id currently being manager-confirmed */
   confirmingId = '';
 
+  /** courseId ที่ส่งมาจาก master calendar ผ่าน query param `?edit=` — รอเปิด edit modal หลังโหลด courses เสร็จ */
+  private pendingEditId = '';
+
   constructor(
     private courseService: CourseService,
     private userService: UserService,
     private scheduleService: ScheduleService,
+    private route: ActivatedRoute,
+    private router: Router,
     private fb: FormBuilder
   ) {}
 
@@ -103,7 +109,24 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.initForm();
+    // อ่าน query param `edit=<courseId>` จาก master calendar — จะเปิด edit modal หลังโหลดรายการ courses เสร็จ
+    this.route.queryParamMap
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(qp => {
+        const id = qp.get('edit') || '';
+        if (id) this.pendingEditId = id;
+      });
     this.loadAll();
+  }
+
+  /** เปิด edit modal สำหรับ courseId ที่ส่งมาจาก master calendar — เคลียร์ query param หลังเปิด */
+  private maybeOpenPendingEdit(): void {
+    if (!this.pendingEditId) return;
+    const target = this.courses.find(c => this.getId(c) === this.pendingEditId);
+    if (!target) { this.pendingEditId = ''; return; }
+    this.pendingEditId = '';
+    this.openEditModal(target);
+    this.router.navigate([], { queryParams: { edit: null }, queryParamsHandling: 'merge', replaceUrl: true });
   }
 
   initForm(): void {
@@ -257,12 +280,13 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
 
   loadAll(): void {
     this.loading = true;
-    this.courseService.getCourses({ limit: 100 } as any)
+    this.courseService.getCourses({ limit: 10000 } as any)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
           this.courses = res.data || [];
           this.loading = false;
+          this.maybeOpenPendingEdit();
         },
         error: () => { this.loading = false; }
       });

@@ -429,7 +429,7 @@
       <div class="revenue-cards kpi-row-1">
         <div class="revenue-card manager-income"
              [class.active]="activeKpi === 'myIncome'"
-             (click)="selectKpi('myIncome')"
+             (click)="selectKpi('myIncome'); openMyIncomeModal()"
              role="button" tabindex="0">
           <h3>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M20 7h-9M14 17H5M21 17a4 4 0 1 0-8 0M11 7a4 4 0 1 1-8 0"/></svg>

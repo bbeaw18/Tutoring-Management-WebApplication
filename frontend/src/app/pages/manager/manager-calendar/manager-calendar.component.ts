@@ -1,11 +1,12 @@
 import { Component, OnInit, OnDestroy, DoCheck, HostListener, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { ScheduleService } from '../../../services/schedule.service';
 import { UserService } from '../../../services/user.service';
+import { CourseService } from '../../../services/course.service';
 import { AuthService } from '../../../services/auth.service';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
@@ -110,7 +111,9 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
   constructor(
     private scheduleService: ScheduleService,
     private userService: UserService,
-    private authService: AuthService
+    private courseService: CourseService,
+    private authService: AuthService,
+    private router: Router
   ) {}
 
   ngOnDestroy(): void {
@@ -680,6 +683,46 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
         },
         error: () => { this.confirmLoading = false; }
       });
+  }
+
+  /** courseId ของ schedule ที่เลือก — รองรับทั้งกรณี populated และ string */
+  private getSelectedCourseId(): string {
+    const c: any = this.selectedSchedule?.course;
+    if (!c) return '';
+    return typeof c === 'object' ? (c._id || c.id || '') : String(c);
+  }
+
+  /** ส่งไปยังหน้า course-management พร้อม query param `edit=<courseId>` เพื่อเปิด edit modal */
+  editFromCalendar(): void {
+    const courseId = this.getSelectedCourseId();
+    if (!courseId) return;
+    this.closeDetailModal();
+    this.router.navigate(['/dashboard/course-management'], { queryParams: { edit: courseId } });
+  }
+
+  /** ยกเลิกนัดสอน (set course.status='cancelled' → ทุก schedule ของ course นั้นถูก cancel ด้วย) */
+  cancelFromCalendar(): void {
+    const courseId = this.getSelectedCourseId();
+    if (!courseId) return;
+    if (!confirm('ยืนยันการยกเลิกนัดสอนนี้?\n\nนัดสอนจะถูกตั้งเป็น "ยกเลิก" และนำออกจากปฏิทินของครูและนักเรียน')) return;
+    this.confirmLoading = true;
+    this.courseService.deleteCourse(courseId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.confirmLoading = false;
+          this.closeDetailModal();
+          this.loadCalendar();
+        },
+        error: () => { this.confirmLoading = false; }
+      });
+  }
+
+  /** schedule นี้ยังแก้/ยกเลิกได้หรือไม่ (ไม่ใช่ completed/cancelled) */
+  canEditSelected(): boolean {
+    if (!this.isManager || !this.selectedSchedule) return false;
+    const s = this.selectedSchedule.status;
+    return s !== 'completed' && s !== 'cancelled';
   }
 
   doManagerConfirm(): void {

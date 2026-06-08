@@ -321,6 +321,21 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
     this.activeKpi = mode;
   }
 
+  /** เปิด modal รายละเอียดคลาสสำหรับ KPI "รายได้บุคลากร" — filter ตามครูที่เลือกใน dropdown
+   *  ใช้ logic เดียวกับ openTeacherMonthlyModal แต่ scope รายการคลาสเป็นทั้งเดือน ไม่ใช่
+   *  filteredSchedules เพราะ activeKpi อาจยังไม่ใช่ teacherExpense ตอนคลิก */
+  openMyIncomeModal(): void {
+    const teacherId = this.filterTeacher || this.currentUser?._id || '';
+    if (!teacherId) return;
+    const nickname = this.getTeacherNickname(teacherId);
+    this.teacherMonthlyTarget = { id: teacherId, nickname };
+    this.teacherMonthlyClasses = this.allSchedules
+      .filter(s => s.teacherId === teacherId && s.status === 'completed' && (s.actualTeacherIncome || 0) > 0)
+      .slice()
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    this.showTeacherMonthlyModal = true;
+  }
+
   get filteredSchedules(): IRevenueSchedule[] {
     let list = this.allSchedules;
 
@@ -511,7 +526,7 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   get expenseTotal(): number {
-    return this.teacherWageTotal + this.manualExpenseTotal;
+    return this.teacherWageTotal + this.kpiManagerIncome + this.manualExpenseTotal;
   }
 
   get incomeTotal(): number {
