@@ -310,6 +310,15 @@
             <span class="cta-ripple" aria-hidden="true"></span>
           </button>
 
+          <!-- สลับเป็นวิธีอื่น: พิมพ์รหัสผ่านซ้ำ -->
+          <button type="button" class="cta cta-alt" (click)="switchToPasswordMethod()" [disabled]="loading">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px">
+              <rect x="3" y="11" width="18" height="11" rx="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            ยืนยันด้วยวิธีอื่น (พิมพ์รหัสผ่าน)
+          </button>
+
           <button type="button" class="cta cta-ghost" (click)="goBackToLogin()" [disabled]="loading">
             ← ย้อนกลับ
           </button>
@@ -390,6 +399,17 @@
               <span>กำลังยืนยัน…</span>
             </span>
             <span class="cta-ripple" aria-hidden="true"></span>
+          </button>
+
+          <!-- กลับไป TOTP -->
+          <button type="button" class="cta cta-alt" (click)="switchToTotpMethod()" [disabled]="loading">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px">
+              <rect x="3" y="4" width="18" height="16" rx="3"/>
+              <line x1="8" y1="9" x2="8" y2="15"/>
+              <line x1="12" y1="9" x2="12" y2="15"/>
+              <line x1="16" y1="9" x2="16" y2="15"/>
+            </svg>
+            ใช้ Google Authenticator แทน
           </button>
 
           <button type="button" class="cta cta-ghost" (click)="goBackToLogin()" [disabled]="loading">

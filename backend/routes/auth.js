@@ -211,12 +211,12 @@ router.post('/login', async (req, res) => {
       }, 'บัญชีของคุณอยู่ในสถานะรอการยืนยันจาก Manager โปรดติดต่อ Manager เพื่อขออนุมัติการลงทะเบียน');
     }
 
-    // Step 2: Check 2FA — if enabled, require second-factor challenge first
+    // Step 2: Check 2FA — if enabled, require second-factor challenge first.
+    // Frontend starts on TOTP by default; users can switch to password re-entry from there.
     if (user.totpEnabled) {
       return sendResponse(res, 200, true, {
         requireOtp: true,
         userId: user._id,
-        twoFactorMethod: user.twoFactorMethod || 'totp',
         registrationStatus: user.registrationStatus
       }, '2FA required');
     }
@@ -361,7 +361,7 @@ router.post('/verify-totp', async (req, res) => {
 });
 
 // ── 2FA Method: ยืนยันด้วยการพิมพ์รหัสผ่านอีกครั้ง ──────────────
-// ใช้สำหรับผู้ใช้ที่ตั้ง twoFactorMethod === 'password'
+// ทุกบัญชีที่เปิด 2FA สามารถใช้เป็น "วิธีอื่น" สลับจาก TOTP ได้
 // (ผู้ใช้ "ผ่าน" login ขั้นแรกด้วยรหัสที่ถูกต้องแล้ว — ขั้นนี้คือพิมพ์ซ้ำเป็น 2nd factor)
 router.post('/verify-password-2fa', async (req, res) => {
   try {
@@ -376,8 +376,8 @@ router.post('/verify-password-2fa', async (req, res) => {
       return sendResponse(res, 404, false, null, 'User not found');
     }
 
-    if (!user.totpEnabled || user.twoFactorMethod !== 'password') {
-      return sendResponse(res, 400, false, null, 'บัญชีนี้ไม่ได้ตั้งค่ารหัสผ่านเป็น 2FA');
+    if (!user.totpEnabled) {
+      return sendResponse(res, 400, false, null, 'บัญชีนี้ไม่ได้เปิดใช้งาน 2FA');
     }
 
     const isValid = await user.comparePassword(password);
@@ -400,32 +400,6 @@ router.post('/verify-password-2fa', async (req, res) => {
     }, 'Login successful');
   } catch (error) {
     console.error('Verify password 2FA error:', error);
-    sendResponse(res, 500, false, null, error.message);
-  }
-});
-
-// ── 2FA Method: เปลี่ยนวิธี 2FA ของผู้ใช้ (ต้อง login แล้ว) ──────
-router.patch('/two-factor-method', authenticateToken, async (req, res) => {
-  try {
-    const { method } = req.body || {};
-    if (!['totp', 'password'].includes(method)) {
-      return sendResponse(res, 400, false, null, 'method ต้องเป็น "totp" หรือ "password"');
-    }
-
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return sendResponse(res, 404, false, null, 'User not found');
-    }
-
-    if (!user.totpEnabled) {
-      return sendResponse(res, 400, false, null, 'ต้องเปิดใช้งาน 2FA ก่อน');
-    }
-
-    user.twoFactorMethod = method;
-    await user.save();
-    sendResponse(res, 200, true, { twoFactorMethod: user.twoFactorMethod }, 'อัปเดตวิธี 2FA สำเร็จ');
-  } catch (error) {
-    console.error('Update 2FA method error:', error);
     sendResponse(res, 500, false, null, error.message);
   }
 });

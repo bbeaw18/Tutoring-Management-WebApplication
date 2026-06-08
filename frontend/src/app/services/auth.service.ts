@@ -73,7 +73,7 @@ export class AuthService {
     );
   }
 
-  /** 2FA โดยพิมพ์รหัสผ่านซ้ำ — ใช้สำหรับผู้ใช้ที่ตั้ง twoFactorMethod === 'password' */
+  /** 2FA: ยืนยันด้วยการพิมพ์รหัสผ่านซ้ำ (เป็น "วิธีอื่น" จาก TOTP) */
   verifyPasswordTwoFactor(userId: string, password: string): Observable<IApiResponse<IOtpVerifyResponse>> {
     return this.http.post<IApiResponse<IOtpVerifyResponse>>(`${this.apiUrl}/verify-password-2fa`, { userId, password }).pipe(
       tap(res => {
@@ -81,18 +81,6 @@ export class AuthService {
           localStorage.setItem('token', res.data.token);
           this.currentUserSubject.next(res.data.user);
           localStorage.removeItem('tempUserId');
-        }
-      })
-    );
-  }
-
-  /** เปลี่ยนวิธี 2FA (totp <-> password) */
-  updateTwoFactorMethod(method: 'totp' | 'password'): Observable<IApiResponse<{ twoFactorMethod: 'totp' | 'password' }>> {
-    return this.http.patch<IApiResponse<{ twoFactorMethod: 'totp' | 'password' }>>(`${this.apiUrl}/two-factor-method`, { method }).pipe(
-      tap(res => {
-        const current = this.currentUserSubject.value;
-        if (current && res.data?.twoFactorMethod) {
-          this.currentUserSubject.next({ ...current, twoFactorMethod: res.data.twoFactorMethod });
         }
       })
     );

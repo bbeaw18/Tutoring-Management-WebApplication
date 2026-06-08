@@ -278,16 +278,15 @@ export class LoginComponent implements OnInit, OnDestroy, AfterViewInit {
             this.loading = false;
           });
         } else if (response.requireOtp && response.userId) {
-          this.twoFactorMethod = response.twoFactorMethod === 'password' ? 'password' : 'totp';
+          // เริ่มต้นที่ TOTP เสมอ — user กดสลับ method เองได้บนหน้า OTP
+          this.twoFactorMethod = 'totp';
           this.currentStep = 'otp';
           this.loading = false;
           // เคลียร์ฟิลด์ทุกครั้ง — ห้าม browser หรือ password manager มาทำงานล่วงหน้า
           this.password2faForm.reset({ password: '' });
           this.password2faSubmitted = false;
           this.password2faFieldName = 'p2fa_' + Math.random().toString(36).slice(2);
-          if (this.twoFactorMethod === 'totp') {
-            this.startOtpCountdown();
-          }
+          this.startOtpCountdown();
         } else {
           this.errorMessage = 'เกิดข้อผิดพลาด โปรดลองอีกครั้ง';
           this.loading = false;
@@ -405,5 +404,31 @@ export class LoginComponent implements OnInit, OnDestroy, AfterViewInit {
 
   toggleShowPassword2fa(): void {
     this.showPassword2fa = !this.showPassword2fa;
+  }
+
+  /** ผู้ใช้บนหน้า TOTP กด "ยืนยันด้วยวิธีอื่น" → สลับมาที่ password re-entry */
+  switchToPasswordMethod(): void {
+    this.twoFactorMethod = 'password';
+    this.errorMessage = '';
+    this.otpSubmitted = false;
+    this.otpForm.reset();
+    // เคลียร์ฟิลด์ + สุ่ม name ใหม่ — กัน autofill ทุกครั้งที่เปิดฟอร์ม
+    this.password2faForm.reset({ password: '' });
+    this.password2faSubmitted = false;
+    this.password2faFieldName = 'p2fa_' + Math.random().toString(36).slice(2);
+    // ไม่ต้อง countdown TOTP แล้ว
+    clearInterval(this.otpCountdownInterval);
+    this.otpCountdown = 0;
+  }
+
+  /** ผู้ใช้บนหน้า password re-entry กด "ใช้ Google Authenticator แทน" → กลับมา TOTP */
+  switchToTotpMethod(): void {
+    this.twoFactorMethod = 'totp';
+    this.errorMessage = '';
+    this.password2faSubmitted = false;
+    this.password2faForm.reset({ password: '' });
+    this.otpSubmitted = false;
+    this.otpForm.reset();
+    this.startOtpCountdown();
   }
 }
