@@ -718,6 +718,21 @@
 }
 .cta-ghost::before { display: none; }
 
+/* ── 2FA password re-entry: type="text" + visual mask ──
+   ใช้ -webkit-text-security เพื่อแสดง bullets โดยไม่ใช้ type="password"
+   (type="password" คือ trigger หลักที่ Chromium ใช้ทำ password autofill) */
+input.p2fa-input.is-masked {
+  -webkit-text-security: disc;
+  -moz-text-security: disc;
+  text-security: disc;
+  letter-spacing: 0.12em;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+/* unmask: ใช้ font ปกติ ตัวอักษรเล็กลงเล็กน้อย */
+input.p2fa-input:not(.is-masked) {
+  letter-spacing: normal;
+}
+
 /* Alternate-method CTA — outline-ish, subtle accent */
 .cta-alt {
   background: #f8fafc;
