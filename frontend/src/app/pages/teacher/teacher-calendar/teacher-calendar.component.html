@@ -137,7 +137,7 @@
         <span class="tc-pending-chip">{{ weekPendingCount }}</span>
       </div>
       <div class="tc-pending-list">
-        <button class="tc-pending-row" *ngFor="let s of weekPendingList" (click)="openDetail(s, $event)">
+        <button class="tc-pending-row" *ngFor="let s of weekPendingList; trackBy: trackBySchedule" (click)="openDetail(s, $event)">
           <div class="tc-pending-date">
             <span class="tc-pd-day">{{ s.date | date:'d' }}</span>
             <span class="tc-pd-mon">{{ s.date | date:'MMM' }}</span>
@@ -165,7 +165,7 @@
       </div>
       <div class="tc-list-events">
         <button class="tc-list-event"
-                *ngFor="let sch of day.schedules"
+                *ngFor="let sch of day.schedules; trackBy: trackBySchedule"
                 (click)="openDetail(sch, $event)"
                 [class.is-cancelled]="sch.status === 'cancelled'"
                 [class.is-completed]="sch.status === 'completed'"
@@ -223,7 +223,7 @@
 
           <!-- Events -->
           <div class="gcal-event"
-               *ngFor="let sch of day.schedules"
+               *ngFor="let sch of day.schedules; trackBy: trackBySchedule"
                [class.is-draggable]="canDragSchedule(sch)"
                [class.is-dragging]="draggingId === sch._id"
                [class.is-holding]="holdScheduleId === sch._id"
@@ -254,7 +254,7 @@
 
           <!-- Overnight tail (continued from previous day) -->
           <div class="gcal-event gcal-event-tail"
-               *ngFor="let sch of overnightTails(di)"
+               *ngFor="let sch of overnightTails(di); trackBy: trackBySchedule"
                [style.top.px]="0"
                [style.height.px]="getTailHeight(sch)"
                [style.background]="getEventBg(sch)"
@@ -280,7 +280,7 @@
            [class.empty]="!cell.date" [class.today]="cell.date && isToday(cell.date)">
         <span *ngIf="cell.date" class="cell-date">{{ cell.date.getDate() }}</span>
         <div class="cell-events">
-          <div class="event-chip" *ngFor="let sch of cell.schedules"
+          <div class="event-chip" *ngFor="let sch of cell.schedules; trackBy: trackBySchedule"
                [class.confirmed]="sch.isFullyConfirmed"
                [class.need-confirm]="!sch.teacherConfirmed"
                (click)="openDetail(sch, $event)">

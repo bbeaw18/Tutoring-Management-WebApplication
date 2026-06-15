@@ -247,7 +247,7 @@
       <a class="empty-cta" routerLink="/dashboard/calendar">ดูปฏิทิน →</a>
     </div>
     <div *ngIf="studentSchedules.length > 0" class="h-timeline">
-      <div *ngFor="let g of sTimelineGroups" class="h-tl-group">
+      <div *ngFor="let g of sTimelineGroups; trackBy: trackByGroupKey" class="h-tl-group">
         <div class="h-tl-date">
           <div class="h-tl-date-circle">{{ g.dateLabel.split(' ')[0] }}</div>
           <div class="h-tl-date-info">
@@ -257,7 +257,7 @@
           <div class="h-tl-date-count">{{ g.items.length }} นัด</div>
         </div>
         <div class="h-tl-items">
-          <div *ngFor="let sch of g.items" class="h-tl-item h-tl-student h-tl-clickable"
+          <div *ngFor="let sch of g.items; trackBy: trackBySchedule" class="h-tl-item h-tl-student h-tl-clickable"
                (click)="openDetail(sch)"
                [class.tl-cancelled]="sch.status === 'cancelled'"
                [class.tl-completed]="sch.status === 'completed'"
@@ -314,7 +314,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let sch of studentSchedules; let i = index" class="row-clickable" (click)="openDetail(sch)">
+          <tr *ngFor="let sch of studentSchedules; let i = index; trackBy: trackBySchedule" class="row-clickable" (click)="openDetail(sch)">
             <td>{{ i + 1 }}</td>
             <td>{{ sch.date | date:'d MMM y' }}</td>
             <td>
@@ -350,7 +350,7 @@
       ไม่พบรายการที่ตรงกับเงื่อนไข
     </div>
     <div *ngIf="hStatusFilteredTeaching.length > 0" class="h-timeline">
-      <div *ngFor="let g of hTimelineGroups" class="h-tl-group">
+      <div *ngFor="let g of hTimelineGroups; trackBy: trackByGroupKey" class="h-tl-group">
         <div class="h-tl-date">
           <div class="h-tl-date-circle">{{ g.dateLabel.split(' ')[0] }}</div>
           <div class="h-tl-date-info">
@@ -360,7 +360,7 @@
           <div class="h-tl-date-count">{{ g.items.length }} คลาส</div>
         </div>
         <div class="h-tl-items">
-          <div *ngFor="let s of g.items" class="h-tl-item h-tl-clickable"
+          <div *ngFor="let s of g.items; trackBy: trackBySchedule" class="h-tl-item h-tl-clickable"
                (click)="openDetail(s)"
                [class.tl-cancelled]="s.status === 'cancelled'"
                [class.tl-completed]="s.status === 'completed'"
@@ -462,7 +462,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let s of filteredTeachingHistory; let i = index"
+          <tr *ngFor="let s of filteredTeachingHistory; let i = index; trackBy: trackBySchedule"
               class="row-clickable"
               (click)="openDetail(s)"
               [class.row-awaiting]="s.status === 'awaiting_confirmation'"

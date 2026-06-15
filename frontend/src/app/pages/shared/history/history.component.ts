@@ -153,6 +153,10 @@ export class HistoryComponent implements OnInit, OnDestroy {
     });
   }
 
+  // trackBy — กัน DOM teardown ตอน list ถูกแทนใหม่ (reload/filter)
+  trackBySchedule = (_: number, s: any): string => s?._id || s?.id || '';
+  trackByGroupKey = (_: number, g: { dateKey: string }): string => g.dateKey;
+
   get filteredTeachingHistory(): any[] {
     if (!this.selectedMonth) return this.teachingHistory;
     return this.teachingHistory.filter(s => {

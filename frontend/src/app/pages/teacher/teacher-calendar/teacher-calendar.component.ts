@@ -287,6 +287,9 @@ export class TeacherCalendarComponent implements OnInit, OnDestroy, AfterViewIni
     return (this.weekDays[di - 1].schedules || []).filter(s => this.isOvernight(s));
   }
 
+  // trackBy — กัน DOM teardown ตอน schedule list ถูกแทนใหม่
+  trackBySchedule = (_: number, s: any): string => s?._id || s?.id || '';
+
   getTailHeight(sch: ISchedule): number {
     const e = this.minOf(sch?.endTime);
     if (e < 0) return this.HOUR_HEIGHT;

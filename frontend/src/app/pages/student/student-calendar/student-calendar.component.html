@@ -115,7 +115,7 @@
           <span class="wi-pending-count">{{ weekPendingActions.length }}</span>
         </div>
         <div class="wi-pending-list">
-          <button class="wi-pending-item" *ngFor="let s of weekPendingActions" (click)="openDetail(s, $event)">
+          <button class="wi-pending-item" *ngFor="let s of weekPendingActions; trackBy: trackBySchedule" (click)="openDetail(s, $event)">
             <div class="wi-pending-date">
               <span class="wi-pd-day">{{ s.date | date:'d' }}</span>
               <span class="wi-pd-mon">{{ s.date | date:'MMM' }}</span>
@@ -183,7 +183,7 @@
 
           <!-- Events -->
           <div class="gcal-event"
-               *ngFor="let sch of day.schedules"
+               *ngFor="let sch of day.schedules; trackBy: trackBySchedule"
                [style.top.px]="getEventTop(sch)"
                [style.height.px]="getEventHeight(sch)"
                [style.background]="getEventBg(sch)"
@@ -205,7 +205,7 @@
 
           <!-- Overnight tail (continued from previous day) -->
           <div class="gcal-event gcal-event-tail"
-               *ngFor="let sch of overnightTails(di)"
+               *ngFor="let sch of overnightTails(di); trackBy: trackBySchedule"
                [style.top.px]="0"
                [style.height.px]="getTailHeight(sch)"
                [style.background]="getEventBg(sch)"
@@ -231,7 +231,7 @@
            [class.empty]="!cell.date" [class.today]="cell.date && isToday(cell.date)">
         <span *ngIf="cell.date" class="cell-date">{{ cell.date.getDate() }}</span>
         <div class="cell-events">
-          <div class="event-chip" *ngFor="let sch of cell.schedules"
+          <div class="event-chip" *ngFor="let sch of cell.schedules; trackBy: trackBySchedule"
                [class.confirmed]="getMyConfirmStatusFor(sch) === 'accepted'"
                [class.declined]="getMyConfirmStatusFor(sch) === 'declined'"
                [class.need-confirm]="getMyConfirmStatusFor(sch) === 'pending'"

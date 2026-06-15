@@ -226,7 +226,7 @@
           <!-- Events -->
           <div
             class="gcal-event"
-            *ngFor="let sch of day.schedules"
+            *ngFor="let sch of day.schedules; trackBy: trackBySchedule"
             [style.top.px]="getEventTop(sch)"
             [style.height.px]="getEventHeight(sch)"
             [style.background]="getEventBg(sch)"
@@ -256,7 +256,7 @@
 
           <!-- Overnight tail (continued from previous day) — display only -->
           <div class="gcal-event gcal-event-tail"
-               *ngFor="let sch of overnightTails(di)"
+               *ngFor="let sch of overnightTails(di); trackBy: trackBySchedule"
                [style.top.px]="0"
                [style.height.px]="getTailHeight(sch)"
                [style.background]="getEventBg(sch)"
@@ -302,7 +302,7 @@
       </div>
       <div class="mc-agenda-events">
         <button class="mc-agenda-event"
-                *ngFor="let sch of day.schedules"
+                *ngFor="let sch of day.schedules; trackBy: trackBySchedule"
                 (click)="openDetail(sch, $event)"
                 [class.is-cancelled]="sch.status === 'cancelled'"
                 [class.is-completed]="sch.status === 'completed'"
@@ -336,7 +336,7 @@
         <div class="cell-events">
           <div
             class="event-chip"
-            *ngFor="let sch of cell.schedules"
+            *ngFor="let sch of cell.schedules; trackBy: trackBySchedule"
             [class.confirmed]="sch.isFullyConfirmed"
             [class.pending]="!sch.isFullyConfirmed && sch.status === 'pending'"
             (click)="openDetail(sch, $event)"
