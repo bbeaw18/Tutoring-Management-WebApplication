@@ -116,6 +116,11 @@ const CourseSchema = new mongoose.Schema({
   }
 });
 
+// ── Indexes — GET /courses filter ตาม role (teacher/students) + sort createdAt ──
+CourseSchema.index({ teacher: 1 });      // teacher role query
+CourseSchema.index({ students: 1 });     // student role query
+CourseSchema.index({ createdAt: -1 });   // default sort
+
 CourseSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();

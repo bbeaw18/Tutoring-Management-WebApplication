@@ -152,6 +152,12 @@ const ScheduleSchema = new mongoose.Schema({
   }
 });
 
+// ── Indexes — Schedule ถูก query ทุกหน้า (course-mgmt, calendars, history) ──
+ScheduleSchema.index({ course: 1 });               // GET /courses join + ?course=
+ScheduleSchema.index({ teacher: 1, date: 1 });     // teacher calendar (filter + sort)
+ScheduleSchema.index({ students: 1, date: 1 });    // student calendar
+ScheduleSchema.index({ date: 1 });                 // date-range queries / sort
+
 ScheduleSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
 
