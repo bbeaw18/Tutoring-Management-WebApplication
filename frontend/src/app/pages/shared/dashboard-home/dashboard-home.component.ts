@@ -40,6 +40,7 @@ export class DashboardHomeComponent implements OnInit, OnDestroy, AfterViewInit 
   private destroy$ = new Subject<void>();
   private reducedMotion = false;
   private countedStats = false;
+  private nowIndicatorInterval?: ReturnType<typeof setInterval>;
 
   currentUser: IUser | null = null;
   greeting = '';
@@ -109,7 +110,7 @@ export class DashboardHomeComponent implements OnInit, OnDestroy, AfterViewInit 
     this.buildActions();
     this.loadData();
     this.updateNowIndicator();
-    setInterval(() => this.updateNowIndicator(), 60_000);
+    this.nowIndicatorInterval = setInterval(() => this.updateNowIndicator(), 60_000);
   }
 
   updateNowIndicator(): void {
@@ -197,6 +198,7 @@ export class DashboardHomeComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   ngOnDestroy(): void {
+    if (this.nowIndicatorInterval) clearInterval(this.nowIndicatorInterval);
     this.destroy$.next();
     this.destroy$.complete();
   }
