@@ -581,7 +581,7 @@
 
     <!-- Courses Timeline — date-grouped sections (matches history page) -->
     <div class="cm-timeline" *ngIf="cmTimelineGroups.length > 0">
-      <div class="cm-tl-group" *ngFor="let g of cmTimelineGroups">
+      <div class="cm-tl-group" *ngFor="let g of cmTimelineGroups; trackBy: trackByGroup">
         <div class="cm-tl-date">
           <div class="cm-tl-date-circle">{{ g.dayNum }}</div>
           <div class="cm-tl-date-info">
@@ -592,7 +592,7 @@
         </div>
 
         <div class="courses-grid kms-stagger">
-          <div class="course-card" *ngFor="let course of g.items"
+          <div class="course-card" *ngFor="let course of g.items; trackBy: trackByCourseId"
                [class.series-card]="isSeriesCourse(course)"
                [class.is-expanded]="isExpanded(getId(course))">
 

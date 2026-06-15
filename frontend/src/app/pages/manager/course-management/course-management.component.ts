@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, OnInit, OnDestroy, CUSTOM_ELEMENTS_SCHEMA, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -21,7 +21,8 @@ import { resolveDisplayStatus, getDisplayStatusLabel, getDisplayStatusClass } fr
   imports: [CommonModule, ReactiveFormsModule, FormsModule, LoadingComponent, DatePickerComponent, TimePickerComponent, DisplayNamePipe],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './course-management.component.html',
-  styleUrls: ['./course-management.component.css']
+  styleUrls: ['./course-management.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CourseManagementComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
@@ -84,7 +85,8 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     private scheduleService: ScheduleService,
     private route: ActivatedRoute,
     private router: Router,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private cdr: ChangeDetectorRef
   ) {}
 
   /** Manager/Admin confirms class completion (awaiting_confirmation → completed) */
@@ -97,8 +99,8 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     this.scheduleService.managerConfirm(scheduleId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: () => { this.confirmingId = ''; this.loadAll(); },
-        error: () => { this.confirmingId = ''; }
+        next: () => { this.confirmingId = ''; this.loadAll(); this.cdr.markForCheck(); },
+        error: () => { this.confirmingId = ''; this.cdr.markForCheck(); }
       });
   }
 
@@ -285,10 +287,12 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (res) => {
           this.courses = res.data || [];
+          this.onCoursesChanged();
           this.loading = false;
           this.maybeOpenPendingEdit();
+          this.cdr.markForCheck();
         },
-        error: () => { this.loading = false; }
+        error: () => { this.loading = false; this.cdr.markForCheck(); }
       });
 
     // โหลดทั้ง teacher และ manager (manager ก็สามารถสอนได้)
@@ -303,6 +307,7 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
           ...managerList.map(u => ({ ...u, _displayRole: 'ผู้จัดการ' } as any)),
           ...teacherList.map(u => ({ ...u, _displayRole: 'ครู' } as any))
         ];
+        this.cdr.markForCheck();
       }
     };
     // รวม manager ที่สอนได้ในรายชื่อครูด้วย (ครูในระบบ + manager)
@@ -322,7 +327,7 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     this.userService.getStudents()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (students) => { this.students = students || []; },
+        next: (students) => { this.students = students || []; this.cdr.markForCheck(); },
         error: (err) => console.error('[CourseMgmt] getStudents failed:', err)
       });
 
@@ -330,13 +335,13 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     this.courseService.getSubjects()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (data) => { this.savedSubjects = data; },
+        next: (data) => { this.savedSubjects = data; this.cdr.markForCheck(); },
         error: (err) => console.error('[CourseMgmt] getSubjects failed:', err)
       });
     this.courseService.getTeachingTypes()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (data) => { this.savedTeachingTypes = data; },
+        next: (data) => { this.savedTeachingTypes = data; this.cdr.markForCheck(); },
         error: (err) => console.error('[CourseMgmt] getTeachingTypes failed:', err)
       });
   }
@@ -456,25 +461,27 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
         this.courseService.getSubjects()
           .pipe(takeUntil(this.destroy$))
           .subscribe({
-            next: (d) => { this.savedSubjects = d; },
+            next: (d) => { this.savedSubjects = d; this.cdr.markForCheck(); },
             error: (err) => console.error('[CourseMgmt] reload subjects failed:', err)
           });
         this.courseService.getTeachingTypes()
           .pipe(takeUntil(this.destroy$))
           .subscribe({
-            next: (d) => { this.savedTeachingTypes = d; },
+            next: (d) => { this.savedTeachingTypes = d; this.cdr.markForCheck(); },
             error: (err) => console.error('[CourseMgmt] reload teachingTypes failed:', err)
           });
         this.successMessage = 'สร้างนัดสอนสำเร็จ! ส่งแจ้งเตือนไปยังครูและนักเรียนแล้ว';
         this.loadAll();
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        setTimeout(() => { this.successMessage = ''; }, 6000);
+        this.cdr.markForCheck();
+        setTimeout(() => { this.successMessage = ''; this.cdr.markForCheck(); }, 6000);
       },
       error: (err) => {
         this.submitting = false;
         const raw: string = err?.error?.message || '';
         this.errorMessage = this.translateCourseError(raw);
         this.scrollToError();
+        this.cdr.markForCheck();
       }
     });
   }
@@ -506,7 +513,7 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     this.courseService.deleteCourse(courseId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: () => { this.loadAll(); },
+        next: () => { this.loadAll(); this.cdr.markForCheck(); },
         error: (err) => console.error('[CourseMgmt] cancelCourse failed:', err)
       });
   }
@@ -519,10 +526,12 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
       next: () => {
         this.successMessage = 'ลบนัดสอนออกจากระบบเรียบร้อยแล้ว';
         this.loadAll();
-        setTimeout(() => { this.successMessage = ''; }, 4000);
+        this.cdr.markForCheck();
+        setTimeout(() => { this.successMessage = ''; this.cdr.markForCheck(); }, 4000);
       },
       error: (err) => {
         this.errorMessage = err?.error?.message || 'เกิดข้อผิดพลาดในการลบ';
+        this.cdr.markForCheck();
       }
     });
   }
@@ -542,17 +551,11 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     return this.courses.filter(c => (c as any).seriesId === course.seriesId).length;
   }
 
-  /** คลาสทั้งหมดในชุดเดียวกัน เรียงตามวันที่ */
+  /** คลาสทั้งหมดในชุดเดียวกัน เรียงตามวันที่ — อ่านจาก prebuilt Map (O(1) lookup)
+   *  คืนค่า array ที่ cache ไว้ (read-only สำหรับผู้เรียก) */
   getSeriesCourses(seriesId: string): ICourse[] {
     if (!seriesId) return [];
-    return this.courses
-      .filter(c => (c as any).seriesId === seriesId)
-      .slice()
-      .sort((a, b) => {
-        const da = a.scheduledDate ? new Date(a.scheduledDate).getTime() : 0;
-        const db = b.scheduledDate ? new Date(b.scheduledDate).getTime() : 0;
-        return da - db;
-      });
+    return this._seriesMap.get(seriesId) || [];
   }
 
   /** จำนวนคลาสในชุดที่ Manager ยืนยันเสร็จสิ้นแล้ว (displayStatus === 'completed') */
@@ -661,11 +664,13 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
         this.successMessage = 'แก้ไขนัดสอนสำเร็จ — ส่งอีเมลแจ้งเตือนครูและนักเรียนแล้ว';
         this.loadAll();
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        setTimeout(() => { this.successMessage = ''; }, 6000);
+        this.cdr.markForCheck();
+        setTimeout(() => { this.successMessage = ''; this.cdr.markForCheck(); }, 6000);
       },
       error: (err) => {
         this.editSubmitting   = false;
         this.editErrorMessage = err?.error?.message || 'เกิดข้อผิดพลาดในการแก้ไข';
+        this.cdr.markForCheck();
       }
     });
   }
@@ -726,6 +731,10 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     return obj?.id || obj?._id || '';
   }
 
+  // trackBy — กัน Angular rebuild DOM ทั้ง list ทุก change-detection
+  trackByGroup = (_: number, g: { dateKey: string }): string => g.dateKey;
+  trackByCourseId = (_: number, c: ICourse): string => this.getId(c);
+
   // ── Tab filtering / search ────────────────────────────────
   // ใช้ displayStatus ตัวเดียวกับ calendar/history/revenue (6 สถานะ)
   cmTab: 'all' | 'pending_teacher' | 'pending_students' | 'confirmed' | 'awaiting_manager' | 'completed' | 'cancelled' = 'all';
@@ -747,14 +756,19 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
    *  - week:  อาทิตย์ 00:00 → เสาร์ 23:59:59 ของสัปดาห์ปัจจุบัน
    *  - month: 1 → วันสุดท้ายของเดือนปัจจุบัน */
   private computeDateRange(): { start: number; end: number } | null {
-    if (this.cmDateFilter === 'all') return null;
+    return this.rangeFor(this.cmDateFilter);
+  }
+
+  /** Pure: [startMs, endMs] สำหรับ preset ที่ระบุ — ไม่แตะ state */
+  private rangeFor(filter: 'all' | 'today' | 'week' | 'month'): { start: number; end: number } | null {
+    if (filter === 'all') return null;
     const now = new Date();
-    if (this.cmDateFilter === 'today') {
+    if (filter === 'today') {
       const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
       const end   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
       return { start: start.getTime(), end: end.getTime() };
     }
-    if (this.cmDateFilter === 'week') {
+    if (filter === 'week') {
       const dow = now.getDay(); // 0 = Sun
       const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow, 0, 0, 0, 0);
       const end   = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 6, 23, 59, 59, 999);
@@ -766,22 +780,27 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     return { start: start.getTime(), end: end.getTime() };
   }
 
-  /** Count classes that match a given date-filter preset — for chip badges */
-  cmDateFilterCount(filter: 'all' | 'today' | 'week' | 'month'): number {
-    if (filter === 'all') return this.representativeCourses.length;
-    const saved = this.cmDateFilter;
-    this.cmDateFilter = filter;
-    const range = this.computeDateRange();
-    this.cmDateFilter = saved;
-    if (!range) return this.representativeCourses.length;
-    let n = 0;
-    for (const c of this.representativeCourses) {
+  /** นับคลาสในแต่ละ preset ครั้งเดียวต่อ courses เปลี่ยน — for chip badges */
+  private computeDateCounts(): { all: number; today: number; week: number; month: number } {
+    const today = this.rangeFor('today')!;
+    const week  = this.rangeFor('week')!;
+    const month = this.rangeFor('month')!;
+    const res = { all: this.courses.length, today: 0, week: 0, month: 0 };
+    for (const c of this.courses) {
       const raw = (c as any).scheduledDate;
       if (!raw) continue;
       const t = new Date(raw).getTime();
-      if (t >= range.start && t <= range.end) n++;
+      if (t >= today.start && t <= today.end) res.today++;
+      if (t >= week.start  && t <= week.end)  res.week++;
+      if (t >= month.start && t <= month.end) res.month++;
     }
-    return n;
+    return res;
+  }
+
+  /** Count classes that match a given date-filter preset — อ่านจาก memo */
+  cmDateFilterCount(filter: 'all' | 'today' | 'week' | 'month'): number {
+    this.ensureCourseMemo();
+    return this._courseMemo.dateCounts![filter];
   }
 
   /** รายการคอร์สสำหรับการแสดงผล — แสดงทุกคลาสจริง รวมทุก member ของชุด
@@ -792,7 +811,91 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     return this.courses;
   }
 
+  // ─── Memoization — หลีกเลี่ยงการ recompute getter หนักทุก change-detection cycle ──
+  //   coursesVersion bump เมื่อ `courses` เปลี่ยน → invalidate cache ที่ขึ้นกับ courses
+  //   _viewMemo เก็บผลลัพธ์ filter/timeline ตาม signature ของ filter state
+  private coursesVersion = 0;
+  private _seriesMap = new Map<string, ICourse[]>();
+
+  /** เรียกเมื่อ `courses` เปลี่ยน — rebuild series map + invalidate memo */
+  private onCoursesChanged(): void {
+    this.coursesVersion++;
+    const m = new Map<string, ICourse[]>();
+    for (const c of this.courses) {
+      const sid = (c as any).seriesId;
+      if (!sid) continue;
+      if (!m.has(sid)) m.set(sid, []);
+      m.get(sid)!.push(c);
+    }
+    for (const arr of m.values()) {
+      arr.sort((a, b) => {
+        const da = a.scheduledDate ? new Date(a.scheduledDate).getTime() : 0;
+        const db = b.scheduledDate ? new Date(b.scheduledDate).getTime() : 0;
+        return da - db;
+      });
+    }
+    this._seriesMap = m;
+    this._viewMemo.sig = undefined;
+    this._courseMemo.version = -1;
+  }
+
+  // ── memo ที่ขึ้นกับ courses อย่างเดียว (counts, options, date-filter counts) ──
+  private _courseMemo: {
+    version: number;
+    counts?: any;
+    subjectOptions?: { value: string; count: number }[];
+    teacherOptions?: { id: string; label: string; count: number }[];
+    dateCounts?: { all: number; today: number; week: number; month: number };
+  } = { version: -1 };
+
+  private ensureCourseMemo(): void {
+    if (this._courseMemo.version === this.coursesVersion) return;
+    this._courseMemo = {
+      version: this.coursesVersion,
+      counts: this.computeCounts(),
+      subjectOptions: this.computeSubjectOptions(),
+      teacherOptions: this.computeTeacherOptions(),
+      dateCounts: this.computeDateCounts()
+    };
+  }
+
+  // ── memo ที่ขึ้นกับ filter state (filtered list + timeline) ──
+  private _viewMemo: {
+    sig?: string;
+    filtered?: ICourse[];
+    timeline?: any[];
+  } = {};
+
+  private filterSignature(): string {
+    return [this.coursesVersion, this.cmTab, this.cmSearch, this.cmDateFilter,
+            this.cmSubjectFilter, this.cmTeacherFilter].join('|');
+  }
+
+  private ensureViewMemo(): void {
+    const sig = this.filterSignature();
+    if (this._viewMemo.sig === sig) return;
+    const filtered = this.computeFiltered();
+    this._viewMemo = {
+      sig,
+      filtered,
+      timeline: this.computeTimeline(filtered)
+    };
+  }
+
   get cmCounts(): {
+    all: number;
+    pending_teacher: number;
+    pending_students: number;
+    confirmed: number;
+    awaiting_manager: number;
+    completed: number;
+    cancelled: number;
+  } {
+    this.ensureCourseMemo();
+    return this._courseMemo.counts;
+  }
+
+  private computeCounts(): {
     all: number;
     pending_teacher: number;
     pending_students: number;
@@ -819,6 +922,11 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
   }
 
   get cmFiltered(): ICourse[] {
+    this.ensureViewMemo();
+    return this._viewMemo.filtered!;
+  }
+
+  private computeFiltered(): ICourse[] {
     const term = this.cmSearch.trim().toLowerCase();
     const dateRange = this.computeDateRange();
     return this.representativeCourses.filter(c => {
@@ -851,6 +959,10 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
 
   /** Distinct subject options from current courses. Sorted, plus a count badge. */
   get cmSubjectOptions(): { value: string; count: number }[] {
+    this.ensureCourseMemo();
+    return this._courseMemo.subjectOptions!;
+  }
+  private computeSubjectOptions(): { value: string; count: number }[] {
     const map = new Map<string, number>();
     for (const c of this.representativeCourses) {
       const s = (c.subject || '').trim();
@@ -863,6 +975,10 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
   }
   /** Distinct teacher options from current courses. */
   get cmTeacherOptions(): { id: string; label: string; count: number }[] {
+    this.ensureCourseMemo();
+    return this._courseMemo.teacherOptions!;
+  }
+  private computeTeacherOptions(): { id: string; label: string; count: number }[] {
     const map = new Map<string, { label: string; count: number }>();
     for (const c of this.representativeCourses) {
       const t: any = c.teacher;
@@ -902,7 +1018,17 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     weekday: string;
     items: ICourse[];
   }[] {
-    const list = this.cmFiltered;
+    this.ensureViewMemo();
+    return this._viewMemo.timeline!;
+  }
+
+  private computeTimeline(list: ICourse[]): {
+    dateKey: string;
+    dateLabel: string;
+    dayNum: string;
+    weekday: string;
+    items: ICourse[];
+  }[] {
     const map = new Map<string, ICourse[]>();
     for (const c of list) {
       const raw = (c as any).scheduledDate;
@@ -1047,7 +1173,8 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
         this.successMessage = `ยกเลิกชุดเรียบร้อย — ${ids.length} คลาส`;
         if (this.showSeriesModal) this.closeSeriesModal();
         this.loadAll();
-        setTimeout(() => { this.successMessage = ''; }, 4000);
+        this.cdr.markForCheck();
+        setTimeout(() => { this.successMessage = ''; this.cdr.markForCheck(); }, 4000);
         return;
       }
       this.courseService.deleteCourse(ids[i])
@@ -1080,7 +1207,8 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
         this.successMessage = `ลบชุดทั้งหมดออกถาวร — ${ids.length} คลาส`;
         if (this.showSeriesModal) this.closeSeriesModal();
         this.loadAll();
-        setTimeout(() => { this.successMessage = ''; }, 4000);
+        this.cdr.markForCheck();
+        setTimeout(() => { this.successMessage = ''; this.cdr.markForCheck(); }, 4000);
         return;
       }
       this.courseService.permanentDeleteCourse(ids[i])
@@ -1111,7 +1239,8 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
         this.selectedIds.clear();
         this.successMessage = `ยกเลิก ${ids.length} รายการเรียบร้อย`;
         this.loadAll();
-        setTimeout(() => { this.successMessage = ''; }, 4000);
+        this.cdr.markForCheck();
+        setTimeout(() => { this.successMessage = ''; this.cdr.markForCheck(); }, 4000);
         return;
       }
       this.courseService.deleteCourse(ids[i])
