@@ -808,8 +808,8 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
       .map(st => {
         const nick = st.nickname || `${st.firstName || ''} ${st.lastName || ''}`.trim();
         if (!nick) return null;
-        // ลองทุกฟิลด์ที่อาจเก็บระดับชั้น
-        const grade = (st.grade || st.academicYear || '').toString().trim();
+        // ระดับชั้น = academicYear (grade = เกรดเฉลี่ย, ใช้เป็น fallback เท่านั้น)
+        const grade = (st.academicYear || st.grade || '').toString().trim();
         return { nick: `น้อง${nick}`, grade };
       })
       .filter((x): x is { nick: string; grade: string } => x !== null);
