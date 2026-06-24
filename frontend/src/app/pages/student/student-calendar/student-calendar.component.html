@@ -193,11 +193,7 @@
             <div class="gcal-event-time">{{ sch.startTime }}–{{ sch.endTime }}</div>
             <div class="gcal-event-title">{{ getCourseName(sch) }}</div>
             <div class="gcal-event-sub" *ngIf="getEventHeight(sch) > 44">{{ getTeacherName(sch) }}</div>
-            <div class="gcal-event-warn" *ngIf="!sch.teacherConfirmed && getEventHeight(sch) > 56">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              รอครูยืนยัน
-            </div>
-            <div class="gcal-event-warn warn-student" *ngIf="sch.teacherConfirmed && getMyConfirmStatusFor(sch) === 'pending' && getEventHeight(sch) > 56">
+            <div class="gcal-event-warn warn-student" *ngIf="getMyConfirmStatusFor(sch) === 'pending' && getEventHeight(sch) > 56">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               กรุณายืนยัน
             </div>
@@ -296,15 +292,9 @@
             </span>
           </div>
 
-          <!-- Waiting for teacher notice -->
-          <div class="notice-waiting" *ngIf="!selectedSchedule.teacherConfirmed && selectedSchedule.status !== 'cancelled'">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            รอครูยืนยันการนัดก่อน จึงจะสามารถยืนยันการเข้าเรียนได้
-          </div>
-
-          <!-- Action buttons: teacher confirmed & student pending & within deadline -->
+          <!-- Action buttons: student pending & within deadline (ไม่ต้องรอครูยืนยัน) -->
           <div class="action-buttons"
-               *ngIf="selectedSchedule.teacherConfirmed && getMyConfirmStatus() === 'pending' && selectedSchedule.status !== 'cancelled' && !isConfirmDeadlinePassed(selectedSchedule)">
+               *ngIf="getMyConfirmStatus() === 'pending' && selectedSchedule.status !== 'cancelled' && !isConfirmDeadlinePassed(selectedSchedule)">
             <button class="btn btn-confirm-booking" (click)="confirmStudent('accepted')" [disabled]="confirmLoading">
               <svg *ngIf="!confirmLoading" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               {{ confirmLoading ? 'กำลังยืนยัน...' : 'ยืนยันการนัดเรียน' }}
@@ -317,7 +307,7 @@
 
           <!-- Deadline passed notice -->
           <div class="notice-deadline"
-               *ngIf="selectedSchedule.teacherConfirmed && getMyConfirmStatus() === 'pending' && isConfirmDeadlinePassed(selectedSchedule)">
+               *ngIf="getMyConfirmStatus() === 'pending' && isConfirmDeadlinePassed(selectedSchedule)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             หมดเวลายืนยันการนัดเรียนแล้ว (เลยเวลาคลาสจบ +30 นาที)
           </div>

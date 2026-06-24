@@ -315,6 +315,10 @@ export class StudentCalendarComponent implements OnInit, OnDestroy, DoCheck {
       : sch.date.toISOString().split('T')[0];
     const [h, m] = sch.endTime.split(':').map(Number);
     const deadline = new Date(`${dateStr}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`);
+    // คลาสข้ามเที่ยงคืน (เช่น 23:00–00:00) → endTime ตกไปวันถัดไป
+    if (sch.startTime && this.minOf(sch.endTime) <= this.minOf(sch.startTime)) {
+      deadline.setDate(deadline.getDate() + 1);
+    }
     deadline.setMinutes(deadline.getMinutes() + 30);
     return new Date() > deadline;
   }
@@ -403,10 +407,9 @@ export class StudentCalendarComponent implements OnInit, OnDestroy, DoCheck {
     return this.weekSchedules.filter(s => this.getMyConfirmStatusFor(s) === 'accepted').length;
   }
 
-  /** Schedules needing my action (teacher confirmed, my status pending, not past deadline) */
+  /** Schedules needing my action (my status pending, not past deadline) — ไม่ต้องรอครูยืนยัน */
   get weekPendingActions(): ISchedule[] {
     return this.weekSchedules.filter(s =>
-      s.teacherConfirmed &&
       this.getMyConfirmStatusFor(s) === 'pending' &&
       s.status !== 'cancelled' &&
       !this.isConfirmDeadlinePassed(s)
