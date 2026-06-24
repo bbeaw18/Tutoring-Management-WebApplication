@@ -61,7 +61,8 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
     // คำนวณ duration
     const [startH, startM] = startTime.split(':').map(Number);
     const [endH, endM] = endTime.split(':').map(Number);
-    const totalDurationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+    let totalDurationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+    if (totalDurationMinutes <= 0) totalDurationMinutes += 24 * 60; // ข้ามเที่ยงคืน (เลิกวันถัดไป)
 
     // สร้าง studentConfirmations
     const studentConfirmations = studentIds.map(sid => ({
@@ -91,7 +92,7 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
       coursePrice:             finalCoursePrice,
       // สืบทอด incomeHourly จาก Course (ถ้าเป็นโค้ดใหม่ → true)
       incomeHourly:            !!courseExists.incomeHourly,
-      totalDurationMinutes: totalDurationMinutes > 0 ? totalDurationMinutes : 0,
+      totalDurationMinutes,
       studentConfirmations
     });
 
@@ -572,7 +573,11 @@ router.post('/:id/generate-qr', authenticateToken, async (req, res) => {
     // ── ตรวจสอบหน้าต่างเวลา (Bangkok UTC+7): เปิด QR ได้เฉพาะในช่วงเวลาคลาส + 30 นาที ──
     const now = new Date();
     const classStart  = bangkokClassTime(schedule.date, schedule.startTime);
-    const classEnd    = bangkokClassTime(schedule.date, schedule.endTime);
+    let   classEnd    = bangkokClassTime(schedule.date, schedule.endTime);
+    // คลาสข้ามเที่ยงคืน (เช่น 23:00–00:00) → endTime ตกไปวันถัดไป
+    if (classEnd <= classStart) {
+      classEnd = new Date(classEnd.getTime() + 24 * 60 * 60 * 1000);
+    }
     const scanDeadline = new Date(classEnd.getTime() + 30 * 60 * 1000);
 
     if (now < classStart) {
@@ -719,12 +724,13 @@ router.patch('/:id/reschedule', authenticateToken, roleCheck(['admin', 'manager'
     // คำนวณ duration ใหม่
     const [sh, sm] = startTime.split(':').map(Number);
     const [eh, em] = endTime.split(':').map(Number);
-    const totalDurationMinutes = (eh * 60 + em) - (sh * 60 + sm);
+    let totalDurationMinutes = (eh * 60 + em) - (sh * 60 + sm);
+    if (totalDurationMinutes <= 0) totalDurationMinutes += 24 * 60; // ข้ามเที่ยงคืน (เลิกวันถัดไป)
 
     schedule.date = new Date(date);
     schedule.startTime = startTime;
     schedule.endTime = endTime;
-    if (totalDurationMinutes > 0) schedule.totalDurationMinutes = totalDurationMinutes;
+    schedule.totalDurationMinutes = totalDurationMinutes;
 
     await schedule.save();
     await schedule.populate('studentConfirmations.student', 'firstName lastName nickname');
@@ -827,10 +833,8 @@ router.patch('/:id/teacher-reschedule', authenticateToken, roleCheck(['teacher',
 
     const [sh, sm] = startTime.split(':').map(Number);
     const [eh, em] = endTime.split(':').map(Number);
-    const totalDurationMinutes = (eh * 60 + em) - (sh * 60 + sm);
-    if (totalDurationMinutes <= 0) {
-      return sendResponse(res, 400, false, null, 'เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่ม');
-    }
+    let totalDurationMinutes = (eh * 60 + em) - (sh * 60 + sm);
+    if (totalDurationMinutes <= 0) totalDurationMinutes += 24 * 60; // ข้ามเที่ยงคืน (เลิกวันถัดไป)
 
     schedule.date              = new Date(date);
     schedule.startTime         = startTime;

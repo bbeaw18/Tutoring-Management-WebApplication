@@ -183,7 +183,8 @@ export class PaymentComponent implements OnInit, OnDestroy {
     if (s?.startTime && s?.endTime) {
       const [sh, sm] = String(s.startTime).split(':').map(Number);
       const [eh, em] = String(s.endTime).split(':').map(Number);
-      const mins = (eh * 60 + em) - (sh * 60 + sm);
+      let mins = (eh * 60 + em) - (sh * 60 + sm);
+      if (mins <= 0) mins += 24 * 60; // ข้ามเที่ยงคืน (เลิกวันถัดไป)
       return mins > 0 ? mins / 60 : 0;
     }
     return 0;

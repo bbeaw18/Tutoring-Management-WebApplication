@@ -53,7 +53,11 @@ router.post('/scan', authenticateToken, roleCheck(['student']), async (req, res)
     // ── ตรวจสอบหน้าต่างเวลา (Bangkok UTC+7): สแกนได้ช่วงเวลาคลาส + 30 นาที ──
     const now = new Date();
     const classStart  = bangkokClassTime(schedule.date, schedule.startTime);
-    const classEnd    = bangkokClassTime(schedule.date, schedule.endTime);
+    let   classEnd    = bangkokClassTime(schedule.date, schedule.endTime);
+    // คลาสข้ามเที่ยงคืน (เช่น 23:00–00:00) → endTime ตกไปวันถัดไป
+    if (classEnd <= classStart) {
+      classEnd = new Date(classEnd.getTime() + 24 * 60 * 60 * 1000);
+    }
     const scanDeadline = new Date(classEnd.getTime() + 30 * 60 * 1000);
 
     if (now < classStart) {

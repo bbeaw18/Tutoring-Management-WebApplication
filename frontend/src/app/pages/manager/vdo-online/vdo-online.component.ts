@@ -132,7 +132,8 @@ export class VdoOnlineComponent implements OnInit, OnDestroy {
     if (!a || !b) return '';
     const [ah, am] = a.split(':').map(Number);
     const [bh, bm] = b.split(':').map(Number);
-    const mins = (bh * 60 + bm) - (ah * 60 + am);
+    let mins = (bh * 60 + bm) - (ah * 60 + am);
+    if (mins <= 0) mins += 24 * 60; // ข้ามเที่ยงคืน (เลิกวันถัดไป)
     if (!Number.isFinite(mins) || mins <= 0) return '';
     const h = Math.floor(mins / 60);
     const m = mins % 60;

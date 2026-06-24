@@ -223,7 +223,12 @@ async function autoCompleteExpiredSchedules() {
     };
 
     for (const schedule of candidates) {
-      const classEnd  = bangkokTime(schedule.date, schedule.endTime);
+      const classStart = bangkokTime(schedule.date, schedule.startTime);
+      let   classEnd   = bangkokTime(schedule.date, schedule.endTime);
+      // คลาสข้ามเที่ยงคืน (เช่น 23:00–00:00) → endTime ตกไปวันถัดไป
+      if (classEnd <= classStart) {
+        classEnd = new Date(classEnd.getTime() + 24 * 60 * 60 * 1000);
+      }
       const deadline  = new Date(classEnd.getTime() + 30 * 60 * 1000);
       if (now <= deadline) continue;
 

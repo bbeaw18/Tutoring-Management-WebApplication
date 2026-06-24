@@ -165,6 +165,10 @@ export class DashboardHomeComponent implements OnInit, OnDestroy, AfterViewInit 
         if (this.isToday(s.date) && s.endTime) {
           const [h,m] = s.endTime.split(':').map(Number);
           const endDt = new Date(s.date); endDt.setHours(h, m, 0, 0);
+          // คลาสข้ามเที่ยงคืน (เช่น 23:00–00:00) → endTime ตกไปวันถัดไป
+          if (s.startTime && this.toMinutes(s.endTime) <= this.toMinutes(s.startTime)) {
+            endDt.setDate(endDt.getDate() + 1);
+          }
           return endDt > now;
         }
         return false;

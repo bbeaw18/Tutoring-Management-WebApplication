@@ -390,7 +390,8 @@ export class HistoryComponent implements OnInit, OnDestroy {
     if (s?.startTime && s?.endTime) {
       const [sh, sm] = String(s.startTime).split(':').map(Number);
       const [eh, em] = String(s.endTime).split(':').map(Number);
-      const minutes = (eh * 60 + em) - (sh * 60 + sm);
+      let minutes = (eh * 60 + em) - (sh * 60 + sm);
+      if (minutes <= 0) minutes += 24 * 60; // ข้ามเที่ยงคืน (เลิกวันถัดไป)
       return minutes > 0 ? minutes / 60 : 0;
     }
     return 0;
