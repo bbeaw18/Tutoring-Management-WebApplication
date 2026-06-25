@@ -41,6 +41,17 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
   weekStart: Date = this.getMonday(new Date());
   weekDays: Array<{ date: Date; schedules: ISchedule[] }> = [];
 
+  // ─── Overlap layout (column split + "+N" overflow) ────────────────────────
+  readonly MAX_LANES = 3;                 // คอลัมน์สูงสุดต่อกลุ่มที่ทับกัน
+  private eventCols = new Map<string, { left: string; width: string }>();
+  hiddenEventIds = new Set<string>();     // event ที่ถูกยุบเข้า "+N"
+  // overflow block ต่อวัน (index ตรงกับ weekDays)
+  overflowByDay: Array<Array<{ top: number; height: number; left: string; width: string; count: number; schedules: ISchedule[] }>> = [];
+
+  // Overflow list modal (เปิดเมื่อกด "+N")
+  showOverflowModal = false;
+  overflowSchedules: ISchedule[] = [];
+
   // ─── Time Grid Config ─────────────────────────────────────────────────────
   readonly START_HOUR = 0;
   readonly END_HOUR = 24;
@@ -270,10 +281,138 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
             const key = this.toLocalDateStr(d);
             this.weekDays.push({ date: d, schedules: data[key] || [] });
           }
+          this.computeWeekLayout();
           this.loading = false;
         },
         error: () => { this.loading = false; }
       });
+  }
+
+  // ─── Overlap layout: column split, collapse extras into "+N" ──────────────
+  /** จุดจบของ event (นาที) สำหรับ layout — overnight ยืดถึงท้าย grid */
+  private eventEndMin(s: ISchedule): number {
+    const st = this.minOf(s.startTime), e = this.minOf(s.endTime);
+    if (st < 0) return -1;
+    if (e < 0) return st + 60;
+    return e <= st ? this.END_HOUR * 60 : e;
+  }
+
+  /** คำนวณ left/width ของแต่ละ event ในสัปดาห์ + overflow blocks */
+  computeWeekLayout(): void {
+    this.eventCols.clear();
+    this.hiddenEventIds.clear();
+    this.overflowByDay = this.weekDays.map(() => []);
+
+    this.weekDays.forEach((day, di) => {
+      const items = (day.schedules || [])
+        .map(s => ({ s, start: this.minOf(s.startTime), end: this.eventEndMin(s) }))
+        .filter(x => x.start >= 0)
+        .sort((a, b) => a.start - b.start || a.end - b.end);
+
+      // หา cluster ของ event ที่ทับกันแบบต่อเนื่อง
+      let i = 0;
+      while (i < items.length) {
+        let clusterEnd = items[i].end;
+        const cluster = [items[i]];
+        let j = i + 1;
+        while (j < items.length && items[j].start < clusterEnd) {
+          cluster.push(items[j]);
+          clusterEnd = Math.max(clusterEnd, items[j].end);
+          j++;
+        }
+        this.layoutCluster(cluster, di);
+        i = j;
+      }
+    });
+  }
+
+  private layoutCluster(
+    cluster: { s: ISchedule; start: number; end: number }[],
+    di: number
+  ): void {
+    // greedy: วาง event ลง lane แรกที่ว่าง
+    const laneEnd: number[] = [];
+    const lane: number[] = [];
+    cluster.forEach((ev, idx) => {
+      let placed = -1;
+      for (let c = 0; c < laneEnd.length; c++) {
+        if (laneEnd[c] <= ev.start) { placed = c; break; }
+      }
+      if (placed === -1) { placed = laneEnd.length; laneEnd.push(ev.end); }
+      else laneEnd[placed] = ev.end;
+      lane[idx] = placed;
+    });
+
+    const cols = laneEnd.length;
+    const widthCalc = (frac: number) => `calc(${(frac * 100).toFixed(4)}% - 3px)`;
+    const leftCalc = (frac: number) => `calc(${(frac * 100).toFixed(4)}% + 1px)`;
+
+    if (cols <= this.MAX_LANES) {
+      const frac = 1 / cols;
+      cluster.forEach((ev, idx) => {
+        this.eventCols.set(this.idOf(ev.s), {
+          left: leftCalc(lane[idx] * frac),
+          width: widthCalc(frac)
+        });
+      });
+      return;
+    }
+
+    // cols > MAX: lane 0..(MAX-2) เป็นคอลัมน์ปกติ, ที่เหลือยุบเป็น "+N"
+    const frac = 1 / this.MAX_LANES;
+    const overflow: { s: ISchedule; start: number; end: number }[] = [];
+    cluster.forEach((ev, idx) => {
+      if (lane[idx] < this.MAX_LANES - 1) {
+        this.eventCols.set(this.idOf(ev.s), {
+          left: leftCalc(lane[idx] * frac),
+          width: widthCalc(frac)
+        });
+      } else {
+        overflow.push(ev);
+        this.hiddenEventIds.add(this.idOf(ev.s));
+      }
+    });
+
+    if (overflow.length > 0) {
+      const top = Math.min(...overflow.map(o => o.start));
+      const bottom = Math.max(...overflow.map(o => o.end));
+      this.overflowByDay[di].push({
+        top: (top - this.START_HOUR * 60) / 60 * this.HOUR_HEIGHT,
+        height: Math.max((bottom - top) / 60 * this.HOUR_HEIGHT, 28),
+        left: leftCalc((this.MAX_LANES - 1) * frac),
+        width: widthCalc(frac),
+        count: overflow.length,
+        schedules: overflow.map(o => o.s)
+      });
+    }
+  }
+
+  private idOf(s: ISchedule): string {
+    return (s as any)?._id || (s as any)?.id || '';
+  }
+
+  /** inline left/width ของ event (null = ใช้ค่า default จาก CSS เต็มคอลัมน์) */
+  getEventLeft(sch: ISchedule): string | null {
+    return this.eventCols.get(this.idOf(sch))?.left ?? null;
+  }
+  getEventWidth(sch: ISchedule): string | null {
+    return this.eventCols.get(this.idOf(sch))?.width ?? null;
+  }
+
+  /** เปิด modal รายการคลาสที่ถูกยุบใน "+N" */
+  openOverflow(ob: { schedules: ISchedule[] }, ev?: Event): void {
+    if (ev) ev.stopPropagation();
+    this.overflowSchedules = ob.schedules;
+    this.showOverflowModal = true;
+  }
+  closeOverflow(): void {
+    this.showOverflowModal = false;
+    this.overflowSchedules = [];
+  }
+  /** เลือกคลาสจาก overflow modal → เปิด detail */
+  openFromOverflow(sch: ISchedule): void {
+    this.closeOverflow();
+    this.openDetail(sch);
   }
 
   // ─── Navigation ───────────────────────────────────────────────────────────
@@ -661,8 +800,8 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
   }
 
   // ─── Detail Modal ─────────────────────────────────────────────────────────
-  openDetail(schedule: ISchedule, event: Event): void {
-    event.stopPropagation();
+  openDetail(schedule: ISchedule, event?: Event): void {
+    event?.stopPropagation();
     if (this.dragJustEnded) return; // click after drag — ignore
     this.selectedSchedule = schedule;
     this.showDetailModal = true;

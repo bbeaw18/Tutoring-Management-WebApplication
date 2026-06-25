@@ -227,8 +227,11 @@
           <div
             class="gcal-event"
             *ngFor="let sch of day.schedules; trackBy: trackBySchedule"
+            [style.display]="hiddenEventIds.has(sch._id) ? 'none' : null"
             [style.top.px]="getEventTop(sch)"
             [style.height.px]="getEventHeight(sch)"
+            [style.left]="getEventLeft(sch)"
+            [style.width]="getEventWidth(sch)"
             [style.background]="getEventBg(sch)"
             [style.color]="getEventText(sch)"
             [class.is-dragging]="isDragging && dragSchedule?._id === sch._id"
@@ -253,6 +256,21 @@
               ค้างไว้เพื่อย้ายเวลา
             </div>
           </div>
+
+          <!-- Overflow "+N" — คลาสที่เวลาทับกันเกิน lane สูงสุด -->
+          <button
+            class="gcal-overflow"
+            type="button"
+            *ngFor="let ob of overflowByDay[di]"
+            [style.top.px]="ob.top"
+            [style.height.px]="ob.height"
+            [style.left]="ob.left"
+            [style.width]="ob.width"
+            (click)="openOverflow(ob, $event)"
+          >
+            <span class="gcal-overflow-num">+{{ ob.count }}</span>
+            <span class="gcal-overflow-lbl">คลาส</span>
+          </button>
 
           <!-- Overnight tail (continued from previous day) — display only -->
           <div class="gcal-event gcal-event-tail"
@@ -349,6 +367,34 @@
   <!-- ═══════════════════════════════════════════════════════════
        MODAL: รายละเอียดนัดสอน
   ═══════════════════════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════════════════════════
+       MODAL: คลาสที่เวลาทับกัน ("+N")
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" *ngIf="showOverflowModal" (click)="closeOverflow()">
+    <div class="modal-box overflow-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>คลาสในช่วงเวลานี้ <span class="overflow-count">{{ overflowSchedules.length }}</span></h2>
+        <button class="close-btn" (click)="closeOverflow()" aria-label="ปิด">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="overflow-list">
+        <button class="mc-agenda-event"
+                *ngFor="let sch of overflowSchedules; trackBy: trackBySchedule"
+                (click)="openFromOverflow(sch)"
+                [class.is-cancelled]="sch.status === 'cancelled'"
+                [class.is-completed]="sch.status === 'completed'"
+                [class.is-confirmed]="sch.isFullyConfirmed"
+                [class.is-pending]="!sch.isFullyConfirmed && sch.status === 'pending'">
+          <span class="mc-agenda-dot" aria-hidden="true"></span>
+          <span class="mc-agenda-time">{{ sch.startTime }}–{{ sch.endTime }}</span>
+          <span class="mc-agenda-title">{{ getCourseName(sch) }}</span>
+          <span class="mc-agenda-teacher">{{ getTeacherName(sch) }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" *ngIf="showDetailModal && selectedSchedule" (click)="closeDetailModal()">
     <div class="modal-box detail-modal" (click)="$event.stopPropagation()">
       <div class="modal-header">
