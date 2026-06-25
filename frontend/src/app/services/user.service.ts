@@ -49,9 +49,11 @@ export class UserService {
     return this.http.get<IApiResponse<IUser[]>>(`${this.apiUrl}/teachers`, { params: merged });
   }
 
-  /** ดึงรายชื่อครูและผู้จัดการที่สามารถสอนได้ — ใช้ใน filter ครูทุกที่ */
-  getTeachingStaff(): Observable<IApiResponse<IUser[]>> {
-    return this.http.get<IApiResponse<IUser[]>>(`${this.apiUrl}/teaching-staff`);
+  /** ดึงรายชื่อครูและผู้จัดการที่สามารถสอนได้ — ใช้ใน filter ครูทุกที่
+   *  includeAdmin=true → รวม admin ด้วย (ใช้ในตัวเลือกบุคลากรของรายจ่าย) */
+  getTeachingStaff(includeAdmin = false): Observable<IApiResponse<IUser[]>> {
+    const params = includeAdmin ? { includeAdmin: 'true' } : undefined;
+    return this.http.get<IApiResponse<IUser[]>>(`${this.apiUrl}/teaching-staff`, { params: params as any });
   }
 
   getStudents(params?: IPaginationParams): Observable<IUser[]> {

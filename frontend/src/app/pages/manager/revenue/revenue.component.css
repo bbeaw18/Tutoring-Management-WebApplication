@@ -1767,6 +1767,9 @@ tbody tr:hover { background: rgba(30,63,128,0.03); }
 .exp-modal {
   width: 100%;
   max-width: 440px;
+  max-height: calc(100vh - var(--sp-8));
+  display: flex;
+  flex-direction: column;
   background: #fff;
   border-radius: var(--r-2xl);
   box-shadow: 0 20px 50px rgba(15, 23, 42, .25);
@@ -1817,6 +1820,8 @@ tbody tr:hover { background: rgba(30,63,128,0.03); }
   display: flex;
   flex-direction: column;
   gap: var(--sp-4);
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .exp-field {
@@ -1854,13 +1859,18 @@ tbody tr:hover { background: rgba(30,63,128,0.03); }
 }
 
 .exp-error {
-  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
   background: #fef2f2;
   border: 1px solid #fecaca;
   border-radius: var(--r-md);
   color: #b91c1c;
   font-size: var(--text-xs);
 }
+
+.exp-error svg { flex: 0 0 auto; }
 
 .exp-modal-foot {
   display: flex;
@@ -1954,6 +1964,377 @@ tbody tr:hover { background: rgba(30,63,128,0.03); }
 .exp-type-btn:disabled {
   opacity: .5;
   cursor: not-allowed;
+}
+
+/* ── หมวดรายจ่าย: เลือกได้อันเดียว (segmented cards) ── */
+.exp-req { color: var(--error-500, #ef4444); }
+.exp-optional { color: var(--gray-400); font-weight: 500; }
+
+.exp-cat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-2);
+}
+
+.exp-cat-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  padding: var(--sp-3);
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--r-lg);
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .18s var(--ease-out), background .18s var(--ease-out),
+              box-shadow .18s var(--ease-out), transform .18s var(--ease-out);
+}
+
+.exp-cat-card:hover:not(:disabled) {
+  border-color: var(--gray-300);
+  background: var(--gray-50);
+}
+
+.exp-cat-card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(30, 63, 128, .15);
+}
+
+.exp-cat-card.active {
+  border-color: var(--brand-500);
+  background: var(--brand-50);
+  box-shadow: 0 2px 10px rgba(30, 63, 128, .10);
+}
+
+.exp-cat-card:disabled { opacity: .55; cursor: not-allowed; }
+
+.exp-cat-ico {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gray-100);
+  color: var(--gray-500);
+  transition: background .18s var(--ease-out), color .18s var(--ease-out);
+}
+
+.exp-cat-card.active .exp-cat-ico {
+  background: var(--brand-100);
+  color: var(--brand-600);
+}
+
+.exp-cat-name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.exp-cat-hint {
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+  line-height: 1.3;
+}
+
+.exp-cat-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ec4899;
+  color: #fff;
+  opacity: 0;
+  transform: scale(.6);
+  transition: opacity .18s var(--ease-out), transform .25s var(--ease-spring);
+}
+
+.exp-cat-card.active .exp-cat-check { opacity: 1; transform: scale(1); }
+
+/* ── ตัวเลือกบุคลากร (custom dropdown) ─────────────── */
+.exp-person-picker { position: relative; }
+
+.exp-person-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px 8px 11px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--r-md);
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .15s var(--ease-out), box-shadow .15s var(--ease-out);
+}
+
+.exp-person-trigger:hover:not(:disabled) { border-color: var(--gray-300); }
+
+.exp-person-trigger.is-open {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px rgba(30, 63, 128, .12);
+}
+
+.exp-person-trigger:disabled { opacity: .6; cursor: not-allowed; }
+
+.exp-person-trigger-av {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.exp-person-trigger-text {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--gray-800);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.exp-person-trigger.is-placeholder .exp-person-trigger-text {
+  font-weight: 500;
+  color: var(--gray-400);
+}
+
+.exp-person-trigger-chev {
+  flex: 0 0 auto;
+  color: var(--gray-400);
+  transition: transform .2s var(--ease-out);
+}
+
+.exp-person-trigger.is-open .exp-person-trigger-chev { transform: rotate(180deg); }
+
+.exp-person-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+.exp-person-menu {
+  position: absolute;
+  z-index: 41;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 230px;
+  overflow-y: auto;
+  padding: var(--sp-1);
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg);
+  animation: expReveal .16s var(--ease-out);
+}
+
+.exp-person-group {
+  padding: 7px 9px 3px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--gray-400);
+  text-transform: uppercase;
+}
+
+.exp-person-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background .12s var(--ease-out);
+}
+
+.exp-person-item:hover { background: var(--gray-50); }
+.exp-person-item.active { background: var(--brand-50); }
+
+.exp-person-item-av {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.exp-person-item-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.exp-person-item-nick {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.exp-person-item-full {
+  font-size: var(--text-xs);
+  color: var(--gray-400);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.exp-person-item-check {
+  flex: 0 0 auto;
+  color: var(--brand-500);
+}
+
+.exp-field-help {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--brand-600);
+}
+
+.exp-field-help svg { color: #ec4899; flex: 0 0 auto; }
+.exp-field-help strong { font-weight: 600; }
+
+/* ── หมายเหตุ textarea ─────────────────────────────── */
+.exp-note-textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--r-md);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  background: #fff;
+  resize: vertical;
+  transition: border-color .15s var(--ease-out), box-shadow .15s var(--ease-out);
+}
+
+.exp-note-textarea:focus {
+  outline: none;
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px rgba(30, 63, 128, .12);
+}
+
+.exp-note-textarea:disabled {
+  background: var(--gray-50);
+  color: var(--gray-500);
+  cursor: not-allowed;
+}
+
+/* ── จำนวนเงิน (input with ฿ prefix) ───────────────── */
+.exp-amount-wrap {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--r-md);
+  background: #fff;
+  overflow: hidden;
+  transition: border-color .15s var(--ease-out), box-shadow .15s var(--ease-out);
+}
+
+.exp-amount-wrap:focus-within {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px rgba(30, 63, 128, .12);
+}
+
+.exp-amount-prefix {
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  background: var(--gray-50);
+  border-right: 1px solid var(--gray-200);
+  color: var(--gray-500);
+  font-weight: 700;
+  font-size: var(--text-md);
+}
+
+.exp-amount-input {
+  flex: 1;
+  min-width: 0;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 10px 12px;
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.exp-amount-input:focus { outline: none; }
+
+.exp-amount-wrap.is-income .exp-amount-prefix {
+  background: var(--success-50);
+  border-right-color: #bbf7d0;
+  color: var(--success-600);
+}
+
+.exp-amount-wrap.is-income:focus-within {
+  border-color: var(--success-500);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, .12);
+}
+
+/* ── เดือน caption ─────────────────────────────────── */
+.exp-month-caption {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding: 9px 11px;
+  background: var(--gray-50);
+  border-radius: var(--r-md);
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+}
+
+.exp-month-caption svg { color: var(--gray-400); flex: 0 0 auto; }
+.exp-month-caption strong { color: var(--gray-700); font-weight: 600; }
+
+/* ── reveal เมื่อเลือกหมวด ──────────────────────────── */
+.exp-reveal { animation: expReveal .25s var(--ease-out); }
+
+@keyframes expReveal {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .exp-reveal { animation: none; }
+  .exp-cat-card, .exp-cat-ico, .exp-cat-check { transition: none; }
+}
+
+/* ── รายจ่ายบุคลากรเพิ่มเติม (teacher drill-down) ───── */
+.sm-extra-label {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: var(--sp-2) var(--sp-1) 0;
 }
 
 /* ── Income variant (รายรับเพิ่มเติม) ─────────────── */

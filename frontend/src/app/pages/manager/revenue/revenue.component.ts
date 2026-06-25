@@ -6,7 +6,7 @@ import { takeUntil, forkJoin } from 'rxjs';
 import { gsap } from 'gsap';
 import { PaymentService } from '../../../services/payment.service';
 import { UserService } from '../../../services/user.service';
-import { ExpenseService, IExpense, ExpenseType } from '../../../services/expense.service';
+import { ExpenseService, IExpense, ExpenseType, ExpenseCategory } from '../../../services/expense.service';
 import { AuthService } from '../../../services/auth.service';
 import { IRevenueSchedule } from '../../../interfaces/payment.interface';
 import { IUser } from '../../../interfaces/user.interface';
@@ -74,7 +74,6 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
   // KPI ใหม่ (ผูกกับสถานะ completed/manager-confirmed เท่านั้น)
   kpiTeacherExpense = 0;   // รายจ่ายสถาบัน — รายได้ครู (role='teacher')
   kpiManagerIncome  = 0;   // รายได้ Manager (role='manager' ที่สอน)
-  kpiNetInstitute   = 0;   // กำไรสุทธิสถาบัน = total − (teacherExpense + managerIncome)
 
   // Active KPI filter
   activeKpi: KpiMode = 'all';
@@ -111,8 +110,16 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
   newExpenseType: ExpenseType = 'expense';
   newExpenseDescription = '';
   newExpenseAmount: number | null = null;
+  // หมวดรายจ่าย — บังคับเลือก 1 อย่างเมื่อเป็น expense (mutually exclusive)
+  newExpenseCategory: ExpenseCategory | null = null;
+  newExpensePersonId = '';   // บุคลากรที่เลือก (เมื่อ category='personnel')
+  personnelDropdownOpen = false; // เปิด/ปิด custom dropdown เลือกบุคลากร
+  newExpenseNote = '';       // หมายเหตุเพิ่ม (เมื่อ category='other')
   savingExpense = false;
   expenseError = '';
+
+  // รายชื่อบุคลากร (ครู + manager + admin) สำหรับตัวเลือกรายจ่ายบุคลากร
+  staffForPersonnel: IUser[] = [];
 
   // Current logged-in user — used for "รายได้ของคุณ" KPI
   currentUser: IUser | null = null;
@@ -141,6 +148,8 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
   // ─── Teacher payouts (ครูที่ชำระค่าจ้างแล้วในเดือนปัจจุบัน) ──
   teacherPayouts: any[] = [];
   teacherMonthlyClasses: IRevenueSchedule[] = [];
+  // รายจ่ายบุคลากร (manual) ของครูที่เปิด drill-down อยู่
+  teacherMonthlyExtraExpenses: IExpense[] = [];
 
   // Palette for teacher slices
   private readonly TEACHER_COLORS = [
@@ -227,10 +236,12 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
   loadDropdowns(): void {
     forkJoin({
       teachers: this.userService.getTeachingStaff(),
+      staff: this.userService.getTeachingStaff(true), // รวม admin — ตัวเลือกรายจ่ายบุคลากร
       students: this.userService.getStudents()
     }).pipe(takeUntil(this.destroy$)).subscribe({
-      next: ({ teachers, students }) => {
+      next: ({ teachers, staff, students }) => {
         this.teachers = teachers.data || [];
+        this.staffForPersonnel = staff.data || [];
         this.students = students;
       },
       error: (err) => console.error('[Revenue] loadDropdowns failed:', err)
@@ -254,7 +265,6 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
           this.kpiUnpaid = res.kpi.unpaid;
           this.kpiTeacherExpense = res.kpi.teacherExpense || 0;
           this.kpiManagerIncome  = res.kpi.managerIncome  || 0;
-          this.kpiNetInstitute   = res.kpi.netInstitute   || 0;
           this.allSchedules = res.schedules;
           this.loading = false;
         },
@@ -309,7 +319,23 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /** ยอดค้างชำระค่าจ้างครู = รายจ่ายครูทั้งหมด − ที่ชำระแล้ว (ไม่ต่ำกว่า 0) */
   get teacherExpenseUnpaidTotal(): number {
-    return Math.max(0, this.kpiTeacherExpense - this.teacherExpensePaidTotal);
+    return Math.max(0, this.teacherExpenseDisplayTotal - this.teacherExpensePaidTotal);
+  }
+
+  // ── รายจ่ายบุคลากร (manual personnel expenses) ──────────────────
+  /** รายจ่ายที่ผูกกับบุคลากร (category='personnel') ในเดือนที่เลือก */
+  get personnelExpenses(): IExpense[] {
+    return this.manualExpenses.filter(e => e.type === 'expense' && e.category === 'personnel');
+  }
+
+  get personnelExpenseTotal(): number {
+    return this.personnelExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  }
+
+  /** ยอด "รายจ่ายครู" ที่แสดงบนการ์ด KPI = ค่าจ้างอัตโนมัติ (จาก schedule) + รายจ่ายบุคลากร
+   *  (display เท่านั้น — personnel ถูกนับใน manualExpenseTotal แล้ว ไม่ double count ใน netProfit) */
+  get teacherExpenseDisplayTotal(): number {
+    return this.kpiTeacherExpense + this.personnelExpenseTotal;
   }
 
   /** Called when teacher or student dropdown changes — frontend filter only, no reload */
@@ -333,6 +359,7 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
       .filter(s => s.teacherId === teacherId && s.status === 'completed' && (s.actualTeacherIncome || 0) > 0)
       .slice()
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    this.teacherMonthlyExtraExpenses = [];
     this.showTeacherMonthlyModal = true;
   }
 
@@ -831,8 +858,26 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
     this.newExpenseType = 'expense';
     this.newExpenseDescription = '';
     this.newExpenseAmount = null;
+    this.newExpenseCategory = null;
+    this.newExpensePersonId = '';
+    this.personnelDropdownOpen = false;
+    this.newExpenseNote = '';
     this.expenseError = '';
     this.showExpenseModal = true;
+  }
+
+  /** เลือกหมวดรายจ่าย (toggle) — เลือกได้ครั้งละ 1 อย่าง; ล้าง field ที่ไม่เกี่ยวข้อง */
+  selectExpenseCategory(cat: ExpenseCategory): void {
+    if (this.savingExpense) return;
+    this.newExpenseCategory = cat;
+    if (cat !== 'personnel') { this.newExpensePersonId = ''; this.personnelDropdownOpen = false; }
+    if (cat !== 'other') this.newExpenseNote = '';
+  }
+
+  /** เลือกบุคลากรจาก custom dropdown */
+  selectPersonnel(userId: string): void {
+    this.newExpensePersonId = userId;
+    this.personnelDropdownOpen = false;
   }
 
   closeExpenseModal(): void {
@@ -855,9 +900,36 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
       this.expenseError = 'กรุณาเลือกเดือน';
       return;
     }
+
+    // หมวดรายจ่าย — บังคับเลือก 1 อย่างเมื่อเป็นรายจ่าย
+    let category: ExpenseCategory | null = null;
+    let personId = '';
+    let personName = '';
+    let note = '';
+    if (this.newExpenseType === 'expense') {
+      if (this.newExpenseCategory !== 'personnel' && this.newExpenseCategory !== 'other') {
+        this.expenseError = 'กรุณาเลือกประเภทรายจ่าย (บุคลากร หรือ อื่นๆ)';
+        return;
+      }
+      category = this.newExpenseCategory;
+      if (category === 'personnel') {
+        if (!this.newExpensePersonId) {
+          this.expenseError = 'กรุณาเลือกบุคลากร';
+          return;
+        }
+        personId = this.newExpensePersonId;
+        personName = this.getStaffNickname(personId);
+      } else {
+        note = (this.newExpenseNote || '').trim();
+      }
+    }
+
     this.savingExpense = true;
     this.expenseError = '';
-    this.expenseService.create({ description: desc, type: this.newExpenseType, amount, month: this.filterMonth })
+    this.expenseService.create({
+      description: desc, type: this.newExpenseType, amount, month: this.filterMonth,
+      category, personId: personId || null, personName, note
+    })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (created) => {
@@ -1108,6 +1180,52 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
       .sort((a, b) => a.nickname.localeCompare(b.nickname, 'th'));
   }
 
+  /** การ์ดในกริด "รายจ่ายครู" = ครูจาก schedule + รายจ่ายบุคลากร (manual) รวมตาม personId
+   *  คนที่มีแต่รายจ่ายบุคลากร (เช่น admin/manager ที่ไม่มีคลาส) จะขึ้นการ์ดด้วย (classCount=0) */
+  get teacherExpenseCards(): { teacherId: string; nickname: string; classCount: number; income: number }[] {
+    const cards = this.uniqueTeachersInFilter.map(t => ({ ...t }));
+    for (const e of this.personnelExpenses) {
+      const pid = String(e.personId || '');
+      if (!pid) continue;
+      const existing = cards.find(c => c.teacherId === pid);
+      if (existing) {
+        existing.income += e.amount || 0;
+      } else {
+        cards.push({
+          teacherId: pid,
+          nickname: (e.personName || '').trim() || this.getTeacherNickname(pid) || '—',
+          classCount: 0,
+          income: e.amount || 0
+        });
+      }
+    }
+    return cards.sort((a, b) => a.nickname.localeCompare(b.nickname, 'th'));
+  }
+
+  /** มีข้อมูลให้แสดงในโหมดรายจ่ายครูหรือไม่ (คลาส หรือ รายจ่ายบุคลากร) */
+  get hasTeacherExpenseData(): boolean {
+    return this.filteredSchedules.length > 0 || this.personnelExpenses.length > 0;
+  }
+
+  /** บุคลากรจัดกลุ่มตาม role — สำหรับ optgroup ในตัวเลือกรายจ่ายบุคลากร */
+  get personnelGroups(): { label: string; people: IUser[] }[] {
+    const byRole = (r: string) => this.staffForPersonnel.filter(u => (u.role || '') === r);
+    return [
+      { label: 'ครู', people: byRole('teacher') },
+      { label: 'ผู้จัดการ (Manager)', people: byRole('manager') },
+      { label: 'แอดมิน (Admin)', people: byRole('admin') }
+    ].filter(g => g.people.length > 0);
+  }
+
+  /** ชื่อเล่นบุคลากร (ครู/manager/admin) จาก userId — ใช้ตอนบันทึกรายจ่ายบุคลากร */
+  getStaffNickname(userId: string): string {
+    const u = this.staffForPersonnel.find(s => s._id === userId);
+    if (!u) return '';
+    const nick = (u.nickname || '').trim();
+    if (nick) return nick;
+    return `${u.firstName || ''} ${u.lastName || ''}`.trim();
+  }
+
   /** ชื่อเล่นครูจาก teacherId — fallback เป็นชื่อที่ backend ส่งมา */
   getTeacherNickname(teacherId: string, fallback?: string): string {
     const u = this.teachers.find(t => t._id === teacherId);
@@ -1134,6 +1252,8 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
       .filter(s => s.teacherId === teacherId)
       .slice()
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    this.teacherMonthlyExtraExpenses = this.personnelExpenses
+      .filter(e => String(e.personId || '') === teacherId);
     this.showTeacherMonthlyModal = true;
   }
 
@@ -1141,11 +1261,18 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
     this.showTeacherMonthlyModal = false;
     this.teacherMonthlyTarget = null;
     this.teacherMonthlyClasses = [];
+    this.teacherMonthlyExtraExpenses = [];
   }
 
-  /** รวมรายจ่ายครูในชุดของครูที่เลือก (ใช้ใน modal footer) */
+  /** รวมรายจ่ายบุคลากร (manual) ของครูที่เปิด drill-down */
+  get teacherMonthlyExtraTotal(): number {
+    return this.teacherMonthlyExtraExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  }
+
+  /** รวมรายจ่ายครูในชุดของครูที่เลือก = ค่าสอนจากคลาส + รายจ่ายบุคลากร (ใช้ใน modal footer + payout) */
   get teacherMonthlyTotal(): number {
-    return this.teacherMonthlyClasses.reduce((sum, s) => sum + (s.actualTeacherIncome || 0), 0);
+    return this.teacherMonthlyClasses.reduce((sum, s) => sum + (s.actualTeacherIncome || 0), 0)
+      + this.teacherMonthlyExtraTotal;
   }
 
   // ─── Payout (ชำระค่าจ้างครู) ─────────────────────────────────

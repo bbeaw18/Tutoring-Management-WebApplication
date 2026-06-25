@@ -22,7 +22,7 @@ router.get('/', authenticateToken, roleCheck(['admin', 'manager']), async (req, 
 // POST /api/expenses — create expense (admin/manager)
 router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req, res) => {
   try {
-    const { description, amount, month, type } = req.body;
+    const { description, amount, month, type, category, personId, personName, note } = req.body;
     if (!description || !String(description).trim()) {
       return sendResponse(res, 400, false, null, 'description is required');
     }
@@ -34,11 +34,34 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
       return sendResponse(res, 400, false, null, 'month must be in YYYY-MM format');
     }
     const normalizedType = type === 'income' ? 'income' : 'expense';
+
+    // หมวดรายจ่าย — บังคับเลือก 1 อย่างเมื่อเป็น expense (personnel หรือ other)
+    let normalizedCategory = null;
+    let normalizedPersonId = null;
+    let normalizedPersonName = '';
+    if (normalizedType === 'expense') {
+      if (category !== 'personnel' && category !== 'other') {
+        return sendResponse(res, 400, false, null, 'category must be "personnel" or "other" for expenses');
+      }
+      normalizedCategory = category;
+      if (category === 'personnel') {
+        if (!personId) {
+          return sendResponse(res, 400, false, null, 'personId is required for personnel expenses');
+        }
+        normalizedPersonId = personId;
+        normalizedPersonName = String(personName || '').trim();
+      }
+    }
+
     const expense = await Expense.create({
       description: String(description).trim(),
       type: normalizedType,
       amount: numAmount,
       month,
+      category: normalizedCategory,
+      personId: normalizedPersonId,
+      personName: normalizedPersonName,
+      note: String(note || '').trim(),
       createdBy: req.user.id
     });
     sendResponse(res, 201, true, expense, 'Expense created');

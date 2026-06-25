@@ -17,6 +17,31 @@ const ExpenseSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  // หมวดรายจ่าย (เฉพาะ type='expense') — 'personnel' = รายจ่ายบุคลากร (ผูกกับครู/manager/admin),
+  // 'other' = อื่นๆ. income ไม่ใช้ field นี้ (เป็น null)
+  category: {
+    type: String,
+    enum: ['personnel', 'other'],
+    default: null
+  },
+  // บุคลากรที่ผูกรายจ่ายนี้ (เมื่อ category='personnel') — ใช้บวกเข้า KPI รายจ่ายครูของคนนั้น
+  personId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  // ชื่อ/ชื่อเล่นบุคลากร ณ ตอนบันทึก (denormalized) — ใช้แสดงการ์ดแม้ผู้ใช้ไม่อยู่ใน list ที่โหลด
+  personName: {
+    type: String,
+    default: '',
+    trim: true
+  },
+  // หมายเหตุเพิ่มเติม (จาก checkbox 'อื่นๆ') — ไม่บังคับ
+  note: {
+    type: String,
+    default: '',
+    trim: true
+  },
   // เดือนของรายจ่าย (YYYY-MM) — ใช้กรองให้ตรงกับ filter ของหน้า revenue
   month: {
     type: String,

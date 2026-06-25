@@ -77,12 +77,16 @@ router.get('/teachers', authenticateToken, roleCheck(['admin', 'manager']), asyn
 // GET /teaching-staff — List all teachers + managers (ผู้สอนทั้งหมด)
 router.get('/teaching-staff', authenticateToken, roleCheck(['admin', 'manager']), async (req, res) => {
   try {
-    const { search } = req.query;
-    let query = { role: { $in: ['teacher', 'manager'] }, isActive: true };
+    const { search, includeAdmin } = req.query;
+    // includeAdmin=true → รวม admin ด้วย (ใช้ในตัวเลือกบุคลากรของหน้า revenue)
+    const roles = includeAdmin === 'true'
+      ? ['teacher', 'manager', 'admin']
+      : ['teacher', 'manager'];
+    let query = { role: { $in: roles }, isActive: true };
 
     if (search) {
       query.$and = [
-        { role: { $in: ['teacher', 'manager'] } },
+        { role: { $in: roles } },
         { $or: [
             { firstName: { $regex: search, $options: 'i' } },
             { lastName:  { $regex: search, $options: 'i' } },

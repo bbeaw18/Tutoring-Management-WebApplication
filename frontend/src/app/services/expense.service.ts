@@ -6,6 +6,7 @@ import { environment } from '@environments/environment';
 import { IApiResponse } from '../interfaces/api-response.interface';
 
 export type ExpenseType = 'income' | 'expense';
+export type ExpenseCategory = 'personnel' | 'other';
 
 export interface IExpense {
   _id: string;
@@ -13,6 +14,10 @@ export interface IExpense {
   type: ExpenseType;
   amount: number;
   month: string; // YYYY-MM
+  category?: ExpenseCategory | null;
+  personId?: string | null;
+  personName?: string;
+  note?: string;
   createdBy?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -30,7 +35,16 @@ export class ExpenseService {
     );
   }
 
-  create(body: { description: string; type: ExpenseType; amount: number; month: string }): Observable<IExpense> {
+  create(body: {
+    description: string;
+    type: ExpenseType;
+    amount: number;
+    month: string;
+    category?: ExpenseCategory | null;
+    personId?: string | null;
+    personName?: string;
+    note?: string;
+  }): Observable<IExpense> {
     return this.http.post<IApiResponse<IExpense>>(this.apiUrl, body).pipe(
       map(res => res.data)
     );
