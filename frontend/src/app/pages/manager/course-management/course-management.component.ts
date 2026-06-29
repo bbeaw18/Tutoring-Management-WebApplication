@@ -29,6 +29,11 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
 
   courses: ICourse[] = [];
   teachers: IUser[] = [];
+
+  /** กลุ่ม manager / teacher สำหรับ optgroup ใน dropdown เลือกผู้สอน */
+  get managerStaff(): IUser[] { return this.teachers.filter(t => t.role === 'manager'); }
+  get teacherStaff(): IUser[] { return this.teachers.filter(t => t.role !== 'manager'); }
+
   students: IUser[] = [];
   selectedStudentIds: string[] = [];
 
@@ -216,6 +221,79 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     return Math.round(this.coursePriceRate * this.classDurationHours);
   }
 
+  // ── Section completion (ป้ายเลขลำดับ → ✓ + checklist ใน sticky rail) ──
+  /** 1. ครู & วันเวลา — เลือกครู + มีระยะเวลาคลาส */
+  get sec1Done(): boolean {
+    return !!this.bookingForm?.get('teacher')?.value && this.classDurationHours > 0;
+  }
+  /** 2. รายละเอียดคลาส — มีวิชา + ระดับชั้น */
+  get sec2Done(): boolean {
+    return !!this.bookingForm?.get('subject')?.value && !!this.bookingForm?.get('gradeLevel')?.value;
+  }
+  /** 3. นักเรียน — เดี่ยวต้อง 1 คน, กลุ่มอย่างน้อย 1 คน */
+  get sec3Done(): boolean {
+    const n = this.selectedStudentIds.length;
+    return this.bookingForm?.get('type')?.value === 'individual' ? n === 1 : n >= 1;
+  }
+  /** 4. การเงิน — อัตราครู + ค่าเรียน + มีระยะเวลา */
+  get sec4Done(): boolean {
+    return this.teacherIncomeRate > 0 && this.coursePriceRate > 0 && this.classDurationHours > 0;
+  }
+
+  /** ป้ายระยะเวลาคลาส เช่น "2 ชม." / "— ชม." */
+  get durationLabel(): string {
+    const h = this.classDurationHours;
+    if (h <= 0) return '— ชม.';
+    return `${Number.isInteger(h) ? h : h.toFixed(1)} ชม.`;
+  }
+
+  // ── Booking List redesign (cb2-list) helpers ──────────────────
+  /** map displayStatus → cb2 badge/rail class */
+  cb2StatusClass(course: any): string {
+    return ({
+      pending_teacher: 's-pt', pending_students: 's-ps', confirmed: 's-cf',
+      awaiting_manager: 's-am', completed: 's-cp', cancelled: 's-cx'
+    } as any)[this.resolveStatus(course)] || '';
+  }
+
+  /** ป้ายรอบการซ้ำของชุด เช่น "ทุกวันจันทร์" (จากวันของคลาส) */
+  getSeriesRecur(course: any): string {
+    const d = course?.scheduledDate ? new Date(course.scheduledDate) : null;
+    if (!d || isNaN(d.getTime())) return 'รายสัปดาห์';
+    return 'ทุกวัน' + ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์','เสาร์'][d.getDay()];
+  }
+
+  /** segment progress bar ของชุด — true = คลาสที่เสร็จแล้ว */
+  getSeriesSegs(course: any): boolean[] {
+    const n = this.getSeriesCount(course);
+    const done = this.getSeriesCompletedCount(course);
+    return Array.from({ length: n }, (_, i) => i < done);
+  }
+
+  /** ป้ายชื่อ filter ที่ active (ใช้ใน active-chip) */
+  get cmDateFilterLabel(): string {
+    return ({ all: 'ทั้งหมด', today: 'วันนี้', week: 'สัปดาห์นี้', month: 'เดือนนี้' } as any)[this.cmDateFilter] || '';
+  }
+  get cmTeacherFilterLabel(): string {
+    const o = this.cmTeacherOptions.find(x => x.id === this.cmTeacherFilter);
+    return o ? o.label : '';
+  }
+
+  // Advanced filter popover (วิชา/ครู ยุบหลังปุ่ม "ตัวกรอง")
+  filterPanelOpen = false;
+  toggleFilterPanel(ev?: Event): void { ev?.stopPropagation(); this.filterPanelOpen = !this.filterPanelOpen; }
+  get advancedFilterCount(): number {
+    return (this.cmSubjectFilter ? 1 : 0) + (this.cmTeacherFilter ? 1 : 0);
+  }
+
+  // Per-card "⋯" menu
+  openCardMenuId: string | null = null;
+  toggleCardMenu(id: string, ev?: Event): void {
+    ev?.stopPropagation();
+    this.openCardMenuId = this.openCardMenuId === id ? null : id;
+  }
+  closeCardMenu(): void { this.openCardMenuId = null; }
+
   // ── Hourly-mode rollout cutoffs ──
   // เริ่มใช้การคิดต่อชม. ตั้งแต่วันที่กำหนด — คลาสก่อนหน้านี้ยังเป็น flat-rate เดิม
   private readonly TEACHER_HOURLY_FROM = new Date('2026-05-08T00:00:00+07:00'); // 8 พ.ค.
@@ -295,33 +373,21 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
         error: () => { this.loading = false; this.cdr.markForCheck(); }
       });
 
-    // โหลดทั้ง teacher และ manager (manager ก็สามารถสอนได้)
-    let teacherList: IUser[] = [];
-    let managerList: IUser[] = [];
-    let loaded = 0;
-    const mergeTeachers = () => {
-      loaded++;
-      if (loaded === 2) {
-        // manager ขึ้นก่อน แล้วตามด้วย teacher
-        this.teachers = [
-          ...managerList.map(u => ({ ...u, _displayRole: 'ผู้จัดการ' } as any)),
-          ...teacherList.map(u => ({ ...u, _displayRole: 'ครู' } as any))
-        ];
-        this.cdr.markForCheck();
-      }
-    };
-    // รวม manager ที่สอนได้ในรายชื่อครูด้วย (ครูในระบบ + manager)
+    // getTeachingStaff คืนทั้ง teacher และ manager (manager ก็สอนได้) ในครั้งเดียว
+    // — แยก role ตามค่าจริง เพื่อไม่ให้ manager โผล่ซ้ำเป็น "ครู" อีกแถว
     this.userService.getTeachingStaff()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (res) => { teacherList = res.data || []; mergeTeachers(); },
-        error: () => { mergeTeachers(); }
-      });
-    this.userService.getUsers({ role: 'manager' } as any)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (res: any) => { managerList = res.data || []; mergeTeachers(); },
-        error: () => { mergeTeachers(); }
+        next: (res) => {
+          // manager ขึ้นก่อน แล้วตามด้วย teacher (แบ่งโซนใน dropdown ด้วย optgroup)
+          const staff = res.data || [];
+          this.teachers = [
+            ...staff.filter(u => u.role === 'manager'),
+            ...staff.filter(u => u.role !== 'manager')
+          ];
+          this.cdr.markForCheck();
+        },
+        error: () => { this.cdr.markForCheck(); }
       });
 
     this.userService.getStudents()

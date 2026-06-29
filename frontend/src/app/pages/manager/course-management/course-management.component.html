@@ -44,390 +44,367 @@
   </div>
 
   <!-- Booking Form -->
-  <div class="form-wrapper" *ngIf="showForm">
-    <div class="form-card">
-      <div class="form-header">
-        <h2>สร้างนัดสอนใหม่</h2>
-        <p>กรอกข้อมูลด้านล่างเพื่อนัดสอน — ระบบจะส่งแจ้งเตือนไปยังครูและนักเรียนโดยอัตโนมัติ</p>
+  <div class="cb2-page" *ngIf="showForm">
+    <div class="cb2-wrap">
+
+      <div class="cb2-head">
+        <div>
+          <h1 class="cb2-h-title">สร้างนัดสอนใหม่</h1>
+          <p class="cb2-h-sub">กรอกข้อมูล 4 ส่วนด้านล่าง — ระบบจะส่งแจ้งเตือนไปยังครูและนักเรียนโดยอัตโนมัติ</p>
+        </div>
       </div>
 
-      <form [formGroup]="bookingForm" (ngSubmit)="submitBooking()">
+      <div class="cb2-layout">
 
-        <!-- Row: วิชา + ครู -->
-        <div class="form-row">
-          <div class="form-group" [class.invalid]="isFieldInvalid('subject')">
-            <label class="form-label">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-              </svg>
-              วิชา <span class="required">*</span>
-            </label>
-            <input type="text" formControlName="subject" class="form-input"
-              placeholder="พิมพ์หรือเลือกจากรายการ เช่น คณิตศาสตร์"
-              list="subjects-list" autocomplete="off"/>
-            <datalist id="subjects-list">
-              <option *ngFor="let s of savedSubjects" [value]="s">{{ s }}</option>
-            </datalist>
-            <span class="field-hint" *ngIf="savedSubjects.length > 0">เลือกจาก {{ savedSubjects.length }} วิชาที่เคยสร้างไว้ หรือพิมพ์ใหม่</span>
-            <span class="field-error" *ngIf="isFieldInvalid('subject')">กรุณากรอกชื่อวิชา</span>
-          </div>
+        <form class="cb2-form" [formGroup]="bookingForm" (ngSubmit)="submitBooking()">
 
-          <div class="form-group" [class.invalid]="isFieldInvalid('teacher')">
-            <label class="form-label">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-              ครูผู้สอน <span class="required">*</span>
-            </label>
-            <select formControlName="teacher" class="form-input">
-              <option value="">— เลือกครู/ผู้จัดการ —</option>
-              <option *ngFor="let t of teachers" [value]="getId(t)">
-                {{ t | displayName:'teacher' }} [{{ $any(t)._displayRole || (t.role === 'manager' ? 'ผู้จัดการ' : 'ครู') }}]
-              </option>
-            </select>
-            <span class="field-error" *ngIf="isFieldInvalid('teacher')">กรุณาเลือกครู</span>
-          </div>
-        </div>
-
-        <!-- Row: วันที่ + เวลา -->
-        <div class="form-row">
-          <div class="form-group" [class.invalid]="isFieldInvalid('scheduledDate')">
-            <label class="form-label">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <rect x="3" y="4" width="18" height="18" rx="2"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
-                <line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
-              </svg>
-              วันที่นัดสอน <span class="required">*</span>
-            </label>
-            <kms-date-picker formControlName="scheduledDate" placeholder="เลือกวันที่นัดสอน"></kms-date-picker>
-            <span class="field-error" *ngIf="isFieldInvalid('scheduledDate')">กรุณาเลือกวันที่</span>
-          </div>
-
-          <div class="form-group time-group">
-            <label class="form-label">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-              </svg>
-              เวลา <span class="required">*</span>
-            </label>
-            <div class="time-row">
-              <kms-time-picker formControlName="startTime" placeholder="เริ่ม" [minuteStep]="30"></kms-time-picker>
-              <span class="time-sep">–</span>
-              <kms-time-picker formControlName="endTime" placeholder="สิ้นสุด" [minuteStep]="30"></kms-time-picker>
+          <!-- ── Section 1: ครู & วันเวลา ── -->
+          <section class="cb2-sec">
+            <div class="cb2-sec-head">
+              <span class="cb2-num" [class.is-done]="sec1Done">
+                <svg *ngIf="sec1Done" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <ng-container *ngIf="!sec1Done">1</ng-container>
+              </span>
+              <div class="cb2-sec-ic">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+              </div>
+              <div class="cb2-sec-tt"><h3>ครู &amp; วันเวลา</h3><span>ใครสอน เมื่อไหร่</span></div>
             </div>
-          </div>
-        </div>
 
-        <!-- ── สร้างตารางซ้ำนัดจนถึงสิ้นเดือน ── -->
-        <div class="form-group repeat-weekly-group">
-          <label class="repeat-weekly-label">
-            <input type="checkbox" formControlName="repeatWeeklyUntilEndOfMonth"/>
-            <span class="repeat-weekly-box">
-              <svg *ngIf="bookingForm.get('repeatWeeklyUntilEndOfMonth')?.value" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            </span>
-            <span class="repeat-weekly-text">
-              <strong>สร้างตารางซ้ำรายสัปดาห์จนถึงสิ้นเดือน</strong>
-              <small>นัดสอนวันเดียวกันของทุกสัปดาห์ในเดือนนี้</small>
-            </span>
-          </label>
-          <div class="repeat-weekly-preview" *ngIf="bookingForm.get('repeatWeeklyUntilEndOfMonth')?.value && repeatPreviewDates.length > 1">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-            จะสร้างทั้งหมด <strong>{{ repeatPreviewDates.length }}</strong> ครั้ง: {{ repeatPreviewLabel }}
-          </div>
-        </div>
+            <div class="cb2-row c2">
+              <div class="cb2-grp">
+                <label class="cb2-label">ครูผู้สอน <span class="cb2-req">*</span></label>
+                <select formControlName="teacher" class="cb2-select">
+                  <option value="">— เลือกครู/ผู้จัดการ —</option>
+                  <optgroup label="ผู้จัดการ" *ngIf="managerStaff.length">
+                    <option *ngFor="let t of managerStaff" [value]="getId(t)">{{ t | displayName:'teacher' }}</option>
+                  </optgroup>
+                  <optgroup label="ครู" *ngIf="teacherStaff.length">
+                    <option *ngFor="let t of teacherStaff" [value]="getId(t)">{{ t | displayName:'teacher' }}</option>
+                  </optgroup>
+                </select>
+                <span class="field-error" *ngIf="isFieldInvalid('teacher')">กรุณาเลือกครู</span>
+              </div>
+              <div class="cb2-grp">
+                <label class="cb2-label">วันที่นัดสอน <span class="cb2-req">*</span></label>
+                <kms-date-picker formControlName="scheduledDate" placeholder="เลือกวันที่นัดสอน"></kms-date-picker>
+                <span class="field-error" *ngIf="isFieldInvalid('scheduledDate')">กรุณาเลือกวันที่</span>
+              </div>
+            </div>
 
-        <!-- Row: ประเภท + ประเภทการสอน + ระดับชั้น -->
-        <div class="form-row form-row-3">
-          <div class="form-group" [class.invalid]="isFieldInvalid('type')">
-            <label class="form-label">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-              ประเภท <span class="required">*</span>
-            </label>
-            <div class="type-toggle">
-              <button type="button" class="toggle-btn"
-                [class.active]="bookingForm.get('type')?.value === 'group'"
-                (click)="bookingForm.get('type')?.setValue('group'); onTypeChange()">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                  <circle cx="9" cy="7" r="4"/>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-                </svg>
-                กลุ่ม
-              </button>
-              <button type="button" class="toggle-btn"
-                [class.active]="bookingForm.get('type')?.value === 'individual'"
-                (click)="bookingForm.get('type')?.setValue('individual'); onTypeChange()">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                  <circle cx="12" cy="7" r="4"/>
-                </svg>
-                เดี่ยว
+            <div class="cb2-row">
+              <div class="cb2-grp">
+                <label class="cb2-label">เวลา <span class="cb2-req">*</span></label>
+                <div class="cb2-timewrap">
+                  <div class="cb2-timebox">
+                    <kms-time-picker formControlName="startTime" placeholder="เริ่ม" [minuteStep]="30"></kms-time-picker>
+                    <span class="cb2-time-sep" aria-hidden="true">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+                    </span>
+                    <kms-time-picker formControlName="endTime" placeholder="สิ้นสุด" [minuteStep]="30"></kms-time-picker>
+                  </div>
+                  <span class="cb2-dur-badge" [class.is-muted]="classDurationHours <= 0">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    {{ durationLabel }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="cb2-repeat">
+              <label class="cb2-repeat-lb">
+                <input type="checkbox" formControlName="repeatWeeklyUntilEndOfMonth" class="cb2-repeat-input"/>
+                <span class="cb2-repeat-box" [class.on]="bookingForm.get('repeatWeeklyUntilEndOfMonth')?.value">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </span>
+                <span class="cb2-repeat-tx">
+                  <strong>สร้างตารางซ้ำรายสัปดาห์จนถึงสิ้นเดือน</strong>
+                  <small>นัดสอนวันเดียวกันของทุกสัปดาห์ในเดือนนี้</small>
+                </span>
+              </label>
+              <div class="cb2-repeat-prev" *ngIf="bookingForm.get('repeatWeeklyUntilEndOfMonth')?.value && repeatPreviewDates.length > 1">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                จะสร้างทั้งหมด <strong>{{ repeatPreviewDates.length }}</strong> ครั้ง: {{ repeatPreviewLabel }}
+              </div>
+            </div>
+          </section>
+
+          <!-- ── Section 2: รายละเอียดคลาส ── -->
+          <section class="cb2-sec">
+            <div class="cb2-sec-head">
+              <span class="cb2-num" [class.is-done]="sec2Done">
+                <svg *ngIf="sec2Done" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <ng-container *ngIf="!sec2Done">2</ng-container>
+              </span>
+              <div class="cb2-sec-ic">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+              </div>
+              <div class="cb2-sec-tt"><h3>รายละเอียดคลาส</h3><span>วิชา ประเภท ระดับชั้น</span></div>
+            </div>
+
+            <div class="cb2-row c2">
+              <div class="cb2-grp">
+                <label class="cb2-label">วิชา <span class="cb2-req">*</span></label>
+                <input type="text" formControlName="subject" class="cb2-input"
+                  placeholder="พิมพ์หรือเลือก เช่น คณิตศาสตร์" list="subjects-list" autocomplete="off"/>
+                <datalist id="subjects-list">
+                  <option *ngFor="let s of savedSubjects" [value]="s">{{ s }}</option>
+                </datalist>
+                <span class="cb2-hint" *ngIf="savedSubjects.length > 0">เลือกจาก {{ savedSubjects.length }} วิชาที่เคยสร้างไว้ หรือพิมพ์ใหม่</span>
+                <span class="field-error" *ngIf="isFieldInvalid('subject')">กรุณากรอกชื่อวิชา</span>
+              </div>
+              <div class="cb2-grp">
+                <label class="cb2-label">ประเภท <span class="cb2-req">*</span></label>
+                <div class="cb2-seg">
+                  <button type="button"
+                    [class.active]="bookingForm.get('type')?.value === 'group'"
+                    (click)="bookingForm.get('type')?.setValue('group'); onTypeChange()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    กลุ่ม
+                  </button>
+                  <button type="button"
+                    [class.active]="bookingForm.get('type')?.value === 'individual'"
+                    (click)="bookingForm.get('type')?.setValue('individual'); onTypeChange()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    เดี่ยว
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="cb2-row c2">
+              <div class="cb2-grp">
+                <label class="cb2-label">ประเภทการสอน <span class="cb2-opt">(ไม่บังคับ)</span></label>
+                <input type="text" formControlName="teachingType" class="cb2-input"
+                  placeholder="เช่น ติว, เสริม, แก้ไขเกรด" list="teaching-types-list" autocomplete="off"/>
+                <datalist id="teaching-types-list">
+                  <option *ngFor="let t of savedTeachingTypes" [value]="t">{{ t }}</option>
+                </datalist>
+                <span class="cb2-hint" *ngIf="savedTeachingTypes.length > 0">หรือเลือกจากรายการที่เคยใช้</span>
+              </div>
+              <div class="cb2-grp">
+                <label class="cb2-label">ระดับชั้น <span class="cb2-req">*</span></label>
+                <select formControlName="gradeLevel" class="cb2-select">
+                  <option value="">— เลือกระดับชั้น —</option>
+                  <option *ngFor="let g of gradeLevelOptions" [value]="g">{{ g }}</option>
+                </select>
+                <span class="field-error" *ngIf="isFieldInvalid('gradeLevel')">กรุณาเลือกระดับชั้น</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- ── Section 3: นักเรียน ── -->
+          <section class="cb2-sec">
+            <div class="cb2-sec-head">
+              <span class="cb2-num" [class.is-done]="sec3Done">
+                <svg *ngIf="sec3Done" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <ng-container *ngIf="!sec3Done">3</ng-container>
+              </span>
+              <div class="cb2-sec-ic">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+              </div>
+              <div class="cb2-sec-tt"><h3>นักเรียน</h3><span>ใครเข้าเรียนคลาสนี้</span></div>
+            </div>
+
+            <div class="cb2-st-bar">
+              <span class="cb2-label" style="margin:0">เลือกนักเรียน <span class="cb2-req">*</span></span>
+              <span class="cb2-st-count" *ngIf="selectedStudentIds.length > 0">{{ selectedStudentIds.length }} คน</span>
+            </div>
+
+            <div class="cb2-st-warn" *ngIf="bookingForm.get('type')?.value === 'individual'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              ประเภทเดี่ยว — เลือกได้ 1 คนเท่านั้น
+            </div>
+
+            <div class="cb2-st-grid" *ngIf="students.length > 0; else noStudents">
+              <button type="button" class="cb2-student" *ngFor="let s of students"
+                [class.is-selected]="isStudentSelected(getId(s))"
+                (click)="toggleStudentSelection(getId(s))">
+                <span class="cb2-avatar">{{ s.firstName.charAt(0) }}{{ s.lastName.charAt(0) }}</span>
+                <span class="cb2-st-info">
+                  <span class="cb2-st-name">{{ s | displayName:'student' }}</span>
+                  <span class="cb2-st-meta">{{ s.academicYear || s.grade || '' }}</span>
+                </span>
+                <span class="cb2-st-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
               </button>
             </div>
-          </div>
+            <ng-template #noStudents>
+              <p class="empty-hint">ยังไม่มีนักเรียนในระบบ</p>
+            </ng-template>
+          </section>
 
-          <div class="form-group">
-            <label class="form-label">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
-              ประเภทการสอน
-            </label>
-            <input type="text" formControlName="teachingType" class="form-input"
-              placeholder="เช่น ติว, เสริม, แก้ไขเกรด"
-              list="teaching-types-list" autocomplete="off"/>
-            <datalist id="teaching-types-list">
-              <option *ngFor="let t of savedTeachingTypes" [value]="t">{{ t }}</option>
-            </datalist>
-            <span class="field-hint" *ngIf="savedTeachingTypes.length > 0">หรือเลือกจากรายการที่เคยใช้</span>
-          </div>
+          <!-- ── Section 4: การเงิน ── -->
+          <section class="cb2-sec">
+            <div class="cb2-sec-head">
+              <span class="cb2-num" [class.is-done]="sec4Done">
+                <svg *ngIf="sec4Done" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <ng-container *ngIf="!sec4Done">4</ng-container>
+              </span>
+              <div class="cb2-sec-ic">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+              <div class="cb2-sec-tt"><h3>การเงิน</h3><span>รายได้ครู &amp; ค่าเรียนนักเรียน — คิดเป็นอัตรา/ชั่วโมง</span></div>
+            </div>
 
-          <div class="form-group" [class.invalid]="isFieldInvalid('gradeLevel')">
-            <label class="form-label">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-              </svg>
-              ระดับชั้น <span class="required">*</span>
-            </label>
-            <select formControlName="gradeLevel" class="form-input">
-              <option value="">— เลือกระดับชั้น —</option>
-              <option *ngFor="let g of gradeLevelOptions" [value]="g">{{ g }}</option>
-            </select>
-            <span class="field-error" *ngIf="isFieldInvalid('gradeLevel')">กรุณาเลือกระดับชั้น</span>
-          </div>
-        </div>
+            <!-- Group: รายได้ครู (กลุ่ม) + (เดี่ยว — สำรอง) -->
+            <div class="cb2-money-grid" *ngIf="bookingForm.get('type')?.value === 'group'">
+              <div class="cb2-grp">
+                <label class="cb2-label">รายได้ครู (สอนกลุ่ม)</label>
+                <div class="cb2-money-wrap">
+                  <span class="cb2-cur">฿</span>
+                  <input type="number" inputmode="numeric" formControlName="teacherIncomeGroup" class="cb2-input" min="0" placeholder="0" (wheel)="$event.preventDefault()"/>
+                  <span class="cb2-suf">/ ชม.</span>
+                </div>
+                <span class="cb2-hint">ใช้เมื่อมีนักเรียน ≥ 2 คน · คิดต่อชั่วโมง × ระยะเวลาคลาส</span>
+              </div>
+              <div class="cb2-grp">
+                <label class="cb2-label">รายได้ครู (สอนเดี่ยว — สำรอง)</label>
+                <div class="cb2-money-wrap">
+                  <span class="cb2-cur">฿</span>
+                  <input type="number" inputmode="numeric" formControlName="teacherIncomeIndividual" class="cb2-input" min="0" placeholder="0" (wheel)="$event.preventDefault()"/>
+                  <span class="cb2-suf">/ ชม.</span>
+                </div>
+                <span class="cb2-hint">ใช้เมื่อมีนักเรียน 1 คน</span>
+              </div>
+            </div>
 
-        <!-- นักเรียน Multi-select -->
-        <div class="form-group students-section">
-          <label class="form-label">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-              <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-            </svg>
-            นักเรียน
-            <span class="badge-count" *ngIf="selectedStudentIds.length > 0">{{ selectedStudentIds.length }} คน</span>
-            <span class="required">*</span>
-          </label>
+            <!-- Individual: รายได้ครู (เดี่ยว) + ค่าเรียน -->
+            <div class="cb2-money-grid" *ngIf="bookingForm.get('type')?.value === 'individual'">
+              <div class="cb2-grp">
+                <label class="cb2-label">รายได้ครู (สอนเดี่ยว)</label>
+                <div class="cb2-money-wrap">
+                  <span class="cb2-cur">฿</span>
+                  <input type="number" inputmode="numeric" formControlName="teacherIncomeIndividual" class="cb2-input" min="0" placeholder="0" (wheel)="$event.preventDefault()"/>
+                  <span class="cb2-suf">/ ชม.</span>
+                </div>
+                <span class="cb2-hint">คิดต่อชั่วโมง × ระยะเวลาคลาส</span>
+              </div>
+              <div class="cb2-grp cb2-price">
+                <label class="cb2-label">ค่าเรียน (นักเรียนจ่าย)</label>
+                <div class="cb2-money-wrap">
+                  <span class="cb2-cur">฿</span>
+                  <input type="number" inputmode="numeric" formControlName="coursePrice" class="cb2-input" min="0" placeholder="0" (wheel)="$event.preventDefault()"/>
+                  <span class="cb2-suf">/ ชม.</span>
+                </div>
+                <span class="cb2-hint">ค่าเรียนจริง = อัตรา × ชั่วโมงคลาส</span>
+              </div>
+            </div>
 
-          <div class="students-hint" *ngIf="bookingForm.get('type')?.value === 'individual'">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0">
+            <!-- ค่าเรียน (สำหรับโหมดกลุ่ม — full width) -->
+            <div class="cb2-row" *ngIf="bookingForm.get('type')?.value === 'group'" style="margin-top:var(--sp-4)">
+              <div class="cb2-grp cb2-price">
+                <label class="cb2-label">ค่าเรียน (นักเรียนจ่าย)</label>
+                <div class="cb2-money-wrap">
+                  <span class="cb2-cur">฿</span>
+                  <input type="number" inputmode="numeric" formControlName="coursePrice" class="cb2-input" min="0" placeholder="0" (wheel)="$event.preventDefault()"/>
+                  <span class="cb2-suf">/ ชม.</span>
+                </div>
+                <span class="cb2-hint">ค่าเรียนจริง = อัตรา × ชั่วโมงคลาส</span>
+              </div>
+            </div>
+
+            <!-- Money preview hero -->
+            <div class="cb2-mp">
+              <div class="cb2-mp-head">
+                <span class="cb2-mp-title">สรุปการเงินก่อนสร้าง</span>
+                <span class="cb2-mp-dur">ระยะคลาส {{ durationLabel }}</span>
+              </div>
+              <div class="cb2-mp-grid" *ngIf="classDurationHours > 0">
+                <div class="cb2-mp-stat cb2-mp-teacher">
+                  <span class="cb2-mp-label">ครูจะได้รับ</span>
+                  <span class="cb2-mp-value">฿{{ teacherIncomeTotal | number }}</span>
+                  <span class="cb2-mp-formula">฿{{ teacherIncomeRate | number }} × {{ classDurationHours | number:'1.0-2' }} ชม. ({{ bookingForm.get('type')?.value === 'individual' ? 'เดี่ยว' : 'กลุ่ม' }})</span>
+                </div>
+                <div class="cb2-mp-div"></div>
+                <div class="cb2-mp-stat cb2-mp-student">
+                  <span class="cb2-mp-label">นักเรียนจะจ่าย</span>
+                  <span class="cb2-mp-value">฿{{ coursePriceTotal | number }}</span>
+                  <span class="cb2-mp-formula">฿{{ coursePriceRate | number }} × {{ classDurationHours | number:'1.0-2' }} ชม.</span>
+                </div>
+              </div>
+              <div class="cb2-mp-warn" *ngIf="classDurationHours <= 0">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                เลือกเวลาเริ่ม–สิ้นสุดคลาสก่อน เพื่อคำนวณยอดที่ครูได้รับและค่าเรียน
+              </div>
+            </div>
+          </section>
+
+          <!-- หมายเหตุ -->
+          <section class="cb2-sec">
+            <div class="cb2-grp">
+              <label class="cb2-label">หมายเหตุ <span class="cb2-opt">(ไม่บังคับ)</span></label>
+              <textarea formControlName="description" class="cb2-input"
+                placeholder="รายละเอียดเพิ่มเติม เช่น หัวข้อที่จะสอน, สื่อการสอน..." rows="3" style="resize:vertical"></textarea>
+            </div>
+          </section>
+
+          <!-- Error Banner -->
+          <div class="alert alert-error form-error-banner" *ngIf="errorMessage" id="form-error-anchor">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0">
               <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
               <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
             </svg>
-            ประเภทเดี่ยว — เลือกได้ 1 คนเท่านั้น
-          </div>
-
-          <div class="students-grid" *ngIf="students.length > 0; else noStudents">
-            <div class="student-chip" *ngFor="let s of students"
-              [class.selected]="isStudentSelected(getId(s))"
-              (click)="toggleStudentSelection(getId(s))">
-              <div class="student-avatar">{{ s.firstName.charAt(0) }}{{ s.lastName.charAt(0) }}</div>
-              <div class="student-info">
-                <span class="student-name">{{ s | displayName:'student' }}</span>
-                <span class="student-meta">{{ s.academicYear || s.grade || '' }}</span>
-              </div>
-              <div class="student-check" *ngIf="isStudentSelected(getId(s))">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                  <polyline points="20 6 9 17 4 12"/>
-                </svg>
-              </div>
+            <div class="error-body">
+              <strong>ไม่สามารถสร้างนัดสอนได้</strong>
+              <span>{{ errorMessage }}</span>
             </div>
           </div>
-          <ng-template #noStudents>
-            <p class="empty-hint">ยังไม่มีนักเรียนในระบบ</p>
-          </ng-template>
+        </form>
 
-          <div class="selected-summary" *ngIf="selectedStudentIds.length > 0">
-            <strong>เลือกแล้ว:</strong> {{ getSelectedStudentNames() }}
-          </div>
-        </div>
-
-        <!-- รายได้ครู & ราคานักเรียน -->
-        <div class="income-section">
-          <div class="income-section-header">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="12" y1="1" x2="12" y2="23"/>
-              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-            </svg>
-            <div>
-              <div class="income-title">รายได้ครู & ค่าเรียนนักเรียน</div>
-              <div class="income-subtitle">ระบบจะแสดงข้อมูลนี้ในอีเมลแจ้งเตือนไปยังครูและนักเรียน</div>
+        <!-- ── Sticky summary rail ── -->
+        <aside class="cb2-rail">
+          <div class="cb2-rail-card">
+            <div class="cb2-rail-h">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color:var(--brand-500)"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              ตรวจสอบก่อนสร้าง
             </div>
-          </div>
 
-          <!-- ── Group: show BOTH (group rate + individual fallback) ── -->
-          <ng-container *ngIf="bookingForm.get('type')?.value === 'group'">
-            <div class="form-row form-row-2">
-              <div class="form-group">
-                <label class="form-label">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-                  </svg>
-                  รายได้ครู (สอนกลุ่ม) ฿/ชั่วโมง
-                </label>
-                <div class="income-input-wrap">
-                  <span class="income-currency">฿</span>
-                  <input type="number" inputmode="numeric" formControlName="teacherIncomeGroup" class="form-input income-input" min="0" placeholder="บาท / ชั่วโมง" (wheel)="$event.preventDefault()"/>
-                  <span class="income-suffix">/ ชม.</span>
-                </div>
-                <span class="field-hint">คิดต่อชั่วโมง × ระยะเวลาคลาส (ใช้เมื่อมีนักเรียน ≥ 2 คน)</span>
+            <div class="cb2-check">
+              <div class="cb2-check-row" [class.on]="sec1Done">
+                <span class="cb2-check-dot" [class.on]="sec1Done"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                <span class="cb2-check-lb">ครู &amp; วันเวลา</span>
               </div>
-
-              <div class="form-group">
-                <label class="form-label">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                    <circle cx="12" cy="7" r="4"/>
-                  </svg>
-                  รายได้ครู (สอนเดี่ยว — สำรอง) ฿/ชั่วโมง
-                </label>
-                <div class="income-input-wrap">
-                  <span class="income-currency">฿</span>
-                  <input type="number" inputmode="numeric" formControlName="teacherIncomeIndividual" class="form-input income-input" min="0" placeholder="บาท / ชั่วโมง" (wheel)="$event.preventDefault()"/>
-                  <span class="income-suffix">/ ชม.</span>
-                </div>
-                <span class="field-hint">คิดต่อชั่วโมง × ระยะเวลาคลาส (ใช้เมื่อมีนักเรียน 1 คน)</span>
+              <div class="cb2-check-row" [class.on]="sec2Done">
+                <span class="cb2-check-dot" [class.on]="sec2Done"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                <span class="cb2-check-lb">รายละเอียดคลาส</span>
+              </div>
+              <div class="cb2-check-row" [class.on]="sec3Done">
+                <span class="cb2-check-dot" [class.on]="sec3Done"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                <span class="cb2-check-lb">นักเรียน</span>
+              </div>
+              <div class="cb2-check-row" [class.on]="sec4Done">
+                <span class="cb2-check-dot" [class.on]="sec4Done"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                <span class="cb2-check-lb">การเงิน</span>
               </div>
             </div>
 
-            <div class="income-fallback-note">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
-              <span>คิดเป็นบาท/ชั่วโมง — เช่น 200 บ./ชม. × คลาส 7:00–9:00 (2 ชม.) = 400 บ.</span>
-            </div>
-          </ng-container>
+            <div class="cb2-rail-sep"></div>
 
-          <!-- ── Individual: only individual rate ── -->
-          <div class="form-row form-row-2" *ngIf="bookingForm.get('type')?.value === 'individual'">
-            <div class="form-group">
-              <label class="form-label">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                  <circle cx="12" cy="7" r="4"/>
-                </svg>
-                รายได้ครู (สอนเดี่ยว) ฿/ชั่วโมง
-              </label>
-              <div class="income-input-wrap">
-                <span class="income-currency">฿</span>
-                <input type="number" inputmode="numeric" formControlName="teacherIncomeIndividual" class="form-input income-input" min="0" placeholder="บาท / ชั่วโมง" (wheel)="$event.preventDefault()"/>
-                <span class="income-suffix">/ ชม.</span>
+            <div class="cb2-rail-money">
+              <div class="cb2-rm-row teacher">
+                <span class="cb2-rm-lb">ครูจะได้รับ</span>
+                <span class="cb2-rm-val">฿{{ teacherIncomeTotal | number }}</span>
               </div>
-              <span class="field-hint">คิดต่อชั่วโมง × ระยะเวลาคลาส</span>
-            </div>
-          </div>
-
-          <!-- ค่าเรียนนักเรียน (always visible) -->
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-                  <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-                </svg>
-                ค่าเรียน (อัตรา/ชม. — นักเรียนต้องจ่าย)
-              </label>
-              <div class="income-input-wrap">
-                <span class="income-currency">฿</span>
-                <input type="number" inputmode="numeric" formControlName="coursePrice" class="form-input income-input price-input" min="0" placeholder="ระบุอัตราต่อชั่วโมง" (wheel)="$event.preventDefault()"/>
-                <span class="income-suffix">/ ชม.</span>
+              <div class="cb2-rm-row student">
+                <span class="cb2-rm-lb">นักเรียนจะจ่าย</span>
+                <span class="cb2-rm-val">฿{{ coursePriceTotal | number }}</span>
               </div>
-              <span class="field-hint">ค่าเรียนจริง = อัตรา × ชั่วโมงคลาส </span>
             </div>
+
+            <button type="button" class="cb2-submit" (click)="submitBooking()" [disabled]="submitting">
+              <svg *ngIf="!submitting" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              {{ submitting ? 'กำลังสร้าง...' : 'สร้างนัดสอน' }}
+            </button>
+            <button type="button" class="cb2-cancel" (click)="resetForm()">ยกเลิก</button>
           </div>
 
-          <!-- Preview summary -->
-          <div class="income-preview" *ngIf="(bookingForm.get('teacherIncomeIndividual')?.value > 0) || (bookingForm.get('teacherIncomeGroup')?.value > 0) || (bookingForm.get('coursePrice')?.value > 0)">
-            <div class="preview-warn" *ngIf="classDurationHours <= 0">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
-              เลือกเวลาเริ่ม–สิ้นสุดคลาสก่อน เพื่อคำนวณยอดที่ครูได้รับและค่าเรียน
-            </div>
-            <ng-container *ngIf="classDurationHours > 0">
-            <div class="preview-row teacher-preview">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                <polyline points="22,6 12,13 2,6"/>
-              </svg>
-              <span>ครูจะได้:</span>
-              <strong>
-                ฿{{ teacherIncomeTotal | number }}
-                <small class="preview-formula" *ngIf="classDurationHours > 0">
-                  ({{ teacherIncomeRate | number }} × {{ classDurationHours | number:'1.0-2' }} ชม. — {{ bookingForm.get('type')?.value === 'individual' ? 'เดี่ยว' : 'กลุ่ม' }})
-                </small>
-              </strong>
-            </div>
-            <div class="preview-row student-preview">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                <polyline points="22,6 12,13 2,6"/>
-              </svg>
-              <span>นักเรียนจะจ่าย:</span>
-              <strong>
-                ฿{{ coursePriceTotal | number }}
-                <small class="preview-formula" *ngIf="classDurationHours > 0 && coursePriceRate > 0">
-                  ({{ coursePriceRate | number }} × {{ classDurationHours | number:'1.0-2' }} ชม.)
-                </small>
-              </strong>
-            </div>
-            </ng-container>
+          <div class="cb2-rail-note">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            เมื่อสร้างแล้ว ระบบจะส่งอีเมลแจ้งครูและนักเรียนทุกคนทันที
           </div>
-        </div>
+        </aside>
 
-        <!-- หมายเหตุ -->
-        <div class="form-group">
-          <label class="form-label">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/>
-              <line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/>
-            </svg>
-            หมายเหตุ (ไม่บังคับ)
-          </label>
-          <textarea formControlName="description" class="form-input form-textarea"
-            placeholder="รายละเอียดเพิ่มเติม เช่น หัวข้อที่จะสอน, สื่อการสอน..." rows="3"></textarea>
-        </div>
-
-        <!-- Error Banner -->
-        <div class="alert alert-error form-error-banner" *ngIf="errorMessage" id="form-error-anchor">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-          <div class="error-body">
-            <strong>ไม่สามารถสร้างนัดสอนได้</strong>
-            <span>{{ errorMessage }}</span>
-          </div>
-        </div>
-
-        <!-- Actions -->
-        <div class="form-actions">
-          <button type="submit" class="btn-submit" [disabled]="submitting">
-            <ng-container *ngIf="!submitting">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <line x1="22" y1="2" x2="11" y2="13"/>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-              </svg>
-              สร้างนัดสอน &amp; ส่งแจ้งเตือน
-            </ng-container>
-            <span *ngIf="submitting" class="loading-dots">กำลังสร้าง...</span>
-          </button>
-          <button type="button" class="btn-cancel" (click)="resetForm()">ยกเลิก</button>
-        </div>
-      </form>
+      </div>
     </div>
   </div>
 
@@ -451,399 +428,263 @@
   </div>
 
   <div *ngIf="!loading" class="courses-section">
-    <div class="section-header">
+    <div class="cb2-page cb2-listwrap">
+
+    <div class="cb2-sec-h">
       <h2>รายการนัดสอนทั้งหมด</h2>
-      <span class="total-badge">{{ courses.length }} รายการ</span>
+      <span class="cb2-total">{{ courses.length }} รายการ</span>
     </div>
 
-    <!-- ── Status Tabs + Search (ใช้ displayStatus ตรงกับทุกหน้า) ── -->
-    <div *ngIf="courses.length > 0" class="cm-tabs-wrap">
-      <div class="cm-tabs">
-        <button class="cm-tab" [class.active]="cmTab === 'all'" (click)="setCmTab('all')">
-          <span>ทั้งหมด</span>
-          <span class="cm-tab-num">{{ cmCounts.all }}</span>
+    <!-- ── Controls: tabs + search + date chips + ตัวกรอง popover ── -->
+    <div class="cb2-controls" *ngIf="courses.length > 0">
+      <div class="cb2-ctrl-top">
+        <div class="cb2-tabs">
+          <button type="button" class="cb2-tab" [class.active]="cmTab === 'all'" (click)="setCmTab('all')">
+            <span>ทั้งหมด</span><span class="cb2-tab-n">{{ cmCounts.all }}</span>
+          </button>
+          <button type="button" class="cb2-tab" [class.active]="cmTab === 'pending_teacher'" (click)="setCmTab('pending_teacher')">
+            <span class="cb2-tab-dot" style="background:#f59e0b"></span><span>รอครูยืนยัน</span><span class="cb2-tab-n">{{ cmCounts.pending_teacher }}</span>
+          </button>
+          <button type="button" class="cb2-tab" [class.active]="cmTab === 'pending_students'" (click)="setCmTab('pending_students')">
+            <span class="cb2-tab-dot" style="background:#0ea5e9"></span><span>รอนักเรียนยืนยัน</span><span class="cb2-tab-n">{{ cmCounts.pending_students }}</span>
+          </button>
+          <button type="button" class="cb2-tab" [class.active]="cmTab === 'confirmed'" (click)="setCmTab('confirmed')">
+            <span class="cb2-tab-dot" style="background:#16a34a"></span><span>ยืนยันแล้ว</span><span class="cb2-tab-n">{{ cmCounts.confirmed }}</span>
+          </button>
+          <button type="button" class="cb2-tab" [class.active]="cmTab === 'awaiting_manager'" (click)="setCmTab('awaiting_manager')">
+            <span class="cb2-tab-dot" style="background:#ea580c"></span><span>รอ Manager ยืนยัน</span><span class="cb2-tab-n">{{ cmCounts.awaiting_manager }}</span>
+          </button>
+          <button type="button" class="cb2-tab" [class.active]="cmTab === 'completed'" (click)="setCmTab('completed')">
+            <span class="cb2-tab-dot" style="background:#0d9488"></span><span>เสร็จสิ้น</span><span class="cb2-tab-n">{{ cmCounts.completed }}</span>
+          </button>
+          <button type="button" class="cb2-tab" [class.active]="cmTab === 'cancelled'" (click)="setCmTab('cancelled')">
+            <span class="cb2-tab-dot" style="background:#e11d48"></span><span>ยกเลิก</span><span class="cb2-tab-n">{{ cmCounts.cancelled }}</span>
+          </button>
+        </div>
+        <div class="cb2-search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" [(ngModel)]="cmSearch" placeholder="ค้นหาวิชา ครู หรือระดับชั้น..." />
+          <button *ngIf="cmSearch" type="button" class="cb2-search-x" (click)="cmSearch = ''" aria-label="ล้าง">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="cb2-ctrl-bottom">
+        <div class="cb2-datechips">
+          <button type="button" class="cb2-datechip" [class.active]="cmDateFilter === 'all'" (click)="setCmDateFilter('all')">ทั้งหมด <span class="cb2-dc-n">{{ cmDateFilterCount('all') }}</span></button>
+          <button type="button" class="cb2-datechip" [class.active]="cmDateFilter === 'today'" (click)="setCmDateFilter('today')">วันนี้ <span class="cb2-dc-n">{{ cmDateFilterCount('today') }}</span></button>
+          <button type="button" class="cb2-datechip" [class.active]="cmDateFilter === 'week'" (click)="setCmDateFilter('week')">สัปดาห์นี้ <span class="cb2-dc-n">{{ cmDateFilterCount('week') }}</span></button>
+          <button type="button" class="cb2-datechip" [class.active]="cmDateFilter === 'month'" (click)="setCmDateFilter('month')">เดือนนี้ <span class="cb2-dc-n">{{ cmDateFilterCount('month') }}</span></button>
+        </div>
+        <div class="cb2-filter-wrap" *ngIf="cmSubjectOptions.length > 0 || cmTeacherOptions.length > 0">
+          <button type="button" class="cb2-filter-btn" [class.active]="filterPanelOpen || advancedFilterCount > 0" (click)="toggleFilterPanel($event)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/></svg>
+            ตัวกรอง
+            <span class="cb2-filter-badge" *ngIf="advancedFilterCount > 0">{{ advancedFilterCount }}</span>
+          </button>
+          <div class="cb2-menu-backdrop" *ngIf="filterPanelOpen" (click)="filterPanelOpen = false"></div>
+          <div class="cb2-filter-pop" *ngIf="filterPanelOpen" (click)="$event.stopPropagation()">
+            <div class="cb2-fp-sec" *ngIf="cmSubjectOptions.length > 0">
+              <div class="cb2-fp-lb">วิชา</div>
+              <div class="cb2-fp-chips">
+                <button type="button" class="cb2-fp-chip" *ngFor="let s of cmSubjectOptions" [class.active]="cmSubjectFilter === s.value" (click)="toggleSubjectFilter(s.value)">{{ s.value }} <span class="cb2-fp-n">{{ s.count }}</span></button>
+              </div>
+            </div>
+            <div class="cb2-fp-sec" *ngIf="cmTeacherOptions.length > 0">
+              <div class="cb2-fp-lb">ครู</div>
+              <div class="cb2-fp-chips">
+                <button type="button" class="cb2-fp-chip teacher" *ngFor="let t of cmTeacherOptions" [class.active]="cmTeacherFilter === t.id" (click)="toggleTeacherFilter(t.id)">{{ t.label }} <span class="cb2-fp-n">{{ t.count }}</span></button>
+              </div>
+            </div>
+            <div class="cb2-fp-foot">
+              <button type="button" class="cb2-fp-clear" (click)="clearAxisFilters()">ล้างตัวกรองทั้งหมด</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cb2-active" *ngIf="cmSearch || cmDateFilter !== 'all' || hasAxisFilter">
+        <span class="cb2-active-lb">ตัวกรองที่ใช้:</span>
+        <button type="button" class="cb2-active-chip" *ngIf="cmSearch" (click)="cmSearch = ''">ค้นหา: {{ cmSearch }}
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
-        <button class="cm-tab pending-teacher" [class.active]="cmTab === 'pending_teacher'" (click)="setCmTab('pending_teacher')">
-          <span class="cm-tab-dot"></span>
-          <span>รอครูยืนยัน</span>
-          <span class="cm-tab-num">{{ cmCounts.pending_teacher }}</span>
+        <button type="button" class="cb2-active-chip" *ngIf="cmDateFilter !== 'all'" (click)="setCmDateFilter('all')">{{ cmDateFilterLabel }}
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
-        <button class="cm-tab pending-students" [class.active]="cmTab === 'pending_students'" (click)="setCmTab('pending_students')">
-          <span class="cm-tab-dot"></span>
-          <span>รอนักเรียนยืนยัน</span>
-          <span class="cm-tab-num">{{ cmCounts.pending_students }}</span>
+        <button type="button" class="cb2-active-chip" *ngIf="cmSubjectFilter" (click)="toggleSubjectFilter(cmSubjectFilter)">วิชา: {{ cmSubjectFilter }}
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
-        <button class="cm-tab confirmed" [class.active]="cmTab === 'confirmed'" (click)="setCmTab('confirmed')">
-          <span class="cm-tab-dot"></span>
-          <span>ยืนยันแล้ว</span>
-          <span class="cm-tab-num">{{ cmCounts.confirmed }}</span>
-        </button>
-        <button class="cm-tab awaiting-manager" [class.active]="cmTab === 'awaiting_manager'" (click)="setCmTab('awaiting_manager')">
-          <span class="cm-tab-dot"></span>
-          <span>รอ Manager ยืนยัน</span>
-          <span class="cm-tab-num">{{ cmCounts.awaiting_manager }}</span>
-        </button>
-        <button class="cm-tab completed" [class.active]="cmTab === 'completed'" (click)="setCmTab('completed')">
-          <span class="cm-tab-dot"></span>
-          <span>เสร็จสิ้น</span>
-          <span class="cm-tab-num">{{ cmCounts.completed }}</span>
-        </button>
-        <button class="cm-tab cancelled" [class.active]="cmTab === 'cancelled'" (click)="setCmTab('cancelled')">
-          <span class="cm-tab-dot"></span>
-          <span>ยกเลิก</span>
-          <span class="cm-tab-num">{{ cmCounts.cancelled }}</span>
+        <button type="button" class="cb2-active-chip" *ngIf="cmTeacherFilter" (click)="toggleTeacherFilter(cmTeacherFilter)">ครู: {{ cmTeacherFilterLabel }}
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
-      <div class="cm-search">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" [(ngModel)]="cmSearch" placeholder="ค้นหาวิชา ครู หรือระดับชั้น..." />
-        <button *ngIf="cmSearch" class="cm-clear" (click)="cmSearch = ''" aria-label="ล้าง">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
     </div>
 
-    <!-- ── Date quick-filter chips ────────────────────────────────────────────── -->
-    <div class="cm-date-chips" *ngIf="courses.length > 0">
-      <span class="cm-axis-label">ช่วงเวลา</span>
-      <button class="cm-date-chip" [class.active]="cmDateFilter === 'all'" (click)="setCmDateFilter('all')">
-        ทั้งหมด <span class="cm-axis-count">{{ cmDateFilterCount('all') }}</span>
-      </button>
-      <button class="cm-date-chip" [class.active]="cmDateFilter === 'today'" (click)="setCmDateFilter('today')">
-        วันนี้ <span class="cm-axis-count">{{ cmDateFilterCount('today') }}</span>
-      </button>
-      <button class="cm-date-chip" [class.active]="cmDateFilter === 'week'" (click)="setCmDateFilter('week')">
-        สัปดาห์นี้ <span class="cm-axis-count">{{ cmDateFilterCount('week') }}</span>
-      </button>
-      <button class="cm-date-chip" [class.active]="cmDateFilter === 'month'" (click)="setCmDateFilter('month')">
-        เดือนนี้ <span class="cm-axis-count">{{ cmDateFilterCount('month') }}</span>
-      </button>
-    </div>
-
-    <!-- ── v2: Multi-axis filter chips (subject + teacher) ────────────────────────── -->
-    <div class="cm-axis-chips" *ngIf="courses.length > 0 && (cmSubjectOptions.length > 0 || cmTeacherOptions.length > 0)">
-      <ng-container *ngIf="cmSubjectOptions.length > 0">
-        <span class="cm-axis-label">วิชา</span>
-        <button class="cm-axis-chip"
-                *ngFor="let s of cmSubjectOptions"
-                [class.active]="cmSubjectFilter === s.value"
-                (click)="toggleSubjectFilter(s.value)">
-          {{ s.value }}
-          <span class="cm-axis-count">{{ s.count }}</span>
-        </button>
-      </ng-container>
-      <ng-container *ngIf="cmTeacherOptions.length > 0">
-        <span class="cm-axis-label cm-axis-label-sep">ครู</span>
-        <button class="cm-axis-chip cm-axis-chip-teacher"
-                *ngFor="let t of cmTeacherOptions"
-                [class.active]="cmTeacherFilter === t.id"
-                (click)="toggleTeacherFilter(t.id)">
-          {{ t.label }}
-          <span class="cm-axis-count">{{ t.count }}</span>
-        </button>
-      </ng-container>
-      <button class="cm-axis-clear" *ngIf="hasAxisFilter" (click)="clearAxisFilters()">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-        ล้างตัวกรอง
-      </button>
-    </div>
-
-    <!-- Empty State (Lottie-ready: swap inline SVG with <lottie-player src="..."> when JSON sourced) -->
-    <div class="kms-empty" *ngIf="courses.length === 0">
-      <div class="kms-empty-art">
-        <!-- Lottie placeholder: assets/lottie/empty-calendar.json -->
-        <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="4" width="18" height="18" rx="2"/>
-          <line x1="3" y1="10" x2="21" y2="10"/>
-          <line x1="8" y1="2" x2="8" y2="6"/>
-          <line x1="16" y1="2" x2="16" y2="6"/>
-          <circle cx="12" cy="16" r="1.2" fill="currentColor" opacity=".5"/>
-        </svg>
+    <!-- Empty: ยังไม่มีนัดสอน -->
+    <div class="cb2-empty" *ngIf="courses.length === 0">
+      <div class="cb2-empty-art">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
       </div>
       <h3>ยังไม่มีการนัดสอน</h3>
       <p>คลิก "สร้างนัดสอน" เพื่อเริ่มต้น</p>
     </div>
 
-    <!-- Filtered empty state -->
-    <div class="kms-empty" *ngIf="courses.length > 0 && cmFiltered.length === 0">
-      <div class="kms-empty-art">
-        <!-- Lottie placeholder: assets/lottie/empty-search.json -->
-        <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"/>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
+    <!-- Empty: filter ไม่เจอ -->
+    <div class="cb2-empty" *ngIf="courses.length > 0 && cmFiltered.length === 0">
+      <div class="cb2-empty-art">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </div>
       <h3>ไม่พบรายการ</h3>
-      <p>ลองเปลี่ยนแท็บหรือล้างคำค้น</p>
+      <p>ลองเปลี่ยนแท็บ ล้างคำค้น หรือปรับตัวกรอง</p>
     </div>
 
-    <!-- Courses Timeline — date-grouped sections (matches history page) -->
-    <div class="cm-timeline" *ngIf="cmTimelineGroups.length > 0">
-      <div class="cm-tl-group" *ngFor="let g of cmTimelineGroups; trackBy: trackByGroup">
-        <div class="cm-tl-date">
-          <div class="cm-tl-date-circle">{{ g.dayNum }}</div>
-          <div class="cm-tl-date-info">
-            <div class="cm-tl-date-label">{{ g.dateLabel }}</div>
-            <div class="cm-tl-date-weekday" *ngIf="g.weekday">วัน{{ g.weekday }}</div>
+    <!-- ── Timeline (date-grouped) ── -->
+    <div class="cb2-tl" *ngIf="cmTimelineGroups.length > 0">
+      <div class="cb2-tl-group" *ngFor="let g of cmTimelineGroups; trackBy: trackByGroup">
+        <div class="cb2-tl-head">
+          <div class="cb2-tl-circle">{{ g.dayNum }}</div>
+          <div class="cb2-tl-info">
+            <div class="cb2-tl-date">{{ g.dateLabel }}</div>
+            <div class="cb2-tl-wd" *ngIf="g.weekday">วัน{{ g.weekday }}</div>
           </div>
-          <div class="cm-tl-date-count">{{ g.items.length }} คลาส</div>
+          <div class="cb2-tl-count">{{ g.items.length }} คลาส</div>
         </div>
 
-        <div class="courses-grid kms-stagger">
-          <div class="course-card" *ngFor="let course of g.items; trackBy: trackByCourseId"
-               [class.series-card]="isSeriesCourse(course)"
-               [class.is-expanded]="isExpanded(getId(course))">
+        <div class="cb2-grid">
+          <article class="cb2-card" *ngFor="let course of g.items; trackBy: trackByCourseId"
+                   [ngClass]="cb2StatusClass(course)"
+                   [class.is-series]="isSeriesCourse(course)">
 
-        <!-- ── Series stack badge ── -->
-        <div class="series-stack-badge" *ngIf="isSeriesCourse(course)"
-             role="button" tabindex="0" style="cursor:pointer"
-             (click)="$event.stopPropagation(); openSeriesModal(course)"
-             (keydown.enter)="openSeriesModal(course)"
-             [title]="'ชุดนัดสอนอัตโนมัติ — คลิกดูทั้งชุด (' + getSeriesCount(course) + ' คลาส)'">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="21 8 21 21 3 21 3 8"/>
-            <rect x="1" y="3" width="22" height="5"/>
-            <line x1="10" y1="12" x2="14" y2="12"/>
-          </svg>
-          <span>ชุดอัตโนมัติ</span>
-          <span class="series-stack-count">{{ getSeriesCount(course) }} คลาส</span>
-        </div>
+            <!-- Series strip -->
+            <div class="cb2-series-strip" *ngIf="isSeriesCourse(course)">
+              <div class="cb2-ss-top">
+                <span class="cb2-ss-ic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></span>
+                <span class="cb2-ss-title">ชุดอัตโนมัติ</span>
+                <span class="cb2-ss-recur">ซ้ำ{{ getSeriesRecur(course) }}</span>
+                <span class="cb2-ss-count">{{ getSeriesCount(course) }} คลาส</span>
+              </div>
+              <div class="cb2-ss-prog">
+                <div class="cb2-ss-segs">
+                  <span class="cb2-ss-seg" *ngFor="let seg of getSeriesSegs(course)" [class.done]="seg"></span>
+                </div>
+                <span class="cb2-ss-prog-lb">เสร็จ {{ getSeriesCompletedCount(course) }}/{{ getSeriesCount(course) }}</span>
+              </div>
+            </div>
 
-        <!-- Card Header -->
-        <div class="card-header">
-          <div class="card-subject">
-            {{ course.subject }}
-            <span class="series-progress" *ngIf="isSeriesCourse(course)"
-                  [title]="'ยืนยันเสร็จสิ้นแล้ว ' + getSeriesCompletedCount(course) + ' จาก ' + getSeriesCount(course) + ' คลาสในชุด'">
-              {{ getSeriesCompletedCount(course) }}/{{ getSeriesCount(course) }}
-              <span class="series-progress-text">ครั้งที่เสร็จสิ้นคลาส</span>
-            </span>
-          </div>
-          <span class="status-badge" [ngClass]="getStatusClass(course)">
-            {{ getStatusLabel(course) }}
-          </span>
-        </div>
+            <div class="cb2-card-body">
+              <div class="cb2-card-top">
+                <div class="cb2-card-subj">{{ course.subject }}</div>
+                <span class="cb2-badge" [ngClass]="cb2StatusClass(course)">{{ getStatusLabel(course) }}</span>
+              </div>
 
-        <!-- Card Body -->
-        <div class="card-body">
-          <div class="card-row">
-            <svg class="card-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-            <span class="card-value">{{ getTeacherName(course.teacher) }}</span>
-          </div>
-
-          <div class="card-row" *ngIf="course.students && course.students.length > 0">
-            <svg class="card-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-              <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-            </svg>
-            <span class="card-value">
-              <span class="student-pill" *ngFor="let s of course.students">
-                {{ s | displayName:'student' }}<span *ngIf="$any(s).grade || $any(s).academicYear" class="student-pill-grade"> {{ $any(s).grade || $any(s).academicYear }}</span>
-              </span>
-            </span>
-          </div>
-
-          <div class="card-row" *ngIf="course.scheduledDate">
-            <svg class="card-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <rect x="3" y="4" width="18" height="18" rx="2"/>
-              <line x1="3" y1="10" x2="21" y2="10"/>
-              <line x1="8" y1="2" x2="8" y2="6"/>
-              <line x1="16" y1="2" x2="16" y2="6"/>
-            </svg>
-            <span class="card-value">
-              {{ formatDateTime(course.scheduledDate) }}
-              <span *ngIf="course.startTime"> {{ course.startTime }}–{{ course.endTime }}</span>
-            </span>
-          </div>
-
-          <div class="card-tags">
-            <span class="tag tag-type" *ngIf="course.type">{{ getTypeLabel(course.type) }}</span>
-            <span class="tag tag-difficulty" *ngIf="course.teachingType">{{ course.teachingType }}</span>
-            <span class="tag tag-grade" *ngIf="course.gradeLevel">{{ course.gradeLevel }}</span>
-          </div>
-
-          <div class="card-finance" *ngIf="(course.coursePrice || 0) > 0 || (course.teacherIncomeGroup || 0) > 0 || (course.teacherIncomeIndividual || 0) > 0">
-            <!-- ── รายได้ครู ── คลาสตั้งแต่ 8 พ.ค. 2569 = อัตรา×ชม. คลาสก่อนหน้า = flat -->
-            <ng-container *ngIf="getTeacherRate(course) > 0">
-              <div class="finance-item teacher-income" *ngIf="isTeacherHourlyDisplay(course); else teacherFlat">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <line x1="12" y1="1" x2="12" y2="23"/>
-                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                </svg>
-                <span class="finance-label">รายได้ครู</span>
-                <span class="finance-formula">
-                  <span class="finance-rate">ชม.ละ ฿{{ getTeacherRate(course) | number }}</span>
-                  <span class="finance-x" *ngIf="getCardHours(course) > 0">×</span>
-                  <span class="finance-hours" *ngIf="getCardHours(course) > 0">{{ formatHours(getCardHours(course)) }}</span>
-                  <span class="finance-eq" *ngIf="getCardHours(course) > 0">=</span>
-                  <strong class="finance-total" *ngIf="getCardHours(course) > 0">฿{{ getTeacherTotal(course) | number }}</strong>
+              <div class="cb2-card-meta">
+                <span class="cb2-meta">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  {{ getTeacherName(course.teacher) }}
+                </span>
+                <span class="cb2-meta" *ngIf="course.startTime">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  {{ course.startTime }}–{{ course.endTime }}<span class="cb2-dur" *ngIf="getCardHours(course) > 0">{{ formatHours(getCardHours(course)) }}</span>
                 </span>
               </div>
-              <ng-template #teacherFlat>
-                <div class="finance-item teacher-income">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <line x1="12" y1="1" x2="12" y2="23"/>
-                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                  </svg>
-                  <span class="finance-label">รายได้ครู</span>
-                  <span>฿{{ getTeacherRate(course) | number }}</span>
-                </div>
-              </ng-template>
-            </ng-container>
 
-            <!-- ── ค่าเรียน ── คลาสตั้งแต่ 9 พ.ค. 2569 = อัตรา×ชม. คลาสก่อนหน้า = flat -->
-            <ng-container *ngIf="getCoursePriceRate(course) > 0">
-              <div class="finance-item student-price" *ngIf="isPriceHourlyDisplay(course); else priceFlat">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-                  <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-                </svg>
-                <span class="finance-label">ค่าเรียน</span>
-                <span class="finance-formula">
-                  <span class="finance-rate">ชม.ละ ฿{{ getCoursePriceRate(course) | number }}</span>
-                  <span class="finance-x" *ngIf="getCardHours(course) > 0">×</span>
-                  <span class="finance-hours" *ngIf="getCardHours(course) > 0">{{ formatHours(getCardHours(course)) }}</span>
-                  <span class="finance-eq" *ngIf="getCardHours(course) > 0">=</span>
-                  <strong class="finance-total" *ngIf="getCardHours(course) > 0">฿{{ getCoursePriceTotalForCard(course) | number }}</strong>
+              <div class="cb2-card-chips">
+                <span class="cb2-chip" *ngIf="course.gradeLevel">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                  {{ course.gradeLevel }}
                 </span>
+                <span class="cb2-chip" *ngIf="course.type">{{ getTypeLabel(course.type) }}</span>
+                <span class="cb2-chip" *ngIf="course.students && course.students.length > 0">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+                  {{ course.students.length }} คน
+                </span>
+                <span class="cb2-chip cb2-chip-tt" *ngIf="course.teachingType">{{ course.teachingType }}</span>
               </div>
-              <ng-template #priceFlat>
-                <div class="finance-item student-price">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-                    <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-                  </svg>
-                  <span class="finance-label">ค่าเรียน</span>
-                  <span>฿{{ getCoursePriceRate(course) | number }}</span>
+
+              <div class="cb2-fin" *ngIf="getTeacherRate(course) > 0 || getCoursePriceRate(course) > 0">
+                <div class="cb2-fin-item teacher" *ngIf="getTeacherRate(course) > 0">
+                  <span class="cb2-fin-lb">รายได้ครู</span>
+                  <span class="cb2-fin-f" *ngIf="isTeacherHourlyDisplay(course) && getCardHours(course) > 0; else tFlat">฿{{ getTeacherRate(course) | number }} × {{ formatHours(getCardHours(course)) }} = <strong>฿{{ getTeacherTotal(course) | number }}</strong></span>
+                  <ng-template #tFlat><span class="cb2-fin-f"><strong>฿{{ getTeacherRate(course) | number }}</strong></span></ng-template>
                 </div>
-              </ng-template>
-            </ng-container>
-          </div>
-        </div>
+                <div class="cb2-fin-item student" *ngIf="getCoursePriceRate(course) > 0">
+                  <span class="cb2-fin-lb">ค่าเรียน</span>
+                  <span class="cb2-fin-f" *ngIf="isPriceHourlyDisplay(course) && getCardHours(course) > 0; else pFlat">฿{{ getCoursePriceRate(course) | number }} × {{ formatHours(getCardHours(course)) }} = <strong>฿{{ getCoursePriceTotalForCard(course) | number }}</strong></span>
+                  <ng-template #pFlat><span class="cb2-fin-f"><strong>฿{{ getCoursePriceRate(course) | number }}</strong></span></ng-template>
+                </div>
+              </div>
 
-        <!-- ── v2: Expandable inline detail ── -->
-        <div class="cm-expand-panel" *ngIf="isExpanded(getId(course))">
-          <div class="cm-expand-row" *ngIf="course.description">
-            <span class="cm-expand-label">รายละเอียด</span>
-            <span class="cm-expand-value">{{ course.description }}</span>
-          </div>
-          <div class="cm-expand-row" *ngIf="course.students && course.students.length > 0">
-            <span class="cm-expand-label">นักเรียนที่ลงทะเบียน ({{ course.students.length }})</span>
-            <div class="cm-expand-students">
-              <span class="cm-expand-student" *ngFor="let s of course.students">
-                <span class="cm-expand-student-avatar">{{ $any(s).firstName?.charAt(0) }}{{ $any(s).lastName?.charAt(0) }}</span>
-                {{ s | displayName:'student' }}<span class="cm-expand-student-grade" *ngIf="$any(s).grade || $any(s).academicYear"> · {{ $any(s).grade || $any(s).academicYear }}</span>
-              </span>
+              <!-- Expand detail -->
+              <div class="cb2-expand" *ngIf="isExpanded(getId(course))">
+                <div class="cb2-exp-row" *ngIf="course.description">
+                  <span class="cb2-exp-lb">หมายเหตุ</span>
+                  <span class="cb2-exp-val">{{ course.description }}</span>
+                </div>
+                <div class="cb2-exp-row" *ngIf="course.students && course.students.length > 0">
+                  <span class="cb2-exp-lb">นักเรียนที่ลงทะเบียน ({{ course.students.length }})</span>
+                  <div class="cb2-exp-students">
+                    <span class="cb2-exp-st" *ngFor="let s of course.students"><span class="cb2-exp-av">{{ $any(s).firstName?.charAt(0) }}{{ $any(s).lastName?.charAt(0) }}</span>{{ s | displayName:'student' }}</span>
+                  </div>
+                </div>
+                <div class="cb2-exp-row">
+                  <span class="cb2-exp-lb">รหัสนัดสอน</span>
+                  <span class="cb2-exp-val">{{ getId(course).slice(0, 8) }}…</span>
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="cm-expand-row cm-expand-grid">
-            <div>
-              <span class="cm-expand-label">รหัสนัดสอน</span>
-              <span class="cm-expand-value cm-expand-mono">{{ getId(course).slice(0, 8) }}…</span>
-            </div>
-            <div *ngIf="course.createdAt">
-              <span class="cm-expand-label">สร้างเมื่อ</span>
-              <span class="cm-expand-value">{{ formatDateTime(course.createdAt) }}</span>
-            </div>
-          </div>
-        </div>
 
-        <!-- ── v2: Expand toggle button ── -->
-        <button class="cm-expand-btn" type="button"
-                (click)="toggleExpand(getId(course), $event)"
-                [attr.aria-expanded]="isExpanded(getId(course))"
-                [attr.aria-label]="isExpanded(getId(course)) ? 'ย่อรายละเอียด' : 'ขยายรายละเอียด'">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"
-               [style.transform]="isExpanded(getId(course)) ? 'rotate(180deg)' : 'rotate(0)'"
-               style="transition:transform 220ms cubic-bezier(0.16,1,0.3,1)">
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
-          <span>{{ isExpanded(getId(course)) ? 'ย่อ' : 'รายละเอียด' }}</span>
-        </button>
-
-        <!-- Card Footer -->
-        <div class="card-footer">
-          <div class="teacher-status pending-pulse" *ngIf="course.status === 'pending' && !course.teacherAccepted"
-               [title]="'รอ ' + getTeacherName(course.teacher) + ' กดยอมรับการนัดสอน'">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-            </svg>
-            รอ<strong>{{ getTeacherName(course.teacher) }}</strong>ยืนยัน
-          </div>
-          <div class="teacher-status confirmed" *ngIf="course.teacherAccepted">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-            ครูยืนยันการสอนแล้ว
-          </div>
-          <div class="card-actions">
-            <button class="btn-manager-confirm"
-              *ngIf="resolveStatus(course) === 'awaiting_manager'"
-              (click)="$event.stopPropagation(); managerConfirmClass(course)"
-              [disabled]="confirmingId === getId(course)">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              {{ confirmingId === getId(course) ? 'กำลังยืนยัน...' : 'ยืนยันเสร็จสิ้น (Manager)' }}
-            </button>
-            <button class="btn-view-series" *ngIf="isSeriesCourse(course)"
-              (click)="$event.stopPropagation(); openSeriesModal(course)"
-              [title]="'ดูคลาสทั้งหมดในชุด (' + getSeriesCount(course) + ' คลาส)'">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="21 8 21 21 3 21 3 8"/>
-                <rect x="1" y="3" width="22" height="5"/>
-                <line x1="10" y1="12" x2="14" y2="12"/>
-              </svg>
-              ดูทั้งชุด ({{ getSeriesCount(course) }} คลาส)
-            </button>
-            <button class="btn-edit-course" (click)="openEditModal(course)">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-              </svg>
-              แก้ไข
-            </button>
-            <button class="btn-cancel-course" (click)="cancelCourse(getId(course))"
-              *ngIf="resolveStatus(course) !== 'cancelled' && (!isFinalStatus(course) || isTestClass(course))">ยกเลิก</button>
-            <!-- Series quick actions on the anchor card (no modal needed) -->
-            <button class="btn-cancel-course"
-              *ngIf="isSeriesCourse(course)"
-              (click)="$event.stopPropagation(); bulkCancelSeries(course)"
-              [disabled]="bulkCancelling">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-              ยกเลิกทั้งชุด
-            </button>
-            <button class="btn-delete-course"
-              *ngIf="isSeriesCourse(course)"
-              (click)="$event.stopPropagation(); bulkDeleteSeries(course)"
-              [disabled]="bulkCancelling">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>
-              </svg>
-              ลบทั้งชุด
-            </button>
-            <button class="btn-delete-course" (click)="permanentDelete(getId(course))"
-              *ngIf="resolveStatus(course) === 'cancelled'">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6l-1 14H6L5 6"/>
-                <path d="M10 11v6M14 11v6"/>
-                <path d="M9 6V4h6v2"/>
-              </svg>
-              ลบออก
-            </button>
-          </div>
+            <div class="cb2-card-foot">
+              <button type="button" class="cb2-foot-exp" [class.open]="isExpanded(getId(course))" (click)="toggleExpand(getId(course), $event)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                {{ isExpanded(getId(course)) ? 'ย่อ' : 'รายละเอียด' }}
+              </button>
+              <div class="cb2-foot-actions">
+                <button type="button" class="cb2-primary ok" *ngIf="resolveStatus(course) === 'awaiting_manager'" (click)="$event.stopPropagation(); managerConfirmClass(course)" [disabled]="confirmingId === getId(course)">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  {{ confirmingId === getId(course) ? 'กำลังยืนยัน...' : 'ยืนยันเสร็จสิ้น' }}
+                </button>
+                <button type="button" class="cb2-primary brand" *ngIf="resolveStatus(course) !== 'awaiting_manager' && isSeriesCourse(course)" (click)="$event.stopPropagation(); openSeriesModal(course)">
+                  ดูทั้งชุด
+                </button>
+                <button type="button" class="cb2-icon" title="แก้ไข" (click)="$event.stopPropagation(); openEditModal(course)">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button type="button" class="cb2-icon" title="เพิ่มเติม" (click)="toggleCardMenu(getId(course), $event)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg>
+                </button>
+                <div class="cb2-menu-backdrop" *ngIf="openCardMenuId === getId(course)" (click)="closeCardMenu()"></div>
+                <div class="cb2-menu" *ngIf="openCardMenuId === getId(course)" (click)="$event.stopPropagation()">
+                  <div class="cb2-menu-item" *ngIf="isSeriesCourse(course)" (click)="closeCardMenu(); openSeriesModal(course)">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+                    ดูทั้งชุด
+                  </div>
+                  <div class="cb2-menu-item" *ngIf="resolveStatus(course) !== 'cancelled' && (!isFinalStatus(course) || isTestClass(course))" (click)="closeCardMenu(); cancelCourse(getId(course))">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    ยกเลิกนัด
+                  </div>
+                  <div class="cb2-menu-item danger" *ngIf="isSeriesCourse(course)" (click)="closeCardMenu(); bulkCancelSeries(course)">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    ยกเลิกทั้งชุด
+                  </div>
+                  <div class="cb2-menu-sep" *ngIf="isSeriesCourse(course) || resolveStatus(course) === 'cancelled'"></div>
+                  <div class="cb2-menu-item danger" *ngIf="isSeriesCourse(course)" (click)="closeCardMenu(); bulkDeleteSeries(course)">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                    ลบทั้งชุด
+                  </div>
+                  <div class="cb2-menu-item danger" *ngIf="resolveStatus(course) === 'cancelled'" (click)="closeCardMenu(); permanentDelete(getId(course))">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                    ลบออก
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
         </div>
       </div>
-          </div><!-- /courses-grid (per-day) -->
-        </div><!-- /cm-tl-group -->
-    </div><!-- /cm-timeline -->
+    </div>
+
+    </div><!-- /cb2-listwrap -->
   </div>
 
   <!-- ─── Edit Modal ──────────────────────────────────────────── -->
@@ -901,7 +742,12 @@
                 <svg class="edit-field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 <select class="edit-input has-icon edit-select" [(ngModel)]="editTeacherId">
                   <option value="">— เลือกครู —</option>
-                  <option *ngFor="let t of teachers" [value]="t._id">{{ t | displayName:'teacher' }}</option>
+                  <optgroup label="ผู้จัดการ" *ngIf="managerStaff.length">
+                    <option *ngFor="let t of managerStaff" [value]="t._id">{{ t | displayName:'teacher' }}</option>
+                  </optgroup>
+                  <optgroup label="ครู" *ngIf="teacherStaff.length">
+                    <option *ngFor="let t of teacherStaff" [value]="t._id">{{ t | displayName:'teacher' }}</option>
+                  </optgroup>
                 </select>
               </div>
             </div>
