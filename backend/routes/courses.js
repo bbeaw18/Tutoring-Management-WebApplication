@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const router = express.Router();
 const Course = require('../models/Course');
 const Schedule = require('../models/Schedule');
+const Attendance = require('../models/Attendance');
 const { deriveDisplayStatus } = require('../utils/scheduleAggregation');
 const User = require('../models/User');
 const Enrollment = require('../models/Enrollment');
@@ -626,6 +627,23 @@ router.patch('/:id/edit-booking', authenticateToken, roleCheck(['admin', 'manage
         { course: course._id, status: { $ne: 'cancelled' } },
         { $set: priceUpdate }
       );
+    }
+
+    // ── 1b) Recompute actualTeacherIncome snapshot for finished schedules ──
+    //    actualTeacherIncome is frozen when the class closes; if the manager
+    //    corrects the teacher rate afterwards the snapshot must be re-derived,
+    //    otherwise history/revenue keep showing the old income.
+    if (teacherIncomeIndividual !== undefined || teacherIncomeGroup !== undefined) {
+      const { computeEffectiveTeacherIncome } = require('../utils/helpers');
+      const finished = await Schedule.find({
+        course: course._id,
+        status: { $in: ['completed', 'awaiting_confirmation'] }
+      });
+      for (const sch of finished) {
+        const attendanceCount = await Attendance.countDocuments({ schedule: sch._id });
+        sch.actualTeacherIncome = computeEffectiveTeacherIncome(sch, attendanceCount);
+        await sch.save();
+      }
     }
 
     // ── 2) Date/time/teacher ── sync เฉพาะ schedule ที่ยังไม่ completed/cancelled
