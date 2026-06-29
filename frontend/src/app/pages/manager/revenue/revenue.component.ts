@@ -332,10 +332,10 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
     return this.personnelExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
   }
 
-  /** ยอด "รายจ่ายครู" ที่แสดงบนการ์ด KPI = ค่าจ้างอัตโนมัติ (จาก schedule) + รายจ่ายบุคลากร
-   *  (display เท่านั้น — personnel ถูกนับใน manualExpenseTotal แล้ว ไม่ double count ใน netProfit) */
+  /** ยอด "รายจ่ายครู" ที่แสดงบนการ์ด KPI = ค่าจ้างครู + ค่าสอน Manager + รายจ่ายบุคลากร
+   *  (display เท่านั้น — netProfit ใช้ expenseTotal ที่นับ managerIncome/personnel แล้ว ไม่ double count) */
   get teacherExpenseDisplayTotal(): number {
-    return this.kpiTeacherExpense + this.personnelExpenseTotal;
+    return this.kpiTeacherExpense + this.kpiManagerIncome + this.personnelExpenseTotal;
   }
 
   /** Called when teacher or student dropdown changes — frontend filter only, no reload */
@@ -359,7 +359,8 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
       .filter(s => s.teacherId === teacherId && s.status === 'completed' && (s.actualTeacherIncome || 0) > 0)
       .slice()
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    this.teacherMonthlyExtraExpenses = [];
+    this.teacherMonthlyExtraExpenses = this.personnelExpenses
+      .filter(e => String(e.personId || '') === teacherId);
     this.showTeacherMonthlyModal = true;
   }
 
@@ -372,9 +373,11 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
     } else if (this.activeKpi === 'unpaid') {
       list = list.filter(s => s.unpaid > 0);
     } else if (this.activeKpi === 'teacherExpense') {
+      // รวมทั้งครู (role='teacher') และ Manager ที่สอน (role='manager')
+      // — Manager จึงมีประวัติคลาสที่สอนในกริด/ drill-down เหมือนครู
       list = list.filter(s =>
         s.status === 'completed' &&
-        s.teacherRole === 'teacher' &&
+        (s.teacherRole === 'teacher' || s.teacherRole === 'manager') &&
         (s.actualTeacherIncome || 0) > 0
       );
     } else if (this.activeKpi === 'managerIncome') {
@@ -696,9 +699,14 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
   get myIncomeAmount(): number {
     const targetId = this.filterTeacher || this.currentUser?._id || '';
     if (!targetId) return 0;
-    return this.allSchedules
+    const teaching = this.allSchedules
       .filter(s => s.teacherId === targetId && s.status === 'completed')
       .reduce((sum, s) => sum + (s.actualTeacherIncome || 0), 0);
+    // รายจ่ายบุคลากร (manual) ที่ผูกกับคนนี้ = รายได้บุคลากรของเขาด้วย
+    const personnel = this.personnelExpenses
+      .filter(e => String(e.personId || '') === targetId)
+      .reduce((sum, e) => sum + (e.amount || 0), 0);
+    return teaching + personnel;
   }
 
   get myIncomeSubtitle(): string {
