@@ -831,3 +831,34 @@
   .timeline-track { height: 58px; }
   .tl-event { font-size: 10px; }
 }
+
+/* ══ Guardian-info reminder banner ══════════════════════════════════ */
+.guardian-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  margin-bottom: var(--sp-4, 16px);
+  border-radius: 14px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+  text-decoration: none;
+  box-shadow: 0 2px 10px rgba(217, 119, 6, 0.08);
+  transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+.guardian-banner:hover {
+  background: #fef3c7;
+  box-shadow: 0 4px 16px rgba(217, 119, 6, 0.16);
+  transform: translateY(-1px);
+}
+.guardian-banner > svg:first-child { flex-shrink: 0; color: #d97706; }
+.guardian-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.guardian-banner-text strong { font-size: 14px; color: #78350f; }
+.guardian-banner-arrow { flex-shrink: 0; margin-left: auto; color: #d97706; }

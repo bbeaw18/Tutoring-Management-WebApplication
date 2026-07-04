@@ -21,7 +21,7 @@ const ExpenseSchema = new mongoose.Schema({
   // 'other' = อื่นๆ. income ไม่ใช้ field นี้ (เป็น null)
   category: {
     type: String,
-    enum: ['personnel', 'other'],
+    enum: ['personnel', 'other', null],
     default: null
   },
   // บุคลากรที่ผูกรายจ่ายนี้ (เมื่อ category='personnel') — ใช้บวกเข้า KPI รายจ่ายครูของคนนั้น

@@ -380,6 +380,120 @@
               <div *ngIf="submitted && f['academicYear'].invalid" class="field-error">กรุณากรอกชั้นปี</div>
             </div>
 
+            <!-- ── ข้อมูลผู้ปกครอง ── -->
+            <div class="section-head" style="margin-top: 8px;">
+              <span class="section-num">04</span>
+              <h4>ข้อมูลผู้ปกครอง</h4>
+            </div>
+
+            <div class="grid-2">
+              <div class="field" [class.has-value]="!!registerForm.value.guardianName">
+                <div class="field-control">
+                  <input type="text" id="guardianName" formControlName="guardianName" placeholder=" "
+                         [class.is-error]="submitted && f['guardianName'].invalid"/>
+                  <label for="guardianName" class="field-label">ชื่อผู้ปกครอง</label>
+                  <span class="field-underline" aria-hidden="true"></span>
+                </div>
+                <div *ngIf="submitted && f['guardianName'].invalid" class="field-error">กรุณากรอกชื่อผู้ปกครอง</div>
+              </div>
+              <div class="field" [class.has-value]="!!registerForm.value.parentContact">
+                <div class="field-control">
+                  <input type="text" id="parentContact" formControlName="parentContact" placeholder=" "
+                         [class.is-error]="submitted && f['parentContact'].invalid"/>
+                  <label for="parentContact" class="field-label">เบอร์ติดต่อผู้ปกครอง</label>
+                  <span class="field-underline" aria-hidden="true"></span>
+                </div>
+                <div *ngIf="submitted && f['parentContact'].invalid" class="field-error">กรุณากรอกเบอร์ติดต่อผู้ปกครอง</div>
+              </div>
+            </div>
+
+            <!-- ── ที่อยู่ ── -->
+            <div class="section-head" style="margin-top: 8px;">
+              <span class="section-num">05</span>
+              <h4>ที่อยู่</h4>
+            </div>
+
+            <div class="field" [class.has-value]="!!registerForm.value.addressDetail">
+              <div class="field-control">
+                <input type="text" id="addressDetail" formControlName="addressDetail" placeholder=" "
+                       [class.is-error]="submitted && f['addressDetail'].invalid"/>
+                <label for="addressDetail" class="field-label">บ้านเลขที่ / อาคาร / หมู่บ้าน</label>
+                <span class="field-underline" aria-hidden="true"></span>
+              </div>
+              <div *ngIf="submitted && f['addressDetail'].invalid" class="field-error">กรุณากรอกบ้านเลขที่</div>
+            </div>
+
+            <div class="grid-2">
+              <div class="field" [class.has-value]="!!registerForm.value.moo">
+                <div class="field-control">
+                  <input type="text" id="moo" formControlName="moo" placeholder=" "/>
+                  <label for="moo" class="field-label">หมู่ที่ (ถ้ามี)</label>
+                  <span class="field-underline" aria-hidden="true"></span>
+                </div>
+              </div>
+              <div class="field" [class.has-value]="!!registerForm.value.soi">
+                <div class="field-control">
+                  <input type="text" id="soi" formControlName="soi" placeholder=" "/>
+                  <label for="soi" class="field-label">ซอย (ถ้ามี)</label>
+                  <span class="field-underline" aria-hidden="true"></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="field" [class.has-value]="!!registerForm.value.road">
+              <div class="field-control">
+                <input type="text" id="road" formControlName="road" placeholder=" "/>
+                <label for="road" class="field-label">ถนน (ถ้ามี)</label>
+                <span class="field-underline" aria-hidden="true"></span>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="field" [class.has-value]="!!registerForm.value.subdistrict">
+                <div class="field-control">
+                  <input type="text" id="subdistrict" formControlName="subdistrict" placeholder=" "
+                         [class.is-error]="submitted && f['subdistrict'].invalid"/>
+                  <label for="subdistrict" class="field-label">ตำบล / แขวง</label>
+                  <span class="field-underline" aria-hidden="true"></span>
+                </div>
+                <div *ngIf="submitted && f['subdistrict'].invalid" class="field-error">กรุณากรอกตำบล/แขวง</div>
+              </div>
+              <div class="field" [class.has-value]="!!registerForm.value.district">
+                <div class="field-control">
+                  <input type="text" id="district" formControlName="district" placeholder=" "
+                         [class.is-error]="submitted && f['district'].invalid"/>
+                  <label for="district" class="field-label">อำเภอ / เขต</label>
+                  <span class="field-underline" aria-hidden="true"></span>
+                </div>
+                <div *ngIf="submitted && f['district'].invalid" class="field-error">กรุณากรอกอำเภอ/เขต</div>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="field" [class.has-value]="!!registerForm.value.province">
+                <div class="field-control">
+                  <input type="text" id="province" formControlName="province" placeholder=" "
+                         [class.is-error]="submitted && f['province'].invalid"/>
+                  <label for="province" class="field-label">จังหวัด</label>
+                  <span class="field-underline" aria-hidden="true"></span>
+                </div>
+                <div *ngIf="submitted && f['province'].invalid" class="field-error">กรุณากรอกจังหวัด</div>
+              </div>
+              <div class="field" [class.has-value]="!!registerForm.value.postalCode">
+                <div class="field-control">
+                  <input type="text" id="postalCode" formControlName="postalCode" placeholder=" "
+                         maxlength="5" inputmode="numeric"
+                         [class.is-error]="submitted && f['postalCode'].invalid"/>
+                  <label for="postalCode" class="field-label">รหัสไปรษณีย์</label>
+                  <span class="field-underline" aria-hidden="true"></span>
+                </div>
+                <div *ngIf="submitted && f['postalCode'].invalid" class="field-error">
+                  <span *ngIf="f['postalCode'].hasError('required')">กรุณากรอกรหัสไปรษณีย์</span>
+                  <span *ngIf="f['postalCode'].hasError('pattern')">รหัสไปรษณีย์ 5 หลัก</span>
+                </div>
+              </div>
+            </div>
+
             <div class="actions actions-pair">
               <button type="button" class="cta cta-ghost" (click)="goPrevSubStep()">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>

@@ -113,6 +113,14 @@ export class DashboardHomeComponent implements OnInit, OnDestroy, AfterViewInit 
     this.nowIndicatorInterval = setInterval(() => this.updateNowIndicator(), 60_000);
   }
 
+  /** นักเรียนที่ยังกรอกข้อมูลผู้ปกครอง/ที่อยู่ไม่ครบ — แสดง banner เตือน (ไม่ block) */
+  get needsGuardianInfo(): boolean {
+    const u: any = this.currentUser;
+    if (!u || u.role !== 'student') return false;
+    const required = ['guardianName', 'parentContact', 'addressDetail', 'subdistrict', 'district', 'province', 'postalCode'];
+    return required.some(f => !u[f] || !String(u[f]).trim());
+  }
+
   updateNowIndicator(): void {
     const now = new Date();
     const mins = now.getHours() * 60 + now.getMinutes();

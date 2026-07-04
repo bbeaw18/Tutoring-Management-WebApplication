@@ -56,7 +56,8 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
     if (step === 3) {
       return this.selectedRole === 'teacher'
         ? ['university', 'paymentChannel', 'bankAccountNumber', 'bankAccountName']
-        : ['academicYear'];
+        : ['academicYear', 'guardianName', 'parentContact', 'addressDetail',
+           'subdistrict', 'district', 'province', 'postalCode'];
     }
     if (step === 4) return ['password', 'confirmPassword'];
     return [];
@@ -225,7 +226,18 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.selectedRole === 'student') {
       this.registerForm = this.formBuilder.group({
         ...commonValidators,
-        academicYear: ['', Validators.required]
+        academicYear: ['', Validators.required],
+        // ── ข้อมูลผู้ปกครอง + ที่อยู่ (บังคับ) ──
+        guardianName: ['', Validators.required],
+        parentContact: ['', Validators.required],
+        addressDetail: ['', Validators.required],
+        moo: [''],
+        soi: [''],
+        road: [''],
+        subdistrict: ['', Validators.required],
+        district: ['', Validators.required],
+        province: ['', Validators.required],
+        postalCode: ['', [Validators.required, Validators.pattern(/^\d{5}$/)]]
       }, {
         validators: this.passwordMatchValidator
       });
@@ -301,6 +313,13 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
       if (this.registerForm.hasError('passwordMismatch')) missing.push('รหัสผ่านไม่ตรงกัน');
       // Role-specific
       if (this.selectedRole === 'student' && ctrl['academicYear']?.invalid) missing.push('ชั้นปี/ระดับชั้น');
+      if (this.selectedRole === 'student' && ctrl['guardianName']?.invalid)  missing.push('ชื่อผู้ปกครอง');
+      if (this.selectedRole === 'student' && ctrl['parentContact']?.invalid) missing.push('เบอร์ติดต่อผู้ปกครอง');
+      if (this.selectedRole === 'student' && ctrl['addressDetail']?.invalid) missing.push('บ้านเลขที่');
+      if (this.selectedRole === 'student' && ctrl['subdistrict']?.invalid)   missing.push('ตำบล/แขวง');
+      if (this.selectedRole === 'student' && ctrl['district']?.invalid)      missing.push('อำเภอ/เขต');
+      if (this.selectedRole === 'student' && ctrl['province']?.invalid)      missing.push('จังหวัด');
+      if (this.selectedRole === 'student' && ctrl['postalCode']?.invalid)    missing.push('รหัสไปรษณีย์ (5 หลัก)');
       if (this.selectedRole === 'teacher' && ctrl['university']?.invalid)    missing.push('มหาวิทยาลัย');
       if (this.selectedRole === 'teacher' && ctrl['paymentChannel']?.invalid) missing.push('ช่องทางรับเงิน');
       if (this.selectedRole === 'teacher' && ctrl['bankAccountNumber']?.invalid) missing.push('เลขบัญชีธนาคาร (10-15 หลัก)');

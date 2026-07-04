@@ -66,6 +66,12 @@ const UserSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  // ชื่อผู้ปกครอง (นักเรียน)
+  guardianName: {
+    type: String,
+    trim: true,
+    default: null
+  },
   isActive: {
     type: Boolean,
     default: true

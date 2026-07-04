@@ -206,7 +206,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       'firstName', 'lastName', 'nickname',
       'phone', 'lineId',
       'age', 'gender',
-      'subjects', 'bio', 'grade', 'parentContact',
+      'subjects', 'bio', 'grade', 'parentContact', 'guardianName',
       'profileImage',
       'university', 'paymentChannel', 'bankAccountNumber', 'bankAccountName',
       'academicYear',

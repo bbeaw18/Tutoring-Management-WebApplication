@@ -951,7 +951,7 @@
               <div class="sm-item-row sm-item-row-bottom">
                 <span class="sm-item-teacher">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                  {{ s.attendanceCount }} ผู้เข้าเรียน
+                  {{ studentNamesOf(s) || (s.attendanceCount + ' ผู้เข้าเรียน') }}
                 </span>
                 <span class="sm-item-status" [ngClass]="getStatusClass(s.status)">{{ getStatusLabel(s.status) }}</span>
               </div>

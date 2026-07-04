@@ -29,6 +29,7 @@ export interface IUser {
   bankAccountName?: string;
   academicYear?: string;
   parentContact?: string;
+  guardianName?: string;    // ชื่อผู้ปกครอง (นักเรียน)
   nationalId?: string;
   learningHours?: number;
   // ── ที่อยู่ (Address) ──

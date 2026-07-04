@@ -148,7 +148,8 @@
         <div class="mp-rows">
           <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'academicYear', label: 'ชั้นปี / ระดับชั้น', value: profile.academicYear, placeholder: 'เช่น ม.5, ปวช.2, ปริญญาตรี ปี 1' } }"></ng-container>
           <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'grade', label: 'เกรดเฉลี่ย / ระดับ', value: profile.grade, placeholder: 'เช่น 3.50 หรือ A' } }"></ng-container>
-          <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'parentContact', label: 'ผู้ปกครอง (เบอร์/Line)', value: profile.parentContact, placeholder: 'เบอร์โทรหรือ Line ผู้ปกครอง' } }"></ng-container>
+          <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'guardianName', label: 'ชื่อผู้ปกครอง', value: profile.guardianName, placeholder: 'ชื่อ-นามสกุลผู้ปกครอง' } }"></ng-container>
+          <ng-container *ngTemplateOutlet="textField; context: { $implicit: { field: 'parentContact', label: 'เบอร์ติดต่อผู้ปกครอง', value: profile.parentContact, placeholder: 'เบอร์โทรหรือ Line ผู้ปกครอง' } }"></ng-container>
         </div>
       </section>
 

@@ -1277,6 +1277,12 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
     return this.teacherMonthlyExtraExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
   }
 
+  /** รายชื่อนักเรียนในคลาส (จาก attendedStudents) คั่นด้วยจุลภาค — ใช้ใน drill-down รายได้บุคลากร */
+  studentNamesOf(s: IRevenueSchedule): string {
+    const list = Array.isArray(s?.attendedStudents) ? s.attendedStudents : [];
+    return list.map(st => (st?.name || '').trim()).filter(Boolean).join(', ');
+  }
+
   /** รวมรายจ่ายครูในชุดของครูที่เลือก = ค่าสอนจากคลาส + รายจ่ายบุคลากร (ใช้ใน modal footer + payout) */
   get teacherMonthlyTotal(): number {
     return this.teacherMonthlyClasses.reduce((sum, s) => sum + (s.actualTeacherIncome || 0), 0)

@@ -463,7 +463,7 @@ async function sendPaymentReminderEmail({ studentEmail, studentName, unpaidItems
 
       <div style="background: white; border-radius: 16px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);">
         <p style="color: #475569; margin-top: 0;">เรียน <strong>${studentName}</strong></p>
-        <p style="color: #475569;">คุณมียอดค้างชำระสำหรับคลาสเรียนดังต่อไปนี้ กรุณาชำระภายในวันที่ 3 ของเดือน</p>
+        <p style="color: #475569;">คุณมียอดค้างชำระสำหรับคลาสเรียนดังต่อไปนี้ กรุณาชำระภายในวันที่ 5 ของเดือน</p>
 
         <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
           <thead>
@@ -484,7 +484,7 @@ async function sendPaymentReminderEmail({ studentEmail, studentName, unpaidItems
       </div>
 
       <div style="background: #fef2f2; border-radius: 12px; padding: 16px; border-left: 4px solid #ef4444;">
-        <p style="margin: 0; color: #991b1b; font-size: 14px;">🚨 หากไม่ชำระภายในวันที่ 3 อาจถูกระงับการเข้าเรียนชั่วคราว</p>
+        <p style="margin: 0; color: #991b1b; font-size: 14px;">🚨 หากไม่ชำระภายในวันที่ 5 อาจถูกระงับการเข้าเรียนชั่วคราว</p>
       </div>
 
       <p style="text-align: center; color: #94a3b8; font-size: 12px; margin-top: 24px;">
@@ -951,6 +951,63 @@ async function sendStudentBookingDeclinedEmail({ teacherEmail, teacherName, stud
   }
 }
 
+/**
+ * แจ้งเตือนนักเรียนเก่าให้กรอกข้อมูลผู้ปกครอง + ที่อยู่ให้ครบ
+ * (สำหรับนักเรียนที่สมัครก่อนระบบบังคับกรอกข้อมูลผู้ปกครอง)
+ */
+async function sendGuardianInfoReminderEmail({ studentEmail, studentName, profileLink }) {
+  if (!isEmailConfigured || !transporter) {
+    console.log('[EmailService] SMTP ไม่ได้ตั้งค่า — ข้ามการส่งอีเมลแจ้งเตือนข้อมูลผู้ปกครอง');
+    return { email: studentEmail, skipped: true };
+  }
+
+  const html = `
+    <div style="font-family: 'Sarabun', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 20px;">
+      <div style="background: linear-gradient(135deg, #1e3f80 0%, #3b5fc0 100%); border-radius: 16px; padding: 32px; text-align: center; color: white; margin-bottom: 24px;">
+        <h1 style="margin: 0; font-size: 24px;">📝 กรุณากรอกข้อมูลผู้ปกครอง</h1>
+        <p style="margin: 8px 0 0; opacity: 0.9;">อัปเดตข้อมูลบัญชีของคุณให้ครบถ้วน</p>
+      </div>
+      <div style="background: white; border-radius: 16px; padding: 28px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);">
+        <p style="color: #1e293b; font-size: 16px; margin-top: 0;">เรียน <strong>${studentName || 'นักเรียน'}</strong>,</p>
+        <p style="color: #475569; line-height: 1.7;">
+          ระบบ Know More Sci ได้เพิ่มการเก็บข้อมูลผู้ปกครองและที่อยู่ กรุณาเข้าไปกรอกข้อมูลต่อไปนี้ให้ครบถ้วน:
+        </p>
+        <ul style="color: #475569; line-height: 1.8;">
+          <li>ชื่อผู้ปกครอง</li>
+          <li>เบอร์ติดต่อผู้ปกครอง</li>
+          <li>ที่อยู่ (บ้านเลขที่, ตำบล/แขวง, อำเภอ/เขต, จังหวัด, รหัสไปรษณีย์)</li>
+        </ul>
+        ${profileLink ? `
+        <div style="text-align: center; margin: 28px 0;">
+          <a href="${profileLink}" target="_blank"
+             style="display: inline-block; background: linear-gradient(135deg, #1e3f80, #3b5fc0); color: white; padding: 14px 36px; border-radius: 12px; text-decoration: none; font-size: 16px; font-weight: 700; box-shadow: 0 4px 16px rgba(30,63,128,0.35);">
+            📝 กรอกข้อมูลผู้ปกครอง
+          </a>
+        </div>` : ''}
+        <div style="background: #fff7ed; border-radius: 12px; padding: 14px 16px; margin-top: 20px; border-left: 4px solid #f97316;">
+          <p style="margin: 0; color: #9a3412; font-size: 13px;">
+            ⚠️ กรุณากรอกข้อมูลให้ครบถ้วนเพื่อให้ทางโรงเรียนสามารถติดต่อผู้ปกครองได้เมื่อจำเป็น
+          </p>
+        </div>
+      </div>
+      <p style="text-align: center; color: #94a3b8; font-size: 12px; margin-top: 24px;">อีเมลนี้ส่งจากระบบ Know More Sci โดยอัตโนมัติ</p>
+    </div>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: `"Know More Sci" <${process.env.SMTP_USER}>`,
+      to: studentEmail,
+      subject: `[Know More Sci] 📝 กรุณากรอกข้อมูลผู้ปกครองให้ครบถ้วน`,
+      html
+    });
+    return { email: studentEmail, success: true };
+  } catch (err) {
+    console.error(`[EmailService] ส่งอีเมลแจ้งเตือนข้อมูลผู้ปกครองไปยัง ${studentEmail} ล้มเหลว:`, err.message);
+    return { email: studentEmail, success: false, error: err.message };
+  }
+}
+
 module.exports = {
   sendCourseCreatedTeacherEmail,
   sendCourseCreatedStudentEmail,
@@ -966,5 +1023,6 @@ module.exports = {
   sendStudentBookingDeclinedEmail,
   sendVideoLinkEmail,
   sendPasswordResetEmail,
+  sendGuardianInfoReminderEmail,
   isEmailConfigured
 };

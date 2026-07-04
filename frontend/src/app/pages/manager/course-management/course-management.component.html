@@ -574,7 +574,7 @@
 
             <div class="cb2-card-body">
               <div class="cb2-card-top">
-                <div class="cb2-card-subj">{{ course.subject }}</div>
+                <div class="cb2-card-subj">{{ course.subject }}<ng-container *ngIf="getCardStudentNames(course)"> - {{ getCardStudentNames(course) }}</ng-container><ng-container *ngIf="course.gradeLevel"> {{ course.gradeLevel }}</ng-container></div>
                 <span class="cb2-badge" [ngClass]="cb2StatusClass(course)">{{ getStatusLabel(course) }}</span>
               </div>
 

@@ -33,7 +33,18 @@ router.post('/register', async (req, res) => {
       nationalId,
       bankAccountNumber,
       bankAccountName,
-      nickname
+      nickname,
+      // ── ข้อมูลผู้ปกครอง + ที่อยู่ (นักเรียน) ──
+      guardianName,
+      parentContact,
+      addressDetail,
+      moo,
+      soi,
+      road,
+      subdistrict,
+      district,
+      province,
+      postalCode
     } = req.body;
 
     // Validate role
@@ -80,6 +91,14 @@ router.post('/register', async (req, res) => {
     if (role === 'student') {
       if (!lineId || !age || !gender || !academicYear) {
         return sendResponse(res, 400, false, null, 'Student requires: lineId, age, gender, academicYear');
+      }
+      // บังคับข้อมูลผู้ปกครอง: ชื่อ + เบอร์ติดต่อ
+      if (!guardianName || !parentContact) {
+        return sendResponse(res, 400, false, null, 'กรุณากรอกชื่อผู้ปกครองและเบอร์ติดต่อผู้ปกครอง');
+      }
+      // บังคับที่อยู่แบบละเอียด
+      if (!addressDetail || !subdistrict || !district || !province || !postalCode) {
+        return sendResponse(res, 400, false, null, 'กรุณากรอกที่อยู่ให้ครบ: บ้านเลขที่, ตำบล/แขวง, อำเภอ/เขต, จังหวัด, รหัสไปรษณีย์');
       }
     }
 
@@ -140,6 +159,17 @@ router.post('/register', async (req, res) => {
       bankAccountNumber: role === 'teacher' ? bankAccountNumber : undefined,
       bankAccountName: role === 'teacher' ? bankAccountName : undefined,
       academicYear: role === 'student' ? academicYear : undefined,
+      // ข้อมูลผู้ปกครอง + ที่อยู่ (นักเรียนเท่านั้น)
+      guardianName:  role === 'student' ? guardianName : undefined,
+      parentContact: role === 'student' ? parentContact : undefined,
+      addressDetail: role === 'student' ? addressDetail : undefined,
+      moo:           role === 'student' ? moo : undefined,
+      soi:           role === 'student' ? soi : undefined,
+      road:          role === 'student' ? road : undefined,
+      subdistrict:   role === 'student' ? subdistrict : undefined,
+      district:      role === 'student' ? district : undefined,
+      province:      role === 'student' ? province : undefined,
+      postalCode:    role === 'student' ? postalCode : undefined,
       totpSecret: secret.base32,
       totpEnabled: false,
       registrationStatus: role === 'teacher' ? 'unregistered' : 'registered'

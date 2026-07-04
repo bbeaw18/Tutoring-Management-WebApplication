@@ -467,6 +467,18 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     return `ครู${nick}`;
   }
 
+  /** หัวการ์ด: รายชื่อนักเรียนทุกคน (ชื่อเล่น, prefix "น้อง") คั่นด้วยจุลภาค */
+  getCardStudentNames(course: any): string {
+    const list = Array.isArray(course?.students) ? course.students : [];
+    return list
+      .map((s: any) => {
+        const base = (s?.nickname || s?.firstName || '').trim();
+        return base ? `น้อง${base}` : '';
+      })
+      .filter(Boolean)
+      .join(', ');
+  }
+
   submitBooking(): void {
     this.successMessage = '';
     this.errorMessage = '';
