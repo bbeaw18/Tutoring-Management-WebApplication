@@ -7,6 +7,7 @@ import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../../services/auth.service';
 import { AttendanceService } from '../../../services/attendance.service';
 import { UserService } from '../../../services/user.service';
+import { AliasService } from '../../../services/alias.service';
 import { ScheduleService } from '../../../services/schedule.service';
 import { PaymentService } from '../../../services/payment.service';
 import { ISchedule } from '../../../interfaces/schedule.interface';
@@ -56,7 +57,8 @@ export class HistoryComponent implements OnInit, OnDestroy {
     private attendanceService: AttendanceService,
     private userService: UserService,
     private scheduleService: ScheduleService,
-    private paymentService: PaymentService   // kept for teacher/manager payment QR
+    private paymentService: PaymentService,   // kept for teacher/manager payment QR
+    private aliasService: AliasService
   ) {}
 
   ngOnDestroy(): void {
@@ -248,7 +250,7 @@ export class HistoryComponent implements OnInit, OnDestroy {
 
   getTeacherName2(s: ISchedule): string {
     const t = s.teacher as any;
-    return typeof t === 'object' ? (t.nickname || `${t.firstName} ${t.lastName}`) : '-';
+    return typeof t === 'object' ? (this.aliasService.getAlias(t._id || t.id) || t.nickname || `${t.firstName} ${t.lastName}`) : '-';
   }
 
   /** "ชื่อวิชา - ครู<ชื่อเล่นครู>" — ใช้ subject (สั้น) ก่อน ค่อย name */
@@ -257,7 +259,7 @@ export class HistoryComponent implements OnInit, OnDestroy {
     const courseName = (c && typeof c === 'object') ? (c.subject || c.name || '-') : '-';
     const t = s.teacher as any;
     if (!t || typeof t !== 'object') return courseName;
-    const nick = (t.nickname || t.firstName || '').trim();
+    const nick = (this.aliasService.getAlias(t._id || t.id) || t.nickname || t.firstName || '').trim();
     return nick ? `${courseName} - ครู${nick}` : courseName;
   }
 
@@ -267,7 +269,7 @@ export class HistoryComponent implements OnInit, OnDestroy {
     const items = students
       .filter(st => st && typeof st === 'object')
       .map(st => {
-        const nick = (st.nickname || st.firstName || '').trim();
+        const nick = (this.aliasService.getAlias(st._id || st.id) || st.nickname || st.firstName || '').trim();
         if (!nick) return '';
         // ลองทุกฟิลด์ที่อาจเก็บระดับชั้น
         const grade = (st.grade || st.academicYear || '').toString().trim();
@@ -316,7 +318,7 @@ export class HistoryComponent implements OnInit, OnDestroy {
   getTeacherName(record: any): string {
     const t = record.schedule?.teacher;
     if (!t) return '-';
-    return (t.nickname || `${t.firstName} ${t.lastName}`);
+    return (this.aliasService.getAlias(t._id || t.id) || t.nickname || `${t.firstName} ${t.lastName}`);
   }
 
   formatDuration(minutes: number): string {
@@ -358,7 +360,7 @@ export class HistoryComponent implements OnInit, OnDestroy {
   }
 
   getTeacherDisplayName(t: any): string {
-    return t ? (t.nickname || `${t.firstName} ${t.lastName}`) : '';
+    return t ? (this.aliasService.getAlias(t._id || t.id) || t.nickname || `${t.firstName} ${t.lastName}`) : '';
   }
 
   // ── Hourly-mode rollout cutoffs (ตรงกับ course-management + revenue) ──

@@ -6,6 +6,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { CourseService } from '../../../services/course.service';
 import { UserService } from '../../../services/user.service';
+import { AliasService } from '../../../services/alias.service';
 import { ScheduleService } from '../../../services/schedule.service';
 import { ICourse } from '../../../interfaces/course.interface';
 import { IUser } from '../../../interfaces/user.interface';
@@ -91,7 +92,8 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private fb: FormBuilder,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private aliasService: AliasService
   ) {}
 
   /** Manager/Admin confirms class completion (awaiting_confirmation → completed) */
@@ -449,7 +451,7 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
       .map(id => {
         const s: any = this.students.find(st => (st as any)._id === id || st.id === id);
         if (!s) return id;
-        const nick = s.nickname || `${s.firstName} ${s.lastName}`;
+        const nick = this.aliasService.getAlias(id) || s.nickname || `${s.firstName} ${s.lastName}`;
         return `น้อง${nick}`;
       })
       .join(', ');
@@ -458,12 +460,12 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
   getTeacherName(teacher: any): string {
     if (!teacher) return '-';
     if (typeof teacher === 'object') {
-      const nick = teacher.nickname || `${teacher.firstName} ${teacher.lastName}`;
+      const nick = this.aliasService.getAlias(teacher._id || teacher.id) || teacher.nickname || `${teacher.firstName} ${teacher.lastName}`;
       return `ครู${nick}`;
     }
     const t: any = this.teachers.find(t => t.id === teacher || (t as any)._id === teacher);
     if (!t) return '-';
-    const nick = t.nickname || `${t.firstName} ${t.lastName}`;
+    const nick = this.aliasService.getAlias(teacher) || t.nickname || `${t.firstName} ${t.lastName}`;
     return `ครู${nick}`;
   }
 
@@ -472,7 +474,7 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     const list = Array.isArray(course?.students) ? course.students : [];
     return list
       .map((s: any) => {
-        const base = (s?.nickname || s?.firstName || '').trim();
+        const base = (this.aliasService.getAlias(s?._id || s?.id) || s?.nickname || s?.firstName || '').trim();
         return base ? `น้อง${base}` : '';
       })
       .filter(Boolean)
@@ -1063,7 +1065,7 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
       if (!t || typeof t !== 'object') continue;
       const id = t._id || t.id;
       if (!id) continue;
-      const label = (t.nickname || '').trim() || `${t.firstName || ''} ${t.lastName || ''}`.trim();
+      const label = this.aliasService.getAlias(id) || (t.nickname || '').trim() || `${t.firstName || ''} ${t.lastName || ''}`.trim();
       const cur = map.get(id);
       if (cur) cur.count++;
       else map.set(id, { label: label || '—', count: 1 });

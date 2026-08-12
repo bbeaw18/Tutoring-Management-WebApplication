@@ -159,8 +159,11 @@ router.get('/', authenticateToken, roleCheck(['admin', 'manager']), async (req, 
     }
 
     const total = await User.countDocuments(query);
+    // roleCheck จำกัด admin/manager แล้ว → รวม managerAlias (private) ได้
+    // NB: password เป็น select:false ใน schema อยู่แล้ว จึงใช้ +managerAlias เดี่ยว ๆ
+    // (ห้าม mix '-password +managerAlias' — projection exclusion+inclusion ขัดกัน ทำให้ managerAlias หาย)
     const users = await User.find(query)
-      .select('-password')
+      .select('+managerAlias')
       .limit(limit)
       .skip(skip)
       .sort({ createdAt: -1 });
@@ -172,17 +175,40 @@ router.get('/', authenticateToken, roleCheck(['admin', 'manager']), async (req, 
   }
 });
 
+// GET /aliases — map ของ managerAlias (private) สำหรับ admin/manager
+// ใช้ override ชื่อเล่นที่แสดงทั่วเว็บเฉพาะฝั่ง manager — student/teacher เข้าไม่ได้ (roleCheck)
+// ต้องอยู่ก่อน /:id เพื่อไม่ให้ถูกจับเป็น dynamic param
+router.get('/aliases', authenticateToken, roleCheck(['admin', 'manager']), async (req, res) => {
+  try {
+    const users = await User.find({ managerAlias: { $nin: [null, ''] } })
+      .select('_id +managerAlias');
+    const aliases = {};
+    for (const u of users) {
+      if (u.managerAlias) aliases[u._id.toString()] = u.managerAlias;
+    }
+    sendResponse(res, 200, true, aliases, 'Aliases retrieved');
+  } catch (error) {
+    console.error('Get aliases error:', error);
+    sendResponse(res, 500, false, null, error.message);
+  }
+});
+
 // ─── DYNAMIC ROUTES (/:id and its sub-routes) ─────────────────────────────────
 
 // GET /:id — Get single user
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select('-password');
+    const isPrivileged = ['admin', 'manager'].includes(req.user.role);
+    // managerAlias (private) เฉพาะ admin/manager — student/teacher ที่ดูตัวเองจะไม่เห็น
+    // password ซ่อนด้วย select:false ใน schema — ไม่ต้อง '-password'
+    const query = User.findById(req.params.id);
+    if (isPrivileged) query.select('+managerAlias');
+    const user = await query;
     if (!user) {
       return sendResponse(res, 404, false, null, 'User not found');
     }
 
-    if (req.user.id !== req.params.id && !['admin', 'manager'].includes(req.user.role)) {
+    if (req.user.id !== req.params.id && !isPrivileged) {
       return sendResponse(res, 403, false, null, 'Access denied');
     }
 
@@ -206,7 +232,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       'firstName', 'lastName', 'nickname',
       'phone', 'lineId',
       'age', 'gender',
-      'subjects', 'bio', 'grade', 'parentContact', 'guardianName',
+      'subjects', 'bio', 'grade', 'parentContact', 'guardianName', 'guardianRelation',
       'profileImage',
       'university', 'paymentChannel', 'bankAccountNumber', 'bankAccountName',
       'academicYear',
@@ -225,6 +251,12 @@ router.put('/:id', authenticateToken, async (req, res) => {
       }
     }
 
+    // managerAlias (ชื่อเล่น private) — ตั้งได้เฉพาะ admin/manager เท่านั้น ห้ามเจ้าของตั้งเอง
+    const isPrivileged = ['admin', 'manager'].includes(req.user.role);
+    if (req.body.managerAlias !== undefined && isPrivileged) {
+      updateData.managerAlias = req.body.managerAlias;
+    }
+
     // ตรวจสอบเบอร์โทรซ้ำเมื่อมีการแก้ไข — 1 เบอร์ ต่อ 1 บัญชี
     if (updateData.phone) {
       const normalizedPhone = String(updateData.phone).replace(/[-\s]/g, '');
@@ -235,11 +267,13 @@ router.put('/:id', authenticateToken, async (req, res) => {
       }
     }
 
-    const user = await User.findByIdAndUpdate(
+    const updateQuery = User.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true, runValidators: true }
-    ).select('-password');
+    );
+    if (isPrivileged) updateQuery.select('+managerAlias');
+    const user = await updateQuery;
 
     if (!user) {
       return sendResponse(res, 404, false, null, 'User not found');

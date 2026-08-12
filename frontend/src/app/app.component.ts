@@ -4,6 +4,7 @@ import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { Subject } from 'rxjs';
 import { filter, takeUntil } from 'rxjs/operators';
 import { AuthService } from './services/auth.service';
+import { AliasService } from './services/alias.service';
 
 @Component({
   selector: 'app-root',
@@ -19,9 +20,12 @@ export class AppComponent implements OnInit, OnDestroy {
   private currentUrl = '';
   private destroy$ = new Subject<void>();
 
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(private authService: AuthService, private router: Router, private aliasService: AliasService) {}
 
   ngOnInit(): void {
+    // โหลด managerAlias map ตาม role ของ current user (เฉพาะ admin/manager)
+    this.aliasService.init();
+
     // ตรวจสอบ route ปัจจุบัน — กัน logout ซ้ำเมื่อ user อยู่หน้า login/register/otp แล้ว
     this.currentUrl = this.router.url;
     this.router.events

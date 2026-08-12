@@ -1,4 +1,5 @@
 import { Pipe, PipeTransform } from '@angular/core';
+import { AliasService } from '../../services/alias.service';
 
 /**
  * แสดงชื่อผู้ใช้ — รับ user object หรือ fragment ที่มี firstName / lastName / nickname / role
@@ -11,21 +12,29 @@ import { Pipe, PipeTransform } from '@angular/core';
  *                                          • student              → "น้อง<ชื่อเล่น>"
  *   {{ user | displayName:'teacher' }}  → "ครู<ชื่อเล่น>" (force prefix)
  *   {{ user | displayName:'student' }}  → "น้อง<ชื่อเล่น>" (force prefix)
+ *
+ * managerAlias (ชื่อเล่น private): ถ้า current user เป็น admin/manager และ user คนนี้มี alias
+ * → ใช้ alias แทน nickname ทุกที่ (impure เพื่อให้เห็นค่าล่าสุดหลังโหลด/แก้ไข)
  */
 @Pipe({
   name: 'displayName',
   standalone: true,
-  pure: true
+  pure: false
 })
 export class DisplayNamePipe implements PipeTransform {
+  constructor(private aliasService: AliasService) {}
+
   transform(
-    user: { firstName?: string; lastName?: string; nickname?: string; role?: string } | null | undefined,
+    user: { _id?: string; id?: string; firstName?: string; lastName?: string; nickname?: string; managerAlias?: string; role?: string } | null | undefined,
     mode: 'nick' | 'full' | 'nickOnly' | 'role' | 'teacher' | 'student' = 'nick'
   ): string {
     if (!user) return '';
     const first = (user.firstName || '').trim();
     const last  = (user.lastName  || '').trim();
-    const nick  = (user.nickname  || '').trim();
+    // ลำดับความสำคัญ: managerAlias (บน object หรือใน map) > nickname
+    const idKey = user._id || user.id;
+    const alias = (user.managerAlias || this.aliasService.getAlias(idKey) || '').trim();
+    const nick  = alias || (user.nickname || '').trim();
     const baseName = nick || first || last || '';
 
     if (mode === 'full') {

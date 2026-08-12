@@ -391,10 +391,19 @@
                 <div class="field-control">
                   <input type="text" id="guardianName" formControlName="guardianName" placeholder=" "
                          [class.is-error]="submitted && f['guardianName'].invalid"/>
-                  <label for="guardianName" class="field-label">ชื่อผู้ปกครอง</label>
+                  <label for="guardianName" class="field-label">ชื่อ-สกุลผู้ปกครอง</label>
                   <span class="field-underline" aria-hidden="true"></span>
                 </div>
-                <div *ngIf="submitted && f['guardianName'].invalid" class="field-error">กรุณากรอกชื่อผู้ปกครอง</div>
+                <div *ngIf="submitted && f['guardianName'].invalid" class="field-error">กรุณากรอกชื่อ-สกุลผู้ปกครอง</div>
+              </div>
+              <div class="field" [class.has-value]="!!registerForm.value.guardianRelation">
+                <div class="field-control">
+                  <input type="text" id="guardianRelation" formControlName="guardianRelation" placeholder=" "
+                         [class.is-error]="submitted && f['guardianRelation'].invalid"/>
+                  <label for="guardianRelation" class="field-label">ความเกี่ยวข้อง (เช่น บิดา, มารดา)</label>
+                  <span class="field-underline" aria-hidden="true"></span>
+                </div>
+                <div *ngIf="submitted && f['guardianRelation'].invalid" class="field-error">กรุณากรอกความเกี่ยวข้อง</div>
               </div>
               <div class="field" [class.has-value]="!!registerForm.value.parentContact">
                 <div class="field-control">
@@ -550,7 +559,7 @@
                 </svg>
                 <span>บัญชีธนาคารสำหรับรับค่าตอบแทน</span>
               </div>
-              <p class="bank-note">ชื่อบัญชีต้องตรงกับชื่อ-นามสกุลที่กรอกไว้ในขั้นตอนแรก</p>
+              <p class="bank-note">ชื่อบัญชีใช้ชื่อ-นามสกุลที่กรอกไว้ในขั้นตอนแรกโดยอัตโนมัติ</p>
 
               <div class="grid-2">
                 <div class="field" [class.has-value]="!!registerForm.value.bankAccountNumber">
@@ -566,16 +575,12 @@
                     <span *ngIf="f['bankAccountNumber']?.hasError('pattern')">เลขบัญชี 10-15 หลัก</span>
                   </div>
                 </div>
-                <div class="field" [class.has-value]="!!registerForm.value.bankAccountName">
+                <div class="field has-value">
                   <div class="field-control">
-                    <input type="text" id="bankAccountName" formControlName="bankAccountName" placeholder=" "
-                           [class.is-error]="submitted && (f['bankAccountName']?.invalid || registerForm.hasError('bankAccountNameMismatch'))"/>
-                    <label for="bankAccountName" class="field-label">ชื่อบัญชี (ตรงกับชื่อ-นามสกุล)</label>
+                    <input type="text" id="bankAccountName" placeholder=" " readonly
+                           [value]="(f['firstName']?.value || '') + ' ' + (f['lastName']?.value || '')"/>
+                    <label for="bankAccountName" class="field-label">ชื่อบัญชี (อัตโนมัติ)</label>
                     <span class="field-underline" aria-hidden="true"></span>
-                  </div>
-                  <div *ngIf="submitted && f['bankAccountName']?.invalid" class="field-error">กรุณากรอกชื่อบัญชี</div>
-                  <div *ngIf="submitted && !f['bankAccountName']?.invalid && registerForm.hasError('bankAccountNameMismatch')" class="field-error">
-                    ต้องตรงกับ "{{ f['firstName']?.value }} {{ f['lastName']?.value }}"
                   </div>
                 </div>
               </div>

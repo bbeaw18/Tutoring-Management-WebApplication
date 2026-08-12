@@ -30,6 +30,8 @@ export interface IUser {
   academicYear?: string;
   parentContact?: string;
   guardianName?: string;    // ชื่อผู้ปกครอง (นักเรียน)
+  guardianRelation?: string; // ความเกี่ยวข้องของผู้ปกครอง (นักเรียน)
+  managerAlias?: string;    // ชื่อเล่น private — ตั้ง/เห็นเฉพาะ admin/manager
   nationalId?: string;
   learningHours?: number;
   // ── ที่อยู่ (Address) ──

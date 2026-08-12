@@ -55,8 +55,8 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
     if (step === 2) return ['email', 'phone', 'lineId', 'nationalId'];
     if (step === 3) {
       return this.selectedRole === 'teacher'
-        ? ['university', 'paymentChannel', 'bankAccountNumber', 'bankAccountName']
-        : ['academicYear', 'guardianName', 'parentContact', 'addressDetail',
+        ? ['university', 'paymentChannel', 'bankAccountNumber']
+        : ['academicYear', 'guardianName', 'guardianRelation', 'parentContact', 'addressDetail',
            'subdistrict', 'district', 'province', 'postalCode'];
     }
     if (step === 4) return ['password', 'confirmPassword'];
@@ -72,7 +72,6 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
       if (ctrl && ctrl.invalid) return false;
     }
     if (step === 4 && this.registerForm.hasError('passwordMismatch')) return false;
-    if (step === 3 && this.selectedRole === 'teacher' && this.registerForm.hasError('bankAccountNameMismatch')) return false;
     return true;
   }
 
@@ -229,6 +228,7 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
         academicYear: ['', Validators.required],
         // ── ข้อมูลผู้ปกครอง + ที่อยู่ (บังคับ) ──
         guardianName: ['', Validators.required],
+        guardianRelation: ['', Validators.required],
         parentContact: ['', Validators.required],
         addressDetail: ['', Validators.required],
         moo: [''],
@@ -246,10 +246,9 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
         ...commonValidators,
         paymentChannel: ['', Validators.required],
         university: ['', Validators.required],
-        bankAccountNumber: ['', [Validators.required, Validators.pattern(/^\d{10,15}$/)]],
-        bankAccountName: ['', Validators.required]
+        bankAccountNumber: ['', [Validators.required, Validators.pattern(/^\d{10,15}$/)]]
       }, {
-        validators: [this.passwordMatchValidator, this.bankAccountNameValidator]
+        validators: this.passwordMatchValidator
       });
     }
   }
@@ -259,15 +258,6 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
     const confirmPassword = control.get('confirmPassword');
     if (!password || !confirmPassword) return null;
     return password.value === confirmPassword.value ? null : { passwordMismatch: true };
-  }
-
-  bankAccountNameValidator(control: AbstractControl): ValidationErrors | null {
-    const firstName  = control.get('firstName')?.value?.trim()  || '';
-    const lastName   = control.get('lastName')?.value?.trim()   || '';
-    const accountName = control.get('bankAccountName')?.value?.trim() || '';
-    if (!firstName || !lastName || !accountName) return null;
-    const expected = `${firstName} ${lastName}`.toLowerCase();
-    return accountName.toLowerCase() === expected ? null : { bankAccountNameMismatch: true };
   }
 
   get f() {
@@ -313,8 +303,9 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
       if (this.registerForm.hasError('passwordMismatch')) missing.push('รหัสผ่านไม่ตรงกัน');
       // Role-specific
       if (this.selectedRole === 'student' && ctrl['academicYear']?.invalid) missing.push('ชั้นปี/ระดับชั้น');
-      if (this.selectedRole === 'student' && ctrl['guardianName']?.invalid)  missing.push('ชื่อผู้ปกครอง');
-      if (this.selectedRole === 'student' && ctrl['parentContact']?.invalid) missing.push('เบอร์ติดต่อผู้ปกครอง');
+      if (this.selectedRole === 'student' && ctrl['guardianName']?.invalid)     missing.push('ชื่อ-สกุลผู้ปกครอง');
+      if (this.selectedRole === 'student' && ctrl['guardianRelation']?.invalid) missing.push('ความเกี่ยวข้องของผู้ปกครอง');
+      if (this.selectedRole === 'student' && ctrl['parentContact']?.invalid)    missing.push('เบอร์ติดต่อผู้ปกครอง');
       if (this.selectedRole === 'student' && ctrl['addressDetail']?.invalid) missing.push('บ้านเลขที่');
       if (this.selectedRole === 'student' && ctrl['subdistrict']?.invalid)   missing.push('ตำบล/แขวง');
       if (this.selectedRole === 'student' && ctrl['district']?.invalid)      missing.push('อำเภอ/เขต');
@@ -323,9 +314,6 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
       if (this.selectedRole === 'teacher' && ctrl['university']?.invalid)    missing.push('มหาวิทยาลัย');
       if (this.selectedRole === 'teacher' && ctrl['paymentChannel']?.invalid) missing.push('ช่องทางรับเงิน');
       if (this.selectedRole === 'teacher' && ctrl['bankAccountNumber']?.invalid) missing.push('เลขบัญชีธนาคาร (10-15 หลัก)');
-      if (this.selectedRole === 'teacher' && ctrl['bankAccountName']?.invalid)   missing.push('ชื่อบัญชีธนาคาร');
-      if (this.selectedRole === 'teacher' && this.registerForm.hasError('bankAccountNameMismatch'))
-        missing.push('ชื่อบัญชีต้องตรงกับชื่อ-นามสกุล');
 
       if (missing.length > 0) {
         this.errorMessage = `กรุณากรอกข้อมูลให้ครบถ้วน: ${missing.join(', ')}`;

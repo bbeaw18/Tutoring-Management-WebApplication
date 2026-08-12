@@ -6,6 +6,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { ScheduleService } from '../../../services/schedule.service';
 import { UserService } from '../../../services/user.service';
+import { AliasService } from '../../../services/alias.service';
 import { CourseService } from '../../../services/course.service';
 import { AuthService } from '../../../services/auth.service';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
@@ -124,7 +125,8 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
     private userService: UserService,
     private courseService: CourseService,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private aliasService: AliasService
   ) {}
 
   ngOnDestroy(): void {
@@ -212,7 +214,7 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
     if (this.filterMode === 'teacher' && this.selectedTeacherId) {
       const t = this.teachers.find(x => x._id === this.selectedTeacherId);
       if (t) {
-        const nick = t.nickname || `${t.firstName} ${t.lastName}`;
+        const nick = this.aliasService.getAlias(t._id) || t.nickname || `${t.firstName} ${t.lastName}`;
         return `ตารางสอน: ครู${nick}`;
       }
       return 'ตารางสอนครู';
@@ -220,7 +222,7 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
     if (this.filterMode === 'student' && this.selectedStudentId) {
       const s = this.students.find(x => x._id === this.selectedStudentId);
       if (s) {
-        const nick = s.nickname || `${s.firstName} ${s.lastName}`;
+        const nick = this.aliasService.getAlias(s._id) || s.nickname || `${s.firstName} ${s.lastName}`;
         return `ตารางเรียน: น้อง${nick}`;
       }
       return 'ตารางเรียนนักเรียน';
@@ -906,7 +908,7 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
   getTeacherName(schedule: ISchedule): string {
     const t = schedule.teacher as any;
     if (t && typeof t === 'object') {
-      const nick = t.nickname || `${t.firstName} ${t.lastName}`;
+      const nick = this.aliasService.getAlias(t._id || t.id) || t.nickname || `${t.firstName} ${t.lastName}`;
       return `ครู${nick}`;
     }
     return '-';
@@ -945,7 +947,7 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
     const items = students
       .filter(st => st && typeof st === 'object')
       .map(st => {
-        const nick = st.nickname || `${st.firstName || ''} ${st.lastName || ''}`.trim();
+        const nick = this.aliasService.getAlias(st._id || st.id) || st.nickname || `${st.firstName || ''} ${st.lastName || ''}`.trim();
         if (!nick) return null;
         // ระดับชั้น = academicYear (grade = เกรดเฉลี่ย, ใช้เป็น fallback เท่านั้น)
         const grade = (st.academicYear || st.grade || '').toString().trim();
@@ -1006,7 +1008,7 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
       if (!t) continue;
       const id = t._id || t.id || (typeof t === 'string' ? t : '');
       if (!id) continue;
-      const name = `${t.firstName || ''} ${t.lastName || ''}`.trim() || 'ไม่ระบุ';
+      const name = this.aliasService.getAlias(id) || (t.nickname || '').trim() || `${t.firstName || ''} ${t.lastName || ''}`.trim() || 'ไม่ระบุ';
       if (!tally[id]) tally[id] = { name, count: 0 };
       tally[id].count += 1;
     }

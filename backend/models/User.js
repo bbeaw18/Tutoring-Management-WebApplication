@@ -72,6 +72,12 @@ const UserSchema = new mongoose.Schema({
     trim: true,
     default: null
   },
+  // ความเกี่ยวข้องของผู้ปกครองกับนักเรียน (เช่น บิดา, มารดา)
+  guardianRelation: {
+    type: String,
+    trim: true,
+    default: null
+  },
   isActive: {
     type: Boolean,
     default: true
@@ -87,10 +93,18 @@ const UserSchema = new mongoose.Schema({
     type: String,
     enum: ['male', 'female', 'other']
   },
-  // ชื่อเล่น (ทั้งครูและนักเรียน)
+  // ชื่อเล่น (ทั้งครูและนักเรียน) — สาธารณะ แสดงทั่วเว็บ
   nickname: {
     type: String,
     trim: true
+  },
+  // ชื่อเล่นที่ผู้จัดการตั้งเพื่อแยกแยะชื่อซ้ำ — เห็นเฉพาะ admin/manager
+  // select: false → ไม่ถูกส่งกลับ default (ซ่อนจาก student/teacher, login, /me, populate)
+  managerAlias: {
+    type: String,
+    trim: true,
+    default: null,
+    select: false
   },
   // เลขบัตรประชาชน (ทั้งครูและนักเรียน)
   nationalId: {

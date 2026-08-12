@@ -386,7 +386,7 @@
               </div>
               <div class="exp-meta">
                 {{ formatDate(e.createdAt) }}
-                <ng-container *ngIf="e.category === 'personnel' && e.personName"> · {{ e.personName }}</ng-container>
+                <ng-container *ngIf="e.category === 'personnel' && e.personName"> · {{ expensePersonName(e) }}</ng-container>
                 <ng-container *ngIf="e.note"> · {{ e.note }}</ng-container>
               </div>
             </div>
@@ -699,7 +699,7 @@
             <td>
               <div class="course-cell">{{ s.courseName }}</div>
             </td>
-            <td>{{ s.teacherName }}</td>
+            <td>{{ teacherNameOf(s) }}</td>
             <td>
               {{ s.startTime }}–{{ s.endTime }}
             </td>
@@ -827,7 +827,7 @@
               <div class="sm-item-row sm-item-row-bottom">
                 <span class="sm-item-teacher" *ngIf="s.teacherName">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                  {{ s.teacherName }}
+                  {{ teacherNameOf(s) }}
                 </span>
                 <span class="sm-item-status" [ngClass]="getStatusClass(s.status)">{{ getStatusLabel(s.status) }}</span>
               </div>

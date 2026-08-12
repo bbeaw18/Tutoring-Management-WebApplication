@@ -6,6 +6,7 @@ import { takeUntil, forkJoin } from 'rxjs';
 import { gsap } from 'gsap';
 import { PaymentService } from '../../../services/payment.service';
 import { UserService } from '../../../services/user.service';
+import { AliasService } from '../../../services/alias.service';
 import { ExpenseService, IExpense, ExpenseType, ExpenseCategory } from '../../../services/expense.service';
 import { AuthService } from '../../../services/auth.service';
 import { IRevenueSchedule } from '../../../interfaces/payment.interface';
@@ -162,6 +163,7 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
     private userService: UserService,
     private expenseService: ExpenseService,
     private authService: AuthService,
+    private aliasService: AliasService,
     private ngZone: NgZone
   ) {}
 
@@ -492,7 +494,7 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
     if (!this.filterStudent) return '';
     const s = this.students.find(x => x._id === this.filterStudent);
     if (!s) return '';
-    const nick = (s.nickname || '').trim() || `${s.firstName || ''} ${s.lastName || ''}`.trim();
+    const nick = this.aliasService.getAlias(s._id) || (s.nickname || '').trim() || `${s.firstName || ''} ${s.lastName || ''}`.trim();
     return nick;
   }
 
@@ -509,7 +511,7 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
     const list = this.teachersForFilter;
     const t = list.find(x => x._id === this.filterTeacher);
     if (!t) return 'ทั้งหมด';
-    const nick = (t.nickname || '').trim() || `${t.firstName || ''} ${t.lastName || ''}`.trim();
+    const nick = this.aliasService.getAlias(t._id || '') || (t.nickname || '').trim() || `${t.firstName || ''} ${t.lastName || ''}`.trim();
     return nick;
   }
 
@@ -692,7 +694,7 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     const t = this.teachers.find(x => x._id === this.filterTeacher);
     if (!t) return 'รายได้ของครู';
-    const nickname = (t.nickname || '').trim() || `${t.firstName || ''} ${t.lastName || ''}`.trim();
+    const nickname = this.aliasService.getAlias(t._id || '') || (t.nickname || '').trim() || `${t.firstName || ''} ${t.lastName || ''}`.trim();
     return `รายได้ของ ${nickname}`;
   }
 
@@ -1099,6 +1101,8 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
    *  (st.name โดยปกติเป็น "FirstName LastName")
    *  ถ้ามี "(ชื่อเล่น)" ใน fallback ให้ดึงตรงนั้น ไม่งั้นเอา word แรก */
   getStudentNickname(studentId: string, fallback?: string): string {
+    const alias = this.aliasService.getAlias(studentId);
+    if (alias) return alias;
     const u = this.students.find(s => s._id === studentId);
     if (u) {
       const nick = (u.nickname || '').trim();
@@ -1201,7 +1205,7 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
       } else {
         cards.push({
           teacherId: pid,
-          nickname: (e.personName || '').trim() || this.getTeacherNickname(pid) || '—',
+          nickname: this.aliasService.getAlias(pid) || (e.personName || '').trim() || this.getTeacherNickname(pid) || '—',
           classCount: 0,
           income: e.amount || 0
         });
@@ -1227,6 +1231,8 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /** ชื่อเล่นบุคลากร (ครู/manager/admin) จาก userId — ใช้ตอนบันทึกรายจ่ายบุคลากร */
   getStaffNickname(userId: string): string {
+    const alias = this.aliasService.getAlias(userId);
+    if (alias) return alias;
     const u = this.staffForPersonnel.find(s => s._id === userId);
     if (!u) return '';
     const nick = (u.nickname || '').trim();
@@ -1236,6 +1242,8 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /** ชื่อเล่นครูจาก teacherId — fallback เป็นชื่อที่ backend ส่งมา */
   getTeacherNickname(teacherId: string, fallback?: string): string {
+    const alias = this.aliasService.getAlias(teacherId);
+    if (alias) return alias;
     const u = this.teachers.find(t => t._id === teacherId);
     if (u) {
       const nick = (u.nickname || '').trim();
@@ -1280,7 +1288,17 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
   /** รายชื่อนักเรียนในคลาส (จาก attendedStudents) คั่นด้วยจุลภาค — ใช้ใน drill-down รายได้บุคลากร */
   studentNamesOf(s: IRevenueSchedule): string {
     const list = Array.isArray(s?.attendedStudents) ? s.attendedStudents : [];
-    return list.map(st => (st?.name || '').trim()).filter(Boolean).join(', ');
+    return list.map(st => (this.aliasService.getAlias(st?.studentId) || (st?.name || '').trim())).filter(Boolean).join(', ');
+  }
+
+  /** ชื่อครูของคลาส (ตาราง/modal) — override ด้วย managerAlias ถ้ามี */
+  teacherNameOf(s: IRevenueSchedule): string {
+    return this.getTeacherNickname(s?.teacherId || '', s?.teacherName);
+  }
+
+  /** ชื่อบุคลากรในรายการรายจ่าย — override ด้วย managerAlias ถ้ามี */
+  expensePersonName(e: any): string {
+    return this.aliasService.getAlias(String(e?.personId || '')) || e?.personName || '';
   }
 
   /** รวมรายจ่ายครูในชุดของครูที่เลือก = ค่าสอนจากคลาส + รายจ่ายบุคลากร (ใช้ใน modal footer + payout) */

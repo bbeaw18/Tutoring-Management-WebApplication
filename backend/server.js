@@ -136,6 +136,12 @@ async function runPaymentReminderJob() {
     // หานักเรียนทั้งหมดที่มีการเช็คชื่อ
     const students = await User.find({ role: 'student', isActive: true });
 
+    // กติกาบิล: ค่าเรียนเดือน M ครบกำหนดชำระวันที่ 3 ของเดือน M+1
+    // ดังนั้นตอน job รัน (วันที่ 3) ให้เตือนเฉพาะคลาสของ "เดือนก่อนหน้าลงไป" เท่านั้น
+    // คลาสของเดือนปัจจุบันยังไม่ครบกำหนด (จะครบเดือนถัดไป) — ห้ามเตือน
+    const runBkk = new Date(Date.now() + 7 * 60 * 60 * 1000);   // Bangkok wall-clock
+    const runYM  = runBkk.getUTCFullYear() * 12 + runBkk.getUTCMonth();
+
     for (const student of students) {
       const attendances = await Attendance.find({ student: student._id })
         .populate({
@@ -146,6 +152,10 @@ async function runPaymentReminderJob() {
       const unpaid = [];
       for (const att of attendances) {
         if (!att.schedule) continue;
+        // ข้ามคลาสของเดือนปัจจุบัน/อนาคต (ยังไม่ถึงกำหนดชำระ)
+        const schBkk = new Date(new Date(att.schedule.date).getTime() + 7 * 60 * 60 * 1000);
+        const schYM  = schBkk.getUTCFullYear() * 12 + schBkk.getUTCMonth();
+        if (schYM >= runYM) continue;
         const existingPayment = await Payment.findOne({
           student: student._id,
           schedule: att.schedule._id,

@@ -7,6 +7,7 @@ import { Subject, Subscription } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { UserService } from '../../../services/user.service';
 import { AuthService } from '../../../services/auth.service';
+import { AliasService } from '../../../services/alias.service';
 import { IUser } from '../../../interfaces/user.interface';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
@@ -58,6 +59,7 @@ export class StaffListComponent implements OnInit, OnDestroy, AfterViewInit {
     private userService: UserService,
     private formBuilder: FormBuilder,
     private authService: AuthService,
+    private aliasService: AliasService,
     private ngZone: NgZone
   ) {}
 
@@ -324,6 +326,7 @@ export class StaffListComponent implements OnInit, OnDestroy, AfterViewInit {
   openDetail(user: IUser): void {
     this.selectedUser = user;
     this.showDetailModal = true;
+    this.editingNickname = false;
     // load fresh data from server
     this.userService.getUserById(user.id || (user as any)._id).subscribe({
       next: (full) => { this.selectedUser = full; },
@@ -333,6 +336,52 @@ export class StaffListComponent implements OnInit, OnDestroy, AfterViewInit {
   closeDetail(): void {
     this.showDetailModal = false;
     this.selectedUser = null;
+    this.editingNickname = false;
+  }
+
+  // ── แก้ชื่อเล่น private (admin/manager) — ครูและนักเรียน ──────
+  // ตั้ง managerAlias ที่เห็นเฉพาะ manager/admin ไม่กระทบชื่อเล่นสาธารณะ (nickname)
+  editingNickname = false;
+  nicknameInput = '';
+  savingNickname = false;
+
+  canEditNickname(user: IUser | null): boolean {
+    const myRole = this.currentUser?.role;
+    return (myRole === 'admin' || myRole === 'manager') &&
+           (user?.role === 'teacher' || user?.role === 'student');
+  }
+
+  startEditNickname(): void {
+    this.nicknameInput = this.selectedUser?.managerAlias || '';
+    this.editingNickname = true;
+  }
+
+  cancelEditNickname(): void {
+    this.editingNickname = false;
+  }
+
+  saveNickname(): void {
+    if (!this.selectedUser) return;
+    const userId = this.selectedUser.id || (this.selectedUser as any)._id;
+    const managerAlias = this.nicknameInput.trim();
+    this.savingNickname = true;
+    this.userService.updateUser(userId, { managerAlias }).subscribe({
+      next: (updated) => {
+        this.selectedUser = updated;
+        const idx = this.users.findIndex(u => (u.id || (u as any)._id) === userId);
+        if (idx !== -1) { this.users[idx] = updated; this.filterUsers(); }
+        // อัปเดต alias map ทันที → ชื่อที่แสดงทั่วเว็บเปลี่ยนตาม
+        this.aliasService.setAlias(userId, managerAlias);
+        this.savingNickname = false;
+        this.editingNickname = false;
+        this.showToast('บันทึกชื่อเล่นสำเร็จ', 'success');
+      },
+      error: (err) => {
+        const msg = err?.error?.message || 'บันทึกชื่อเล่นล้มเหลว โปรดลองอีกครั้ง';
+        this.showToast(msg, 'error');
+        this.savingNickname = false;
+      }
+    });
   }
 
   getRoleLabel2(role?: string): string { return this.getRoleLabel(role || ''); }

@@ -32,10 +32,10 @@ router.post('/register', async (req, res) => {
       academicYear,
       nationalId,
       bankAccountNumber,
-      bankAccountName,
       nickname,
       // ── ข้อมูลผู้ปกครอง + ที่อยู่ (นักเรียน) ──
       guardianName,
+      guardianRelation,
       parentContact,
       addressDetail,
       moo,
@@ -76,14 +76,9 @@ router.post('/register', async (req, res) => {
       if (!lineId || !paymentChannel || !age || !gender || !university) {
         return sendResponse(res, 400, false, null, 'Teacher requires: lineId, paymentChannel, age, gender, university');
       }
-      // บัญชีธนาคาร: ต้องกรอกเลขบัญชีและชื่อบัญชี
-      if (!bankAccountNumber || !bankAccountName) {
-        return sendResponse(res, 400, false, null, 'ครูต้องกรอกเลขบัญชีธนาคารและชื่อบัญชี');
-      }
-      // ชื่อบัญชีต้องตรงกับ ชื่อ-นามสกุล (case-insensitive, trim)
-      const expectedName = `${firstName.trim()} ${lastName.trim()}`.toLowerCase();
-      if (bankAccountName.trim().toLowerCase() !== expectedName) {
-        return sendResponse(res, 400, false, null, `ชื่อบัญชีธนาคารต้องตรงกับชื่อ-นามสกุล: "${firstName} ${lastName}"`);
+      // บัญชีธนาคาร: ครูกรอกแค่เลขบัญชี — ชื่อบัญชีดึงจากชื่อ-นามสกุลอัตโนมัติ
+      if (!bankAccountNumber) {
+        return sendResponse(res, 400, false, null, 'ครูต้องกรอกเลขบัญชีธนาคาร');
       }
     }
 
@@ -157,10 +152,12 @@ router.post('/register', async (req, res) => {
       paymentChannel: role === 'teacher' ? paymentChannel : undefined,
       university: role === 'teacher' ? university : undefined,
       bankAccountNumber: role === 'teacher' ? bankAccountNumber : undefined,
-      bankAccountName: role === 'teacher' ? bankAccountName : undefined,
+      // ชื่อบัญชีดึงจากชื่อ-นามสกุลอัตโนมัติ (ครูไม่ต้องกรอกเอง)
+      bankAccountName: role === 'teacher' ? `${firstName.trim()} ${lastName.trim()}` : undefined,
       academicYear: role === 'student' ? academicYear : undefined,
       // ข้อมูลผู้ปกครอง + ที่อยู่ (นักเรียนเท่านั้น)
       guardianName:  role === 'student' ? guardianName : undefined,
+      guardianRelation: role === 'student' ? guardianRelation : undefined,
       parentContact: role === 'student' ? parentContact : undefined,
       addressDetail: role === 'student' ? addressDetail : undefined,
       moo:           role === 'student' ? moo : undefined,

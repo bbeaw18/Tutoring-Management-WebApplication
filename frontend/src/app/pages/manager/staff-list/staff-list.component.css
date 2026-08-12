@@ -1400,3 +1400,21 @@ tbody tr:hover { background: rgba(30, 63, 128, 0.03); }
   .sl-card-clickable,
   .sl-tag { transition: none !important; }
 }
+
+/* Inline nickname edit (detail modal) */
+.sl-value-editable { display: inline-flex; align-items: center; gap: 8px; }
+.sl-edit-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; font-size: 12px; line-height: 1.6;
+  color: var(--brand-600); background: var(--brand-50, #eef4ff);
+  border: 1px solid var(--brand-200, #cddffb); border-radius: 999px;
+  cursor: pointer; transition: background .15s ease;
+}
+.sl-edit-btn:hover { background: var(--brand-100, #dce8fd); }
+.sl-nick-edit { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.sl-nick-input {
+  padding: 5px 10px; font-size: 14px;
+  border: 1px solid var(--border, #d5dae2); border-radius: 8px;
+  min-width: 140px;
+}
+.sl-nick-input:focus { outline: none; border-color: var(--brand-500); }
