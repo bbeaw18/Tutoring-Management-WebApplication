@@ -29,6 +29,17 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
   /** ตัวเลือกช่องทางรับเงิน (จัดกลุ่ม) */
   readonly paymentGroups = getPaymentChannelGroups();
 
+  // ตัวเลือกระดับชั้น (นักเรียน) — จัดกลุ่มด้วย optgroup
+  readonly academicYearGroups = [
+    { group: 'ประถม',        items: ['ป.1', 'ป.2', 'ป.3', 'ป.4', 'ป.5', 'ป.6'] },
+    { group: 'มัธยม',        items: ['ม.1', 'ม.2', 'ม.3', 'ม.4', 'ม.5', 'ม.6'] },
+    { group: 'มหาวิทยาลัย',  items: ['ปีที่ 1', 'ปีที่ 2', 'ปีที่ 3', 'ปีที่ 4', 'ปีที่ 5', 'ปีที่ 6'] },
+    { group: 'อื่นๆ',        items: ['เด็กซิ่ว/สอบเทียบ GED'] }
+  ];
+
+  // ตัวเลือกความเกี่ยวข้องผู้ปกครอง — 'อื่นๆ' ต้องกรอกระบุเพิ่ม
+  readonly guardianRelationOptions = ['บิดา', 'มารดา', 'พี่น้อง', 'อื่นๆ'];
+
   // Form sub-steps (multi-step wizard within the form step)
   formSubStep = 1;
   readonly totalFormSubSteps = 4;
@@ -72,6 +83,10 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
       if (ctrl && ctrl.invalid) return false;
     }
     if (step === 4 && this.registerForm.hasError('passwordMismatch')) return false;
+    if (step === 3 && this.selectedRole === 'student') {
+      if (this.registerForm.hasError('parentPhoneSame')) return false;
+      if (this.registerForm.hasError('guardianOtherRequired')) return false;
+    }
     return true;
   }
 
@@ -229,7 +244,8 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
         // ── ข้อมูลผู้ปกครอง + ที่อยู่ (บังคับ) ──
         guardianName: ['', Validators.required],
         guardianRelation: ['', Validators.required],
-        parentContact: ['', Validators.required],
+        guardianRelationOther: [''],   // บังคับเมื่อเลือก 'อื่นๆ' (ผ่าน form-level validator)
+        parentContact: ['', [Validators.required, Validators.pattern(/^[0-9]{9,10}$/)]],
         addressDetail: ['', Validators.required],
         moo: [''],
         soi: [''],
@@ -239,7 +255,7 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
         province: ['', Validators.required],
         postalCode: ['', [Validators.required, Validators.pattern(/^\d{5}$/)]]
       }, {
-        validators: this.passwordMatchValidator
+        validators: [this.passwordMatchValidator, this.parentPhoneValidator, this.guardianRelationOtherValidator]
       });
     } else {
       this.registerForm = this.formBuilder.group({
@@ -258,6 +274,22 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
     const confirmPassword = control.get('confirmPassword');
     if (!password || !confirmPassword) return null;
     return password.value === confirmPassword.value ? null : { passwordMismatch: true };
+  }
+
+  // เบอร์ผู้ปกครองต้องไม่ซ้ำกับเบอร์นักเรียน
+  parentPhoneValidator(control: AbstractControl): ValidationErrors | null {
+    const phone  = (control.get('phone')?.value || '').trim();
+    const parent = (control.get('parentContact')?.value || '').trim();
+    if (!phone || !parent) return null;
+    return phone === parent ? { parentPhoneSame: true } : null;
+  }
+
+  // เลือก "อื่นๆ" ต้องระบุความเกี่ยวข้องเพิ่ม
+  guardianRelationOtherValidator(control: AbstractControl): ValidationErrors | null {
+    const rel   = control.get('guardianRelation')?.value;
+    const other = (control.get('guardianRelationOther')?.value || '').trim();
+    if (rel === 'อื่นๆ' && !other) return { guardianOtherRequired: true };
+    return null;
   }
 
   get f() {
@@ -305,7 +337,10 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
       if (this.selectedRole === 'student' && ctrl['academicYear']?.invalid) missing.push('ชั้นปี/ระดับชั้น');
       if (this.selectedRole === 'student' && ctrl['guardianName']?.invalid)     missing.push('ชื่อ-สกุลผู้ปกครอง');
       if (this.selectedRole === 'student' && ctrl['guardianRelation']?.invalid) missing.push('ความเกี่ยวข้องของผู้ปกครอง');
-      if (this.selectedRole === 'student' && ctrl['parentContact']?.invalid)    missing.push('เบอร์ติดต่อผู้ปกครอง');
+      if (this.selectedRole === 'student' && this.registerForm.hasError('guardianOtherRequired')) missing.push('ระบุความเกี่ยวข้อง (อื่นๆ)');
+      if (this.selectedRole === 'student' && ctrl['parentContact']?.hasError('pattern'))  missing.push('เบอร์ผู้ปกครองต้องเป็นตัวเลข 9-10 หลัก');
+      else if (this.selectedRole === 'student' && ctrl['parentContact']?.invalid)    missing.push('เบอร์ติดต่อผู้ปกครอง');
+      if (this.selectedRole === 'student' && this.registerForm.hasError('parentPhoneSame')) missing.push('เบอร์ผู้ปกครองต้องไม่ซ้ำกับเบอร์นักเรียน');
       if (this.selectedRole === 'student' && ctrl['addressDetail']?.invalid) missing.push('บ้านเลขที่');
       if (this.selectedRole === 'student' && ctrl['subdistrict']?.invalid)   missing.push('ตำบล/แขวง');
       if (this.selectedRole === 'student' && ctrl['district']?.invalid)      missing.push('อำเภอ/เขต');
@@ -326,7 +361,11 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     this.loading = true;
-    const { confirmPassword, ...registerData } = this.registerForm.value;
+    const { confirmPassword, guardianRelationOther, ...registerData } = this.registerForm.value;
+    // ถ้าเลือก "อื่นๆ" ใช้ค่าที่ระบุเป็นความเกี่ยวข้องจริง
+    if (this.selectedRole === 'student' && registerData.guardianRelation === 'อื่นๆ') {
+      registerData.guardianRelation = (guardianRelationOther || '').trim();
+    }
     const payload = {
       ...registerData,
       role: this.selectedRole

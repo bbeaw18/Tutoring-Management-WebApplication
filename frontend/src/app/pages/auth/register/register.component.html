@@ -370,14 +370,20 @@
               <h4>ข้อมูลการศึกษา</h4>
             </div>
 
-            <div class="field" [class.has-value]="!!registerForm.value.academicYear">
+            <div class="field field-select" [class.has-value]="!!registerForm.value.academicYear">
               <div class="field-control">
-                <input type="text" id="academicYear" formControlName="academicYear" placeholder=" "
-                       [class.is-error]="submitted && f['academicYear'].invalid"/>
-                <label for="academicYear" class="field-label">ชั้นปี / ระดับชั้น (เช่น ม.4 หรือ ปีที่ 1)</label>
+                <select id="academicYear" formControlName="academicYear"
+                        [class.is-error]="submitted && f['academicYear'].invalid">
+                  <option value="" disabled></option>
+                  <optgroup *ngFor="let g of academicYearGroups" [label]="g.group">
+                    <option *ngFor="let opt of g.items" [value]="opt">{{ opt }}</option>
+                  </optgroup>
+                </select>
+                <label for="academicYear" class="field-label">ระดับชั้น</label>
                 <span class="field-underline" aria-hidden="true"></span>
+                <svg class="field-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
               </div>
-              <div *ngIf="submitted && f['academicYear'].invalid" class="field-error">กรุณากรอกชั้นปี</div>
+              <div *ngIf="submitted && f['academicYear'].invalid" class="field-error">กรุณาเลือกระดับชั้น</div>
             </div>
 
             <!-- ── ข้อมูลผู้ปกครอง ── -->
@@ -396,23 +402,41 @@
                 </div>
                 <div *ngIf="submitted && f['guardianName'].invalid" class="field-error">กรุณากรอกชื่อ-สกุลผู้ปกครอง</div>
               </div>
-              <div class="field" [class.has-value]="!!registerForm.value.guardianRelation">
+              <div class="field field-select" [class.has-value]="!!registerForm.value.guardianRelation">
                 <div class="field-control">
-                  <input type="text" id="guardianRelation" formControlName="guardianRelation" placeholder=" "
-                         [class.is-error]="submitted && f['guardianRelation'].invalid"/>
-                  <label for="guardianRelation" class="field-label">ความเกี่ยวข้อง (เช่น บิดา, มารดา)</label>
+                  <select id="guardianRelation" formControlName="guardianRelation"
+                          [class.is-error]="submitted && f['guardianRelation'].invalid">
+                    <option value="" disabled></option>
+                    <option *ngFor="let opt of guardianRelationOptions" [value]="opt">{{ opt === 'อื่นๆ' ? 'อื่นๆ (ระบุ)' : opt }}</option>
+                  </select>
+                  <label for="guardianRelation" class="field-label">ความเกี่ยวข้อง</label>
+                  <span class="field-underline" aria-hidden="true"></span>
+                  <svg class="field-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div *ngIf="submitted && f['guardianRelation'].invalid" class="field-error">กรุณาเลือกความเกี่ยวข้อง</div>
+              </div>
+              <div class="field" *ngIf="registerForm.value.guardianRelation === 'อื่นๆ'" [class.has-value]="!!registerForm.value.guardianRelationOther">
+                <div class="field-control">
+                  <input type="text" id="guardianRelationOther" formControlName="guardianRelationOther" placeholder=" "
+                         [class.is-error]="submitted && registerForm.hasError('guardianOtherRequired')"/>
+                  <label for="guardianRelationOther" class="field-label">ระบุความเกี่ยวข้อง</label>
                   <span class="field-underline" aria-hidden="true"></span>
                 </div>
-                <div *ngIf="submitted && f['guardianRelation'].invalid" class="field-error">กรุณากรอกความเกี่ยวข้อง</div>
+                <div *ngIf="submitted && registerForm.hasError('guardianOtherRequired')" class="field-error">กรุณาระบุความเกี่ยวข้อง</div>
               </div>
               <div class="field" [class.has-value]="!!registerForm.value.parentContact">
                 <div class="field-control">
                   <input type="text" id="parentContact" formControlName="parentContact" placeholder=" "
-                         [class.is-error]="submitted && f['parentContact'].invalid"/>
+                         maxlength="10" inputmode="numeric"
+                         [class.is-error]="submitted && (f['parentContact'].invalid || registerForm.hasError('parentPhoneSame'))"/>
                   <label for="parentContact" class="field-label">เบอร์ติดต่อผู้ปกครอง</label>
                   <span class="field-underline" aria-hidden="true"></span>
                 </div>
-                <div *ngIf="submitted && f['parentContact'].invalid" class="field-error">กรุณากรอกเบอร์ติดต่อผู้ปกครอง</div>
+                <div *ngIf="submitted && f['parentContact'].invalid" class="field-error">
+                  <span *ngIf="f['parentContact'].hasError('required')">กรุณากรอกเบอร์ติดต่อผู้ปกครอง</span>
+                  <span *ngIf="f['parentContact'].hasError('pattern')">เบอร์ต้องเป็นตัวเลข 9-10 หลัก</span>
+                </div>
+                <div *ngIf="submitted && !f['parentContact'].invalid && registerForm.hasError('parentPhoneSame')" class="field-error">เบอร์ผู้ปกครองต้องไม่ซ้ำกับเบอร์นักเรียน</div>
               </div>
             </div>
 

@@ -91,6 +91,14 @@ router.post('/register', async (req, res) => {
       if (!guardianName || !parentContact) {
         return sendResponse(res, 400, false, null, 'กรุณากรอกชื่อผู้ปกครองและเบอร์ติดต่อผู้ปกครอง');
       }
+      // เบอร์ผู้ปกครอง: ตัวเลข 9-10 หลัก และต้องไม่ซ้ำกับเบอร์นักเรียน
+      const parentDigits = String(parentContact).replace(/[-\s]/g, '');
+      if (!/^[0-9]{9,10}$/.test(parentDigits)) {
+        return sendResponse(res, 400, false, null, 'เบอร์ผู้ปกครองต้องเป็นตัวเลข 9-10 หลัก');
+      }
+      if (parentDigits === String(phone).replace(/[-\s]/g, '')) {
+        return sendResponse(res, 400, false, null, 'เบอร์ผู้ปกครองต้องไม่ซ้ำกับเบอร์นักเรียน');
+      }
       // บังคับที่อยู่แบบละเอียด
       if (!addressDetail || !subdistrict || !district || !province || !postalCode) {
         return sendResponse(res, 400, false, null, 'กรุณากรอกที่อยู่ให้ครบ: บ้านเลขที่, ตำบล/แขวง, อำเภอ/เขต, จังหวัด, รหัสไปรษณีย์');
