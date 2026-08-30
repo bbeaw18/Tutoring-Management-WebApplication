@@ -17,6 +17,67 @@ const {
 } = require('../services/emailService');
 const { reverseCompletedScheduleHours } = require('../services/hoursService');
 
+// ── Recurrence generator (แบบ Google Calendar) ─────────────────────────────
+// รับ baseDate + recurrence config → คืน array ของวันที่ทั้งหมดที่จะนัดสอน
+// (รวมวันแรกเสมอ). รองรับ frequency: daily | weekly | monthly, interval,
+// weekdays (เฉพาะ weekly), และเงื่อนไขจบ endType: count | until.
+const MAX_RECURRENCE = 60; // เพดานกันสร้างเกิน (safety cap)
+function computeRecurrenceDates(baseDate, recurrence) {
+  const base = new Date(baseDate);
+  if (!recurrence || !['daily', 'weekly', 'monthly'].includes(recurrence.frequency)) {
+    return [base];
+  }
+
+  const interval = Math.max(1, parseInt(recurrence.interval, 10) || 1);
+  const endType  = recurrence.endType === 'until' ? 'until' : 'count';
+  const count    = Math.min(MAX_RECURRENCE, Math.max(1, parseInt(recurrence.count, 10) || 1));
+  const until    = recurrence.until ? new Date(recurrence.until) : null;
+  if (until) until.setHours(23, 59, 59, 999);
+
+  const dates = [];
+  const reachedEnd = (d) => (endType === 'until' && until) ? d > until : dates.length >= count;
+
+  if (recurrence.frequency === 'daily') {
+    let d = new Date(base);
+    while (!reachedEnd(d) && dates.length < MAX_RECURRENCE) {
+      dates.push(new Date(d));
+      d.setDate(d.getDate() + interval);
+    }
+  } else if (recurrence.frequency === 'weekly') {
+    // weekdays: 0=อาทิตย์..6=เสาร์ — ไม่ระบุ → ใช้วันของ base
+    let weekdays = Array.isArray(recurrence.weekdays) && recurrence.weekdays.length > 0
+      ? [...new Set(recurrence.weekdays.map(Number))].filter(n => n >= 0 && n <= 6).sort((a, b) => a - b)
+      : [base.getDay()];
+    // เริ่มที่วันอาทิตย์ของสัปดาห์ที่มี base
+    let weekStart = new Date(base);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    let guard = 0;
+    outer:
+    while (guard++ < 400) {
+      for (const wd of weekdays) {
+        const d = new Date(weekStart);
+        d.setDate(d.getDate() + wd);
+        if (d < base) continue;                 // ข้ามวันก่อนวันเริ่ม
+        if (reachedEnd(d)) break outer;
+        dates.push(new Date(d));
+        if (dates.length >= MAX_RECURRENCE) break outer;
+      }
+      weekStart.setDate(weekStart.getDate() + 7 * interval);
+    }
+  } else { // monthly — วันเดียวกันของเดือน (JS จัดการวันล้นเดือนเอง)
+    let n = 0;
+    while (dates.length < MAX_RECURRENCE) {
+      const d = new Date(base.getFullYear(), base.getMonth() + n * interval, base.getDate(),
+                         base.getHours(), base.getMinutes());
+      if (reachedEnd(d)) break;
+      dates.push(d);
+      n++;
+    }
+  }
+
+  return dates.length > 0 ? dates : [base];
+}
+
 // =====================================================
 // POST / — Manager สร้างคอร์สการสอนใหม่
 // =====================================================
@@ -29,7 +90,8 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
       maxStudents, price,
       teacherIncomeIndividual, teacherIncomeGroup, coursePrice,
       teachingType,
-      repeatWeeklyUntilEndOfMonth
+      repeatWeeklyUntilEndOfMonth,
+      recurrence
     } = req.body;
 
     // Validate required fields
@@ -53,19 +115,26 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
       }
     }
 
-    // ── คำนวณวันที่ทั้งหมด: ถ้าติ๊ก repeatWeeklyUntilEndOfMonth → ทำซ้ำทุก 7 วันจนถึงสิ้นเดือนเดียวกัน ──
+    // ── คำนวณวันที่ทั้งหมดของชุดนัดสอน ──
+    // ใหม่: recurrence config แบบ Google Calendar (frequency/interval/weekdays/end)
+    // เดิม (backward compat): repeatWeeklyUntilEndOfMonth = ทำซ้ำทุก 7 วันจนสิ้นเดือน
     const baseDate = new Date(scheduledDate);
-    const scheduleDates = [new Date(baseDate)];
-    if (repeatWeeklyUntilEndOfMonth) {
+    let scheduleDates;
+    if (recurrence && ['daily', 'weekly', 'monthly'].includes(recurrence.frequency)) {
+      scheduleDates = computeRecurrenceDates(baseDate, recurrence);
+    } else if (repeatWeeklyUntilEndOfMonth) {
       const baseMonth = baseDate.getMonth();
       const baseYear  = baseDate.getFullYear();
       const lastDay   = new Date(baseYear, baseMonth + 1, 0);
+      scheduleDates = [new Date(baseDate)];
       const next = new Date(baseDate);
       next.setDate(next.getDate() + 7);
       while (next.getMonth() === baseMonth && next <= lastDay) {
         scheduleDates.push(new Date(next));
         next.setDate(next.getDate() + 7);
       }
+    } else {
+      scheduleDates = [new Date(baseDate)];
     }
 
     // สร้าง Course + Schedule + Enrollment 1 ชุด ต่อ 1 วันนัด

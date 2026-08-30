@@ -3155,19 +3155,28 @@
 .cb2-seg button.active{background:#fff;color:var(--brand-700);box-shadow:var(--shadow-xs);}
 
 /* Repeat row */
-.cb2-repeat{margin-top:var(--sp-4);}
-.cb2-repeat-input{position:absolute;opacity:0;width:0;height:0;}
-.cb2-repeat-lb{display:flex;align-items:flex-start;gap:11px;padding:13px 15px;background:var(--brand-50);border:1.5px dashed var(--brand-200);border-radius:var(--r-lg);cursor:pointer;transition:border-color var(--dur-fast) var(--ease-out),background var(--dur-fast) var(--ease-out);}
-.cb2-repeat-lb:hover{border-color:var(--brand-400);}
-.cb2-repeat-box{flex-shrink:0;width:20px;height:20px;border:1.5px solid var(--gray-300);border-radius:6px;background:#fff;display:flex;align-items:center;justify-content:center;color:#fff;margin-top:1px;transition:all var(--dur-fast) var(--ease-out);}
-.cb2-repeat-box svg{opacity:0;}
-.cb2-repeat-box.on{background:var(--brand-500);border-color:var(--brand-500);}
-.cb2-repeat-box.on svg{opacity:1;}
-.cb2-repeat-tx{display:flex;flex-direction:column;gap:2px;flex:1;}
-.cb2-repeat-tx strong{font-size:13.5px;font-weight:700;color:var(--brand-700);}
-.cb2-repeat-tx small{font-size:11.5px;color:var(--text-secondary);}
-.cb2-repeat-prev{margin-top:10px;display:flex;align-items:center;gap:7px;padding:9px 13px;background:#fdf2f8;border:1px solid var(--accent-300);border-radius:var(--r-lg);font-size:12.5px;color:var(--accent-600);}
-.cb2-repeat-prev strong{font-weight:800;}
+/* ── Recurrence picker (Google Calendar style) ── */
+.cb2-recur{margin-top:var(--sp-4);padding:13px 15px;background:var(--brand-50);border:1.5px dashed var(--brand-200);border-radius:var(--r-lg);}
+.cb2-recur-row{display:flex;align-items:center;gap:10px;}
+.cb2-recur-ic{flex-shrink:0;display:inline-flex;color:var(--brand-600);}
+.cb2-recur-lb{font-size:13.5px;font-weight:700;color:var(--brand-700);}
+.cb2-recur-sel{flex:1;max-width:200px;padding:7px 11px;border:1.5px solid var(--gray-200);border-radius:var(--r-md);background:#fff;font-family:var(--font-th);font-size:13px;color:var(--gray-900);cursor:pointer;}
+.cb2-recur-sel:focus{outline:none;border-color:var(--brand-400);}
+.cb2-recur-body{margin-top:12px;display:flex;flex-direction:column;gap:11px;}
+.cb2-recur-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--text-secondary);}
+.cb2-recur-num{width:64px;padding:6px 8px;border:1.5px solid var(--gray-200);border-radius:var(--r-md);background:#fff;font-family:var(--font-en);font-size:13px;text-align:center;}
+.cb2-recur-num:focus{outline:none;border-color:var(--brand-400);}
+.cb2-recur-num:disabled{background:var(--gray-100);color:var(--text-tertiary);}
+.cb2-recur-days{display:flex;gap:6px;flex-wrap:wrap;}
+.cb2-recur-day{width:36px;height:36px;border-radius:var(--r-full);border:1.5px solid var(--gray-200);background:#fff;font-family:var(--font-th);font-size:12.5px;font-weight:700;color:var(--text-secondary);cursor:pointer;transition:all var(--dur-fast) var(--ease-out);}
+.cb2-recur-day:hover{border-color:var(--brand-300);}
+.cb2-recur-day.on{background:var(--brand-500);border-color:var(--brand-500);color:#fff;}
+.cb2-recur-end{gap:14px;}
+.cb2-recur-radio{display:inline-flex;align-items:center;gap:6px;cursor:pointer;}
+.cb2-recur-date{padding:6px 9px;border:1.5px solid var(--gray-200);border-radius:var(--r-md);background:#fff;font-family:var(--font-en);font-size:12.5px;}
+.cb2-recur-date:focus{outline:none;border-color:var(--brand-400);}
+.cb2-recur-date:disabled{background:var(--gray-100);color:var(--text-tertiary);}
+.cb2-recur-prev{display:flex;align-items:center;gap:7px;padding:9px 13px;background:#fdf2f8;border:1px solid var(--accent-300);border-radius:var(--r-lg);font-size:12.5px;font-weight:600;color:var(--accent-600);}
 
 /* Students */
 .cb2-st-bar{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);margin-bottom:var(--sp-3);}

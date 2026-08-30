@@ -111,20 +111,53 @@
               </div>
             </div>
 
-            <div class="cb2-repeat">
-              <label class="cb2-repeat-lb">
-                <input type="checkbox" formControlName="repeatWeeklyUntilEndOfMonth" class="cb2-repeat-input"/>
-                <span class="cb2-repeat-box" [class.on]="bookingForm.get('repeatWeeklyUntilEndOfMonth')?.value">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <!-- ── ทำซ้ำแบบ Google Calendar ── -->
+            <div class="cb2-recur">
+              <div class="cb2-recur-row">
+                <span class="cb2-recur-ic">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
                 </span>
-                <span class="cb2-repeat-tx">
-                  <strong>สร้างตารางซ้ำรายสัปดาห์จนถึงสิ้นเดือน</strong>
-                  <small>นัดสอนวันเดียวกันของทุกสัปดาห์ในเดือนนี้</small>
-                </span>
-              </label>
-              <div class="cb2-repeat-prev" *ngIf="bookingForm.get('repeatWeeklyUntilEndOfMonth')?.value && repeatPreviewDates.length > 1">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                จะสร้างทั้งหมด <strong>{{ repeatPreviewDates.length }}</strong> ครั้ง: {{ repeatPreviewLabel }}
+                <label class="cb2-recur-lb">ทำซ้ำ</label>
+                <select formControlName="recurFreq" class="cb2-recur-sel">
+                  <option value="none">ไม่ทำซ้ำ</option>
+                  <option value="daily">รายวัน</option>
+                  <option value="weekly">รายสัปดาห์</option>
+                  <option value="monthly">รายเดือน</option>
+                </select>
+              </div>
+
+              <div class="cb2-recur-body" *ngIf="isRecurring">
+                <!-- interval -->
+                <div class="cb2-recur-line">
+                  <span>ทุก</span>
+                  <input type="number" min="1" formControlName="recurInterval" class="cb2-recur-num" (wheel)="$event.preventDefault()"/>
+                  <span>{{ recurUnitLabel }}</span>
+                </div>
+
+                <!-- weekday chips (weekly) -->
+                <div class="cb2-recur-days" *ngIf="bookingForm.get('recurFreq')?.value === 'weekly'">
+                  <button type="button" class="cb2-recur-day" *ngFor="let lb of weekdayLabels; let i = index"
+                          [class.on]="isRecurWeekday(i)" (click)="toggleRecurWeekday(i)">{{ lb }}</button>
+                </div>
+
+                <!-- end condition -->
+                <div class="cb2-recur-line cb2-recur-end">
+                  <span>สิ้นสุด</span>
+                  <label class="cb2-recur-radio">
+                    <input type="radio" formControlName="recurEndType" value="count"/> หลัง
+                    <input type="number" min="1" formControlName="recurCount" class="cb2-recur-num"
+                           (wheel)="$event.preventDefault()"/> ครั้ง
+                  </label>
+                  <label class="cb2-recur-radio">
+                    <input type="radio" formControlName="recurEndType" value="until"/> ภายในวันที่
+                    <input type="date" formControlName="recurUntil" class="cb2-recur-date"/>
+                  </label>
+                </div>
+
+                <div class="cb2-recur-prev" *ngIf="repeatPreviewDates.length > 1">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                  {{ repeatSummaryLabel }}
+                </div>
               </div>
             </div>
           </section>

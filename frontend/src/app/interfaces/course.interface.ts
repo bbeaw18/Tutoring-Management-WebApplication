@@ -64,4 +64,15 @@ export interface ICourseCreateRequest {
   teacherIncomeIndividual?: number;
   teacherIncomeGroup?: number;
   coursePrice?: number;
+  /** ตั้งค่าการทำซ้ำแบบ Google Calendar (ถ้าไม่ส่ง = สร้างคลาสเดียว) */
+  recurrence?: IRecurrence;
+}
+
+export interface IRecurrence {
+  frequency: 'daily' | 'weekly' | 'monthly';
+  interval: number;             // ทุก N วัน/สัปดาห์/เดือน
+  weekdays?: number[];          // 0=อาทิตย์..6=เสาร์ — เฉพาะ weekly
+  endType: 'count' | 'until';
+  count?: number;               // จบหลัง N ครั้ง
+  until?: string;               // จบภายในวันที่ (YYYY-MM-DD)
 }

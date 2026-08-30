@@ -167,37 +167,129 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
       teacherIncomeIndividual:[null, [Validators.min(0)]],
       teacherIncomeGroup:     [null, [Validators.min(0)]],
       coursePrice:            [null, [Validators.min(0)]],
-      // ── ทำซ้ำรายสัปดาห์จนถึงสิ้นเดือน ──
-      repeatWeeklyUntilEndOfMonth: [false]
+      // ── ทำซ้ำแบบ Google Calendar ──
+      recurFreq:     ['none'],              // none | daily | weekly | monthly
+      recurInterval: [1, [Validators.min(1)]],
+      recurEndType:  ['count'],             // count | until
+      recurCount:    [4, [Validators.min(1)]],
+      recurUntil:    ['']
     });
+    // ค่าเริ่มต้นของวันในสัปดาห์ — sync กับวันของ scheduledDate เมื่อยังไม่ได้เลือกเอง
+    this.bookingForm.get('scheduledDate')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(v => {
+        if (v && this.recurWeekdays.length === 0) {
+          const d = new Date(v);
+          if (!isNaN(d.getTime())) this.recurWeekdays = [d.getDay()];
+        }
+      });
   }
 
-  /** วันที่ทั้งหมดที่จะนัดสอน (รวมวันแรก) เมื่อติ๊ก "ทำซ้ำรายสัปดาห์จนถึงสิ้นเดือน" */
+  // ── ทำซ้ำแบบ Google Calendar ──────────────────────────────────
+  /** วันในสัปดาห์ที่เลือก (weekly) — 0=อาทิตย์..6=เสาร์ */
+  recurWeekdays: number[] = [];
+  readonly weekdayLabels = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
+
+  toggleRecurWeekday(wd: number): void {
+    const i = this.recurWeekdays.indexOf(wd);
+    if (i === -1) this.recurWeekdays.push(wd);
+    else if (this.recurWeekdays.length > 1) this.recurWeekdays.splice(i, 1); // ต้องเหลืออย่างน้อย 1 วัน
+  }
+  isRecurWeekday(wd: number): boolean { return this.recurWeekdays.includes(wd); }
+
+  get isRecurring(): boolean {
+    return ['daily', 'weekly', 'monthly'].includes(this.bookingForm?.get('recurFreq')?.value);
+  }
+
+  /** ป้ายหน่วย interval ตาม frequency */
+  get recurUnitLabel(): string {
+    return ({ daily: 'วัน', weekly: 'สัปดาห์', monthly: 'เดือน' } as any)[this.bookingForm?.get('recurFreq')?.value] || '';
+  }
+
+  /** สร้าง recurrence payload จาก form — null เมื่อไม่ทำซ้ำ */
+  private buildRecurrence(): any {
+    if (!this.isRecurring) return null;
+    const freq = this.bookingForm.get('recurFreq')?.value;
+    return {
+      frequency: freq,
+      interval:  Math.max(1, Number(this.bookingForm.get('recurInterval')?.value) || 1),
+      weekdays:  freq === 'weekly' ? [...this.recurWeekdays].sort((a, b) => a - b) : undefined,
+      endType:   this.bookingForm.get('recurEndType')?.value === 'until' ? 'until' : 'count',
+      count:     Math.max(1, Number(this.bookingForm.get('recurCount')?.value) || 1),
+      until:     this.bookingForm.get('recurUntil')?.value || undefined
+    };
+  }
+
+  /** วันที่ทั้งหมดที่จะนัดสอน (รวมวันแรก) ตาม recurrence config — mirror backend generator */
   get repeatPreviewDates(): Date[] {
     const v = this.bookingForm?.get('scheduledDate')?.value;
     if (!v) return [];
     const base = new Date(v);
     if (isNaN(base.getTime())) return [];
-    const dates: Date[] = [new Date(base)];
-    if (!this.bookingForm.get('repeatWeeklyUntilEndOfMonth')?.value) return dates;
-    const month = base.getMonth();
-    const year  = base.getFullYear();
-    const lastDay = new Date(year, month + 1, 0);  // last day of current month
-    const next = new Date(base);
-    next.setDate(next.getDate() + 7);
-    while (next.getMonth() === month && next <= lastDay) {
-      dates.push(new Date(next));
-      next.setDate(next.getDate() + 7);
+    if (!this.isRecurring) return [new Date(base)];
+
+    const MAX = 60;
+    const freq     = this.bookingForm.get('recurFreq')?.value;
+    const interval = Math.max(1, Number(this.bookingForm.get('recurInterval')?.value) || 1);
+    const endType  = this.bookingForm.get('recurEndType')?.value === 'until' ? 'until' : 'count';
+    const count    = Math.min(MAX, Math.max(1, Number(this.bookingForm.get('recurCount')?.value) || 1));
+    const untilRaw = this.bookingForm.get('recurUntil')?.value;
+    const until    = untilRaw ? new Date(untilRaw) : null;
+    if (until) until.setHours(23, 59, 59, 999);
+
+    const dates: Date[] = [];
+    const reachedEnd = (d: Date) => (endType === 'until' && until) ? d > until : dates.length >= count;
+
+    if (freq === 'daily') {
+      const d = new Date(base);
+      while (!reachedEnd(d) && dates.length < MAX) {
+        dates.push(new Date(d));
+        d.setDate(d.getDate() + interval);
+      }
+    } else if (freq === 'weekly') {
+      const weekdays = (this.recurWeekdays.length > 0 ? [...this.recurWeekdays] : [base.getDay()])
+        .sort((a, b) => a - b);
+      const weekStart = new Date(base);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      let guard = 0;
+      outer:
+      while (guard++ < 400) {
+        for (const wd of weekdays) {
+          const d = new Date(weekStart);
+          d.setDate(d.getDate() + wd);
+          if (d < base) continue;
+          if (reachedEnd(d)) break outer;
+          dates.push(new Date(d));
+          if (dates.length >= MAX) break outer;
+        }
+        weekStart.setDate(weekStart.getDate() + 7 * interval);
+      }
+    } else { // monthly
+      let n = 0;
+      while (dates.length < MAX) {
+        const d = new Date(base.getFullYear(), base.getMonth() + n * interval, base.getDate());
+        if (reachedEnd(d)) break;
+        dates.push(d);
+        n++;
+      }
     }
-    return dates;
+    return dates.length > 0 ? dates : [new Date(base)];
   }
 
-  /** "7, 14, 21, 28 พ.ค." */
-  get repeatPreviewLabel(): string {
-    const dates = this.repeatPreviewDates;
-    if (dates.length === 0) return '';
-    const monthShort = dates[0].toLocaleDateString('th-TH', { month: 'short' });
-    return dates.map(d => d.getDate()).join(', ') + ' ' + monthShort;
+  /** สรุปคำอธิบายชุด เช่น "ทุกวันจันทร์ · 4 ครั้ง" */
+  get repeatSummaryLabel(): string {
+    if (!this.isRecurring) return '';
+    const freq = this.bookingForm.get('recurFreq')?.value;
+    const interval = Math.max(1, Number(this.bookingForm.get('recurInterval')?.value) || 1);
+    const full = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+    let base = '';
+    if (freq === 'daily')   base = interval === 1 ? 'ทุกวัน' : `ทุก ${interval} วัน`;
+    if (freq === 'monthly') base = interval === 1 ? 'ทุกเดือน' : `ทุก ${interval} เดือน`;
+    if (freq === 'weekly') {
+      const days = [...this.recurWeekdays].sort((a, b) => a - b).map(w => full[w]).join(', ');
+      base = (interval === 1 ? 'ทุกสัปดาห์' : `ทุก ${interval} สัปดาห์`) + (days ? ` (${days})` : '');
+    }
+    return `${base} · ${this.repeatPreviewDates.length} ครั้ง`;
   }
 
   /** ระยะเวลาคลาสในหน่วยชั่วโมง (จาก startTime - endTime) */
@@ -538,7 +630,7 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
       teacherIncomeIndividual: Number(v.teacherIncomeIndividual) || 0,
       teacherIncomeGroup:      Number(v.teacherIncomeGroup) || 0,
       coursePrice:             Number(v.coursePrice) || 0,
-      repeatWeeklyUntilEndOfMonth: !!v.repeatWeeklyUntilEndOfMonth
+      recurrence:              this.buildRecurrence()
     };
 
     this.submitting = true;
@@ -548,8 +640,9 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
       next: () => {
         this.submitting = false;
         this.showForm = false;
-        this.bookingForm.reset({ type: 'group', teacherIncomeIndividual: null, teacherIncomeGroup: null, coursePrice: null, repeatWeeklyUntilEndOfMonth: false });
+        this.bookingForm.reset({ type: 'group', teacherIncomeIndividual: null, teacherIncomeGroup: null, coursePrice: null, recurFreq: 'none', recurInterval: 1, recurEndType: 'count', recurCount: 4, recurUntil: '' });
         this.selectedStudentIds = [];
+        this.recurWeekdays = [];
         // โหลด autocomplete ใหม่หลังสร้าง (เผื่อมีวิชาหรือประเภทการสอนใหม่)
         // H3: ใช้ takeUntil(destroy$) ป้องกัน memory leak
         this.courseService.getSubjects()
@@ -781,9 +874,15 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
       type: 'group',
       teacherIncomeIndividual: null,
       teacherIncomeGroup: null,
-      coursePrice: null
+      coursePrice: null,
+      recurFreq: 'none',
+      recurInterval: 1,
+      recurEndType: 'count',
+      recurCount: 4,
+      recurUntil: ''
     });
     this.selectedStudentIds = [];
+    this.recurWeekdays = [];
     this.showForm = false;
     this.errorMessage = '';
   }
