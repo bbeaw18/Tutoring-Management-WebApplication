@@ -254,7 +254,7 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
   cb2StatusClass(course: any): string {
     return ({
       pending_teacher: 's-pt', pending_students: 's-ps', confirmed: 's-cf',
-      awaiting_manager: 's-am', completed: 's-cp', cancelled: 's-cx'
+      awaiting_manager: 's-am', completed: 's-cp', absent: 's-ab', cancelled: 's-cx'
     } as any)[this.resolveStatus(course)] || '';
   }
 
@@ -1234,42 +1234,6 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     return this.seriesModalCourses;
   }
 
-  /** Bulk cancel an entire series. Used from both the series anchor card on
-   *  the main grid and from inside the series modal. */
-  bulkCancelSeries(anchor?: ICourse): void {
-    const list = this.getSeriesActionList(anchor);
-    const ids = list.filter(c => !this.isFinalStatus(c)).map(c => this.getId(c));
-    if (this.bulkCancelling) return;
-    if (ids.length === 0) {
-      alert('ไม่มีคลาสที่ยกเลิกได้ในชุดนี้ (ทุกคลาสจบหรือถูกยกเลิกแล้ว)');
-      return;
-    }
-    if (!confirm(`ยืนยันยกเลิกชุดทั้งหมด ${ids.length} คลาส?\n\nคลาสทุกตัวในชุดนี้ที่ยังไม่จบ/ยังไม่ยกเลิกจะถูกตั้งเป็น "ยกเลิก"`)) return;
-
-    this.bulkCancelling = true;
-    const next = (i: number) => {
-      if (i >= ids.length) {
-        this.bulkCancelling = false;
-        this.successMessage = `ยกเลิกชุดเรียบร้อย — ${ids.length} คลาส`;
-        if (this.showSeriesModal) this.closeSeriesModal();
-        this.loadAll();
-        this.cdr.markForCheck();
-        setTimeout(() => { this.successMessage = ''; this.cdr.markForCheck(); }, 4000);
-        return;
-      }
-      this.courseService.deleteCourse(ids[i])
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: () => next(i + 1),
-          error: (err) => {
-            console.error('[CourseMgmt] bulkCancelSeries item failed:', ids[i], err);
-            next(i + 1);
-          }
-        });
-    };
-    next(0);
-  }
-
   /** Bulk permanent-delete an entire series. Destructive: removes every
    *  class in the series regardless of status. Two-step confirmation. */
   bulkDeleteSeries(anchor?: ICourse): void {
@@ -1318,6 +1282,7 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
         this.bulkCancelling = false;
         this.selectedIds.clear();
         this.successMessage = `ยกเลิก ${ids.length} รายการเรียบร้อย`;
+        if (this.showSeriesModal) this.closeSeriesModal();
         this.loadAll();
         this.cdr.markForCheck();
         setTimeout(() => { this.successMessage = ''; this.cdr.markForCheck(); }, 4000);

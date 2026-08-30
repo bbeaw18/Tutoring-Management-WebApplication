@@ -6,6 +6,7 @@ const { generateToken, sendResponse } = require('../utils/helpers');
 const { authenticateToken } = require('../middleware/auth');
 const { sendPasswordResetEmail } = require('../services/emailService');
 const { verifyEmailDomain, isDisposableDomain } = require('../utils/emailValidator');
+const { TERMS_VERSION, TERMS_BY_ROLE } = require('../constants/terms');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 
@@ -280,6 +281,39 @@ router.get('/me', authenticateToken, async (req, res) => {
     sendResponse(res, 200, true, user.toJSON(), 'User profile retrieved');
   } catch (error) {
     console.error('Get user error:', error);
+    sendResponse(res, 500, false, null, error.message);
+  }
+});
+
+// POST /accept-terms — บันทึกการยอมรับข้อตกลงชุดใดชุดหนึ่ง (teacher / student)
+// body: { docType: 'teacher' | 'student', version }
+// ถือเป็นหลักฐานการแสดงเจตนายอมรับทางอิเล็กทรอนิกส์ (เก็บ version + เวลาแยกตามชุด)
+router.post('/accept-terms', authenticateToken, async (req, res) => {
+  try {
+    const { docType, version } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return sendResponse(res, 404, false, null, 'User not found');
+    }
+
+    const requiredDocs = TERMS_BY_ROLE[user.role] || [];
+    if (!requiredDocs.includes(docType)) {
+      return sendResponse(res, 400, false, null, 'ไม่จำเป็นต้องยอมรับข้อตกลงชุดนี้สำหรับบทบาทนี้');
+    }
+
+    // ยอมรับได้เฉพาะเวอร์ชันปัจจุบันเท่านั้น — กันการส่งเวอร์ชันเก่า/ปลอม
+    if (version !== TERMS_VERSION) {
+      return sendResponse(res, 400, false, null, 'เวอร์ชันข้อตกลงไม่ถูกต้อง กรุณารีเฟรชหน้าเว็บแล้วลองใหม่');
+    }
+
+    if (!user.acceptedTerms) user.acceptedTerms = {};
+    user.acceptedTerms[docType] = { version: TERMS_VERSION, at: new Date() };
+    user.markModified('acceptedTerms');
+    await user.save();
+
+    sendResponse(res, 200, true, user.toJSON(), 'บันทึกการยอมรับข้อตกลงเรียบร้อย');
+  } catch (error) {
+    console.error('Accept terms error:', error);
     sendResponse(res, 500, false, null, error.message);
   }
 });

@@ -49,6 +49,11 @@ export interface IUser {
   registrationStatus?: 'registered' | 'unregistered';
   approvedBy?: string;
   approvedAt?: Date;
+  // การยอมรับข้อตกลงแยกตามชุด (teacher/student) — version + เวลาที่กด
+  acceptedTerms?: {
+    teacher?: { version?: string | null; at?: Date | null };
+    student?: { version?: string | null; at?: Date | null };
+  };
 }
 
 export interface ILoginRequest {

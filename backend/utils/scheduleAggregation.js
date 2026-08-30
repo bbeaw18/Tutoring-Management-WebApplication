@@ -71,16 +71,26 @@ async function buildPaymentSummariesByScheduleId(scheduleObjs) {
       }
     }
 
+    // ── นักเรียนขาดเรียน (no-show) — คิดค่าปรับเป็นยอดค้างของนักเรียนคนนั้น ──
+    // นักเรียนที่ขาดไม่มี Attendance record จึงไม่ถูกนับข้างบน ต้องบวกค่าปรับเพิ่มเอง
+    let penalty = 0;
+    if (s.status === 'absent' && s.absencePenalty && s.absencePenalty.penaltyAmount > 0) {
+      penalty = s.absencePenalty.penaltyAmount;
+      unpaid += penalty;
+      unpaidCount++;
+    }
+
     summaries.set(sid, {
       attendanceCount: attCount,
-      total: attCount * effPrice,
+      total: attCount * effPrice + penalty,
       paid,
       pending,
       unpaid,
       paidCount,
       pendingCount,
       unpaidCount,
-      effectivePrice: effPrice
+      effectivePrice: effPrice,
+      penaltyAmount: penalty
     });
   }
   return summaries;
@@ -108,6 +118,7 @@ function deriveDisplayStatus(schedule) {
   const s = schedule.status;
 
   if (s === 'cancelled')              return 'cancelled';
+  if (s === 'absent')                 return 'absent';
   if (s === 'completed')              return 'completed';
   if (s === 'awaiting_confirmation')  return 'awaiting_manager';
 

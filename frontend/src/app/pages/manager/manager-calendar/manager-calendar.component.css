@@ -1069,6 +1069,7 @@
 .mc-chip-confirmed { background: #3b82f6; }
 .mc-chip-pending   { background: #f59e0b; }
 .mc-chip-completed { background: #10b981; }
+.mc-chip-absent    { background: #f97316; }
 .mc-chip-cancelled { background: #94a3b8; }
 .mc-chip-accepted  { background: #16a34a; }
 .mc-chip-declined  { background: #94a3b8; }

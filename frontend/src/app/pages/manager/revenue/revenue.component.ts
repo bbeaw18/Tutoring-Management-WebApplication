@@ -358,7 +358,7 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
     const nickname = this.getTeacherNickname(teacherId);
     this.teacherMonthlyTarget = { id: teacherId, nickname };
     this.teacherMonthlyClasses = this.allSchedules
-      .filter(s => s.teacherId === teacherId && s.status === 'completed' && (s.actualTeacherIncome || 0) > 0)
+      .filter(s => s.teacherId === teacherId && (s.status === 'completed' || s.status === 'absent') && (s.actualTeacherIncome || 0) > 0)
       .slice()
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     this.teacherMonthlyExtraExpenses = this.personnelExpenses
@@ -378,13 +378,13 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
       // รวมทั้งครู (role='teacher') และ Manager ที่สอน (role='manager')
       // — Manager จึงมีประวัติคลาสที่สอนในกริด/ drill-down เหมือนครู
       list = list.filter(s =>
-        s.status === 'completed' &&
+        (s.status === 'completed' || s.status === 'absent') &&
         (s.teacherRole === 'teacher' || s.teacherRole === 'manager') &&
         (s.actualTeacherIncome || 0) > 0
       );
     } else if (this.activeKpi === 'managerIncome') {
       list = list.filter(s =>
-        s.status === 'completed' &&
+        (s.status === 'completed' || s.status === 'absent') &&
         s.teacherRole === 'manager' &&
         (s.actualTeacherIncome || 0) > 0
       );
@@ -393,7 +393,7 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
       if (!targetId) return [];
       list = list.filter(s =>
         s.teacherId === targetId &&
-        s.status === 'completed' &&
+        (s.status === 'completed' || s.status === 'absent') &&
         (s.actualTeacherIncome || 0) > 0
       );
     }
@@ -702,7 +702,7 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
     const targetId = this.filterTeacher || this.currentUser?._id || '';
     if (!targetId) return 0;
     const teaching = this.allSchedules
-      .filter(s => s.teacherId === targetId && s.status === 'completed')
+      .filter(s => s.teacherId === targetId && (s.status === 'completed' || s.status === 'absent'))
       .reduce((sum, s) => sum + (s.actualTeacherIncome || 0), 0);
     // รายจ่ายบุคลากร (manual) ที่ผูกกับคนนี้ = รายได้บุคลากรของเขาด้วย
     const personnel = this.personnelExpenses
@@ -854,13 +854,17 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
   getStatusLabel(status: string): string {
     const labels: { [key: string]: string } = {
       'awaiting_confirmation': 'รอยืนยัน',
-      'completed':             'เสร็จสิ้น'
+      'completed':             'เสร็จสิ้น',
+      'absent':                'นักเรียนขาด',
+      'cancelled':             'ยกเลิก'
     };
     return labels[status] || status;
   }
 
   getStatusClass(status: string): string {
-    return status === 'completed' ? 'badge-completed' : 'badge-pending';
+    if (status === 'completed') return 'badge-completed';
+    if (status === 'absent')    return 'badge-absent';
+    return 'badge-pending';
   }
 
   // ── Expense/Income modal handlers ──

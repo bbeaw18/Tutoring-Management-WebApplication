@@ -116,6 +116,15 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
     return role === 'manager' || role === 'admin';
   }
 
+  get isAdmin(): boolean {
+    return this.currentUser?.role === 'admin';
+  }
+
+  /** สถานะสุดท้าย — จบ/ยกเลิก/นักเรียนขาด → ไม่มี action ต่อได้ */
+  isFinalStatus(s: any): boolean {
+    return ['completed', 'cancelled', 'absent'].includes(s?.status);
+  }
+
   get totalGridHeight(): number {
     return this.hours.length * this.HOUR_HEIGHT;
   }
@@ -547,6 +556,7 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
   /** CSS color for event based on status */
   getEventBg(sch: ISchedule): string {
     if (sch.status === 'cancelled') return '#e2e8f0';
+    if (sch.status === 'absent')    return '#ffedd5';
     if (sch.status === 'completed') return '#d1fae5';
     // When filtering by student — show confirmation status as red/green/gray
     if (this.filterMode === 'student' && this.selectedStudentId) {
@@ -561,6 +571,7 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
   }
   getEventBorder(sch: ISchedule): string {
     if (sch.status === 'cancelled') return '#94a3b8';
+    if (sch.status === 'absent')    return '#f97316';
     if (sch.status === 'completed') return '#10b981';
     if (this.filterMode === 'student' && this.selectedStudentId) {
       const studentConfStatus = this.getStudentConfirmStatus(sch, this.selectedStudentId);
@@ -574,6 +585,7 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
   }
   getEventText(sch: ISchedule): string {
     if (sch.status === 'cancelled') return '#64748b';
+    if (sch.status === 'absent')    return '#9a3412';
     if (sch.status === 'completed') return '#065f46';
     if (this.filterMode === 'student' && this.selectedStudentId) {
       const studentConfStatus = this.getStudentConfirmStatus(sch, this.selectedStudentId);
@@ -866,7 +878,7 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
   canEditSelected(): boolean {
     if (!this.isManager || !this.selectedSchedule) return false;
     const s = this.selectedSchedule.status;
-    return s !== 'completed' && s !== 'cancelled';
+    return s !== 'completed' && s !== 'cancelled' && s !== 'absent';
   }
 
   doManagerConfirm(): void {
@@ -883,6 +895,53 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
           this.loadCalendar();
         },
         error: () => { this.confirmLoading = false; }
+      });
+  }
+
+  /** แสดงปุ่ม "นักเรียนขาด" ได้ไหม — คลาสเดี่ยว 1:1 ที่นักเรียนยังไม่เช็คชื่อ และยังไม่จบ/ยกเลิก
+   *  manager ต้องรอหมดเวลาคลาสก่อน, admin กดได้เลยไม่ต้องรอ */
+  canMarkAbsent(): boolean {
+    if (!this.isManager || !this.selectedSchedule) return false;
+    const s = this.selectedSchedule;
+    const isOneOnOne = Array.isArray(s.students) && s.students.length === 1;
+    const notFinal = !['completed', 'cancelled', 'absent'].includes(s.status);
+    const noScan = (s.paymentSummary?.attendanceCount ?? 0) === 0;
+    const timeOk = this.isAdmin || this.classEnded(s);
+    return isOneOnOne && notFinal && noScan && timeOk;
+  }
+
+  /** คลาสหมดเวลาแล้วหรือยัง (Bangkok UTC+7) — รองรับคลาสข้ามเที่ยงคืน */
+  private classEnded(s: any): boolean {
+    if (!s?.date || !s?.endTime || !s?.startTime) return false;
+    const d = new Date(s.date);
+    if (isNaN(d.getTime())) return false;
+    const dateStr = new Date(d.getTime() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const start = new Date(`${dateStr}T${s.startTime}:00+07:00`);
+    let end = new Date(`${dateStr}T${s.endTime}:00+07:00`);
+    if (end <= start) end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
+    return new Date() >= end;
+  }
+
+  doMarkAbsent(): void {
+    if (!this.selectedSchedule) return;
+    if (!confirm('ยืนยันทำเครื่องหมาย "นักเรียนขาดเรียนโดยไม่แจ้ง"?\n\n• นักเรียนจะถูกคิดค่าปรับ 100% ของราคาคลาส\n• ครูจะได้รับค่าตอบแทน 50% ของรายได้ปกติ (ไม่ได้ชั่วโมงสอน)\n• คลาสจะถูกตั้งเป็นสถานะ "นักเรียนขาด"')) return;
+    this.confirmLoading = true;
+    this.scheduleService.markAbsent(this.selectedSchedule._id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (res) => {
+          this.confirmLoading = false;
+          if (this.selectedSchedule) {
+            // อัปเดต displayStatus ด้วย — ไม่งั้น badge อ่านค่าเก่า (resolveDisplayStatus อ่าน displayStatus ก่อน)
+            this.selectedSchedule = { ...this.selectedSchedule, status: 'absent', displayStatus: 'absent' } as any;
+          }
+          alert(`บันทึกแล้ว\n\nค่าปรับนักเรียน: ฿${(res.penaltyAmount || 0).toLocaleString('th-TH')}\nค่าตอบแทนครู: ฿${(res.teacherCompensation || 0).toLocaleString('th-TH')}`);
+          this.loadCalendar();
+        },
+        error: (err) => {
+          this.confirmLoading = false;
+          alert(err?.error?.message || 'ทำเครื่องหมายขาดไม่สำเร็จ');
+        }
       });
   }
 

@@ -347,6 +347,11 @@ router.post('/:id/confirm-teacher', authenticateToken, async (req, res) => {
       return sendResponse(res, 403, false, null, 'Access denied');
     }
 
+    // กันยืนยันทับคลาสที่จบ/ยกเลิก/นักเรียนขาดแล้ว (ป้องกันย้อนกลับ flow)
+    if (['completed', 'cancelled', 'absent'].includes(schedule.status)) {
+      return sendResponse(res, 400, false, null, `ไม่สามารถยืนยันรับการสอนได้: คลาสอยู่ในสถานะ "${schedule.status}"`);
+    }
+
     schedule.teacherConfirmed = true;
     schedule.teacherConfirmedAt = new Date();
 
@@ -1126,6 +1131,101 @@ router.patch('/:id/manager-confirm', authenticateToken, roleCheck(['admin', 'man
     }, 'ยืนยันสำเร็จการสอนเรียบร้อยแล้ว');
   } catch (error) {
     console.error('Manager confirm error:', error);
+    sendResponse(res, 500, false, null, error.message);
+  }
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// PATCH /:id/mark-absent — Manager/Admin ทำเครื่องหมาย "นักเรียนขาดเรียนโดยไม่แจ้ง"
+// เฉพาะคลาสเดี่ยว 1:1 ที่นักเรียนไม่ได้เช็คชื่อ
+//   → นักเรียนโดนค่าปรับ 100% ของราคาคลาส
+//   → ครูได้ค่าตอบแทน 50% ของรายได้ครูปกติ (ไม่ได้ชั่วโมงสอน)
+//   → status = 'absent'
+// ────────────────────────────────────────────────────────────────────────────
+router.patch('/:id/mark-absent', authenticateToken, roleCheck(['admin', 'manager']), async (req, res) => {
+  try {
+    const schedule = await Schedule.findById(req.params.id)
+      .populate('teacher', 'firstName lastName nickname email')
+      .populate('students', 'firstName lastName nickname email')
+      .populate('course', 'name subject');
+
+    if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
+
+    // เฉพาะคลาสเดี่ยว 1:1
+    if (!Array.isArray(schedule.students) || schedule.students.length !== 1) {
+      return sendResponse(res, 400, false, null, 'ทำเครื่องหมายขาดได้เฉพาะคลาสเดี่ยว (นักเรียน 1 คน) เท่านั้น');
+    }
+
+    // ห้ามทำซ้ำหรือทำกับคลาสที่จบ/ยกเลิกแล้ว
+    if (['completed', 'cancelled', 'absent'].includes(schedule.status)) {
+      return sendResponse(res, 400, false, null, `ไม่สามารถทำเครื่องหมายขาดได้: สถานะปัจจุบันคือ "${schedule.status}"`);
+    }
+
+    const student = schedule.students[0];
+
+    // นักเรียนต้องยังไม่เช็คชื่อ — ถ้าเช็คแล้วถือว่าเข้าเรียน คิดค่าปรับไม่ได้
+    const scanned = await Attendance.findOne({ schedule: schedule._id, student: student._id });
+    if (scanned) {
+      return sendResponse(res, 400, false, null, 'นักเรียนเช็คชื่อแล้ว ไม่สามารถทำเครื่องหมายขาดได้');
+    }
+
+    // ── Time gate: manager ต้องรอหมดเวลาคลาสก่อน, admin กดได้เลยไม่ต้องรอ ──
+    if (req.user.role !== 'admin') {
+      const classStart = bangkokClassTime(schedule.date, schedule.startTime);
+      let classEnd = bangkokClassTime(schedule.date, schedule.endTime);
+      if (classEnd <= classStart) classEnd = new Date(classEnd.getTime() + 24 * 60 * 60 * 1000); // ข้ามเที่ยงคืน
+      if (new Date() < classEnd) {
+        return sendResponse(res, 400, false, null, 'ยังไม่หมดเวลาคลาส — ต้องรอจนคลาสจบก่อนจึงทำเครื่องหมายขาดได้');
+      }
+    }
+
+    // ── คำนวณเงิน ──
+    const penaltyAmount = computeEffectivePrice(schedule);                          // 100% ราคาคลาส (นักเรียนจ่าย)
+    const normalTeacherIncome = computeEffectiveTeacherIncome(schedule, 1);         // รายได้ครูปกติ (individual)
+    const teacherCompensation = Math.round(normalTeacherIncome * 0.5);             // 50% ให้ครู
+
+    // ── บันทึก ──
+    schedule.status = 'absent';
+    schedule.actualTeacherIncome = teacherCompensation;   // ครูได้เงิน แต่ไม่บวก teachingHours
+    schedule.absencePenalty = {
+      student: student._id,
+      penaltyAmount,
+      teacherCompensation,
+      markedBy: req.user.id,
+      markedAt: new Date()
+    };
+    schedule.managerConfirmedBy = req.user.id;
+    schedule.managerConfirmedAt = new Date();
+    await schedule.save();
+
+    // ไม่ sync Course.status — ให้ displayStatus ของ course อ่านจาก Schedule (absent) โดยตรง
+    const subjectName = schedule.course?.subject || schedule.course?.name || '';
+    const dateText    = new Date(schedule.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+    const timeText    = `${schedule.startTime} – ${schedule.endTime} น.`;
+
+    // แจ้งครู
+    if (schedule.teacher) {
+      await Notification.create({
+        recipient: schedule.teacher._id, type: 'general',
+        title: '⚠️ นักเรียนขาดเรียน (ได้รับค่าตอบแทน 50%)',
+        message: `คลาส${subjectName ? ' ' + subjectName : ''} วันที่ ${dateText} ${timeText} — นักเรียนขาดเรียนโดยไม่แจ้ง | ค่าตอบแทน: ฿${teacherCompensation.toLocaleString('th-TH')}`
+      });
+    }
+
+    // แจ้งนักเรียน
+    await Notification.create({
+      recipient: student._id, type: 'general',
+      title: '⚠️ ขาดเรียนโดยไม่แจ้งล่วงหน้า (มีค่าปรับ)',
+      message: `คลาส${subjectName ? ' ' + subjectName : ''} วันที่ ${dateText} ${timeText} — บันทึกเป็นการขาดเรียนโดยไม่แจ้งล่วงหน้า | ค่าปรับ: ฿${penaltyAmount.toLocaleString('th-TH')} (ตามข้อ 3.4/3.6)`
+    });
+
+    sendResponse(res, 200, true, {
+      scheduleId: schedule._id,
+      penaltyAmount,
+      teacherCompensation
+    }, 'ทำเครื่องหมายนักเรียนขาดเรียนเรียบร้อยแล้ว');
+  } catch (error) {
+    console.error('Mark absent error:', error);
     sendResponse(res, 500, false, null, error.message);
   }
 });

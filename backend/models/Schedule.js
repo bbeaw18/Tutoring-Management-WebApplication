@@ -54,8 +54,19 @@ const ScheduleSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'confirmed', 'scheduled', 'awaiting_confirmation', 'completed', 'cancelled'],
+    enum: ['pending', 'confirmed', 'scheduled', 'awaiting_confirmation', 'completed', 'cancelled', 'absent'],
     default: 'pending'
+  },
+
+  // ── นักเรียนขาดเรียนโดยไม่แจ้ง (No-show) — เฉพาะคลาสเดี่ยว 1:1 ──
+  // Manager/Admin กดทำเครื่องหมาย → นักเรียนโดนค่าปรับ 100% ของราคาคลาส,
+  // ครูได้ค่าตอบแทน 50% ของรายได้ครูปกติ (บันทึกใน actualTeacherIncome)
+  absencePenalty: {
+    student: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    penaltyAmount: { type: Number, default: 0 },        // ค่าปรับที่นักเรียนต้องจ่าย (100% ราคาคลาส)
+    teacherCompensation: { type: Number, default: 0 },  // ค่าตอบแทนครู (50% รายได้ครูปกติ)
+    markedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    markedAt: { type: Date, default: null }
   },
   note: {
     type: String,

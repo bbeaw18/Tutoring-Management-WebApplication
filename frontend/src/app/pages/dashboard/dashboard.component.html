@@ -31,4 +31,13 @@
       <router-outlet></router-outlet>
     </main>
   </div>
+
+  <!-- Popup ข้อตกลงการใช้บริการ (blocking) -->
+  <app-terms-agreement
+    *ngIf="termsDoc"
+    [doc]="termsDoc"
+    [submitting]="submittingTerms"
+    (accepted)="onAcceptTerms()"
+    (declined)="onDeclineTerms()">
+  </app-terms-agreement>
 </div>

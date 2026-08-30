@@ -1,0 +1,64 @@
+<div class="terms-overlay">
+  <div class="terms-modal" role="dialog" aria-modal="true" aria-labelledby="terms-title">
+    <!-- Header -->
+    <div class="terms-header">
+      <h2 id="terms-title">{{ doc.title }}</h2>
+      <div class="terms-meta">
+        <span>ฉบับที่ {{ doc.version }}</span>
+        <span class="dot">•</span>
+        <span>มีผลบังคับใช้ {{ doc.effectiveDate }}</span>
+      </div>
+    </div>
+
+    <!-- Summary (key rules) -->
+    <div class="terms-summary">
+      <div class="summary-label">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>
+        <span>สรุปข้อสำคัญที่ควรทราบ</span>
+      </div>
+      <ul>
+        <li *ngFor="let item of doc.summary">{{ item }}</li>
+      </ul>
+      <p class="summary-note">กรุณาเลื่อนอ่านข้อตกลงฉบับเต็มด้านล่างให้ครบก่อนกดยอมรับ</p>
+    </div>
+
+    <!-- Full text (scroll-gate) -->
+    <div #scrollBody class="terms-body" (scroll)="onScroll()">
+      <p class="body-intro" *ngFor="let p of doc.intro">{{ p }}</p>
+
+      <section *ngFor="let sec of doc.sections">
+        <h3>{{ sec.title }}</h3>
+        <p *ngFor="let para of sec.body">{{ para }}</p>
+      </section>
+
+      <div class="ack-block">
+        <h3>การรับทราบและยอมรับ</h3>
+        <p *ngFor="let p of doc.acknowledgement">{{ p }}</p>
+      </div>
+
+      <div class="end-marker">— จบข้อตกลง —</div>
+    </div>
+
+    <!-- Footer / gate -->
+    <div class="terms-footer">
+      <div class="scroll-hint" *ngIf="!scrolledToBottom">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+        <span>เลื่อนอ่านให้ถึงล่างสุดเพื่อยอมรับข้อตกลง</span>
+      </div>
+
+      <label class="terms-checkbox" [class.disabled]="!scrolledToBottom">
+        <input type="checkbox" [(ngModel)]="agreed" [disabled]="!scrolledToBottom" name="agree">
+        <span>{{ doc.checkboxLabel }}</span>
+      </label>
+
+      <div class="terms-actions">
+        <button type="button" class="btn btn-ghost" (click)="onDecline()" [disabled]="submitting">
+          ไม่ยอมรับ / ออกจากระบบ
+        </button>
+        <button type="button" class="btn btn-primary" (click)="onAccept()" [disabled]="!canAccept">
+          {{ submitting ? 'กำลังบันทึก...' : 'รับทราบและยอมรับข้อตกลง' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

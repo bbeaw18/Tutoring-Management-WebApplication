@@ -134,6 +134,14 @@ export class AuthService {
     }
   }
 
+  /** บันทึกการยอมรับข้อตกลงชุดหนึ่ง (teacher/student) แล้วอัปเดต currentUser */
+  acceptTerms(docType: 'teacher' | 'student', version: string): Observable<IUser> {
+    return this.http.post<IApiResponse<IUser>>(`${this.apiUrl}/accept-terms`, { docType, version }).pipe(
+      map(res => res.data),
+      tap(user => this.currentUserSubject.next(user))
+    );
+  }
+
   forgotPassword(email: string): Observable<IApiResponse<null>> {
     return this.http.post<IApiResponse<null>>(`${this.apiUrl}/forgot-password`, { email });
   }

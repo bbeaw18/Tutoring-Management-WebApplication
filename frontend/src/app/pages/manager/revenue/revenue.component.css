@@ -3061,6 +3061,16 @@ tbody tr:hover { background: rgba(30,63,128,0.03); }
   border-color: var(--brand-300, #93c5fd);
   box-shadow: 0 2px 8px rgba(30, 63, 128, 0.08);
 }
+/* นักเรียนขาด — เน้นทั้งแถวให้แยกออกได้ง่ายในรายการ drill-down */
+.student-monthly-item.sm-absent {
+  background: #fff7ed;
+  border-color: #fb923c;
+  box-shadow: inset 4px 0 0 #f97316;
+}
+.student-monthly-item.sm-absent:hover {
+  border-color: #f97316;
+  box-shadow: inset 4px 0 0 #f97316, 0 2px 8px rgba(249, 115, 22, 0.15);
+}
 
 .sm-item-number {
   display: inline-flex;
@@ -3132,6 +3142,14 @@ tbody tr:hover { background: rgba(30,63,128,0.03); }
 }
 .sm-item-status.badge-pending {
   background: #fef9c3; color: #854d0e; border-color: #fde047;
+}
+/* นักเรียนขาด — เด่นแบบ alert เพื่อแยกออกจากคลาสปกติได้ง่าย */
+.sm-item-status.badge-absent {
+  background: #ffedd5; color: #9a3412; border-color: #fb923c; font-weight: 800;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2);
+}
+.sm-item-status.badge-absent::before {
+  content: "⚠"; margin-right: 3px;
 }
 
 .sm-item-finance {

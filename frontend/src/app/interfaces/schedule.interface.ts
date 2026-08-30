@@ -14,6 +14,7 @@ export interface IPaymentSummary {
   unpaidCount: number;
   pendingCount: number;
   effectivePrice: number;   // coursePrice × hours (ตาม incomeHourly)
+  penaltyAmount?: number;   // ค่าปรับนักเรียนขาดเรียน (ถ้ามี)
 }
 
 export interface ISchedule {
@@ -40,8 +41,17 @@ export interface ISchedule {
   endTime: string;
   zoomLink?: string;
   room?: string;
-  status: 'pending' | 'confirmed' | 'scheduled' | 'completed' | 'cancelled' | 'awaiting_confirmation';
+  status: 'pending' | 'confirmed' | 'scheduled' | 'completed' | 'cancelled' | 'awaiting_confirmation' | 'absent';
   note?: string;
+
+  // นักเรียนขาดเรียน (no-show) — เฉพาะคลาสเดี่ยว 1:1 ที่ Manager ทำเครื่องหมาย
+  absencePenalty?: {
+    student?: string | { _id: string } | null;
+    penaltyAmount?: number;        // ค่าปรับนักเรียน (100% ราคาคลาส)
+    teacherCompensation?: number;  // ค่าตอบแทนครู (50% รายได้ครูปกติ)
+    markedBy?: string | null;
+    markedAt?: Date | string | null;
+  } | null;
 
   // Confirmation
   teacherConfirmed: boolean;

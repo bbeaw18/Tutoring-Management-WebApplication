@@ -3354,7 +3354,12 @@
 .cb2-card.s-cf,.cb2-badge.s-cf{--st:#16a34a;--st-bg:#f0fdf4;}
 .cb2-card.s-am,.cb2-badge.s-am{--st:#ea580c;--st-bg:#fff7ed;}
 .cb2-card.s-cp,.cb2-badge.s-cp{--st:#0d9488;--st-bg:#f0fdfa;}
+.cb2-card.s-ab,.cb2-badge.s-ab{--st:#c2410c;--st-bg:#ffedd5;}
 .cb2-card.s-cx,.cb2-badge.s-cx{--st:#e11d48;--st-bg:#fff1f2;}
+/* นักเรียนขาด — เน้นแบบ alert ให้เห็นง่ายว่าคลาสนี้เด็กขาด */
+.cb2-card.s-ab{ box-shadow: 0 0 0 2px #fb923c inset; }
+.cb2-card.s-ab::before{ width:5px; }
+.cb2-badge.s-ab{ font-weight:800; }
 
 /* Card */
 .cb2-card{display:flex;flex-direction:column;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-xl);box-shadow:var(--elev-1);overflow:hidden;position:relative;transition:box-shadow var(--dur-base) var(--ease-out),transform var(--dur-base) var(--ease-out),border-color var(--dur-base) var(--ease-out);}

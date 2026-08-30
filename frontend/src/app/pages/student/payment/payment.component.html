@@ -133,7 +133,10 @@
               <td>{{ i + 1 }}</td>
               <td>{{ a.schedule?.date | date:'d MMM y' }}</td>
               <td>
-                <div class="cell-primary">{{ getCourseName(a) }}</div>
+                <div class="cell-primary">
+                  {{ getCourseName(a) }}
+                  <span *ngIf="a.isAbsent" class="absent-tag">ขาดเรียน · ค่าปรับ</span>
+                </div>
                 <div class="cell-secondary">{{ a.schedule?.course?.subject }}</div>
               </td>
               <td>{{ getTeacherName(a) }}</td>

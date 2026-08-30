@@ -245,6 +245,32 @@ router.get('/my', authenticateToken, roleCheck(['student']), async (req, res) =>
       return attObj;
     });
 
+    // ── เพิ่มคลาสที่นักเรียนคนนี้ "ขาดเรียน" (no-show) — มีค่าปรับต้องชำระ ──
+    // absent ไม่มี Attendance record จึงไม่อยู่ใน result ข้างบน ต้องดึงแยกมาต่อท้าย
+    const absentSchedules = await Schedule.find({
+      status: 'absent',
+      'absencePenalty.student': req.user.id
+    })
+      .populate({ path: 'course', select: 'name subject' })
+      .populate({ path: 'teacher', select: 'firstName lastName' })
+      .sort({ date: -1 });
+
+    for (const sch of absentSchedules) {
+      const payment = paymentByScheduleId.get(sch._id.toString());
+      let paymentStatus = 'unpaid';
+      if (payment?.status === 'confirmed')    paymentStatus = 'paid';
+      else if (payment?.status === 'pending') paymentStatus = 'pending';
+      result.push({
+        _id: `absent-${sch._id}`,          // synthetic id (ไม่มี Attendance จริง)
+        schedule: sch.toObject(),
+        student: req.user.id,
+        scannedAt: null,
+        isAbsent: true,                    // ธง — frontend ใช้แสดง "ค่าปรับขาดเรียน"
+        penaltyAmount: sch.absencePenalty?.penaltyAmount || 0,
+        paymentStatus
+      });
+    }
+
     sendResponse(res, 200, true, result, 'My attendance history');
   } catch (error) {
     console.error('Get my attendance error:', error);

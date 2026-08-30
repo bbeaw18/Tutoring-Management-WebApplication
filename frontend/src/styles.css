@@ -1697,6 +1697,7 @@ router-outlet + * {
 .status-confirmed,
 .status-awaiting-manager,
 .status-completed,
+.status-absent,
 .status-cancelled {
   display: inline-flex;
   align-items: center;
@@ -1733,6 +1734,18 @@ router-outlet + * {
   background: linear-gradient(135deg, #d1fae5, #a7f3d0);
   color: #065f46;
   border-color: #6ee7b7;
+}
+.status-absent {
+  background: #ffedd5;
+  color: #9a3412;
+  border-color: #fb923c;
+  font-weight: 800;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.18);
+}
+.status-absent::before {
+  content: "⚠";
+  margin-right: 4px;
+  font-size: 11px;
 }
 .status-cancelled {
   background: #fee2e2;

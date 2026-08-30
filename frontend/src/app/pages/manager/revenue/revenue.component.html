@@ -813,7 +813,7 @@
         </div>
 
         <div class="student-monthly-list" *ngIf="studentMonthlyClasses.length > 0">
-          <div class="student-monthly-item" *ngFor="let s of studentMonthlyClasses; let i = index">
+          <div class="student-monthly-item" [class.sm-absent]="s.status === 'absent'" *ngFor="let s of studentMonthlyClasses; let i = index">
             <div class="sm-item-number">{{ i + 1 }}</div>
             <div class="sm-item-main">
               <div class="sm-item-row sm-item-row-top">
@@ -937,7 +937,7 @@
         </div>
 
         <div class="student-monthly-list" *ngIf="teacherMonthlyClasses.length > 0">
-          <div class="student-monthly-item" *ngFor="let s of teacherMonthlyClasses; let i = index">
+          <div class="student-monthly-item" [class.sm-absent]="s.status === 'absent'" *ngFor="let s of teacherMonthlyClasses; let i = index">
             <div class="sm-item-number">{{ i + 1 }}</div>
             <div class="sm-item-main">
               <div class="sm-item-row sm-item-row-top">

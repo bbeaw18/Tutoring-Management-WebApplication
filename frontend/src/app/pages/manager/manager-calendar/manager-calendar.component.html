@@ -130,6 +130,7 @@
           <span class="mc-lg-item"><span class="mc-chip mc-chip-confirmed"></span>ยืนยันครบ</span>
           <span class="mc-lg-item"><span class="mc-chip mc-chip-pending"></span>รอยืนยัน</span>
           <span class="mc-lg-item"><span class="mc-chip mc-chip-completed"></span>เสร็จสิ้น</span>
+          <span class="mc-lg-item"><span class="mc-chip mc-chip-absent"></span>นักเรียนขาด</span>
           <span class="mc-lg-item"><span class="mc-chip mc-chip-cancelled"></span>ยกเลิก</span>
           <ng-container *ngIf="filterMode === 'student' && selectedStudentId">
             <span class="mc-lg-item"><span class="mc-chip mc-chip-accepted"></span>นร.ยืนยัน</span>
@@ -502,7 +503,7 @@
         </div>
 
         <!-- Teacher hasn't confirmed yet -->
-        <div class="action-buttons" *ngIf="!selectedSchedule.teacherConfirmed">
+        <div class="action-buttons" *ngIf="!selectedSchedule.teacherConfirmed && !isFinalStatus(selectedSchedule)">
           <button class="btn btn-success" (click)="confirmAsTeacher()" [disabled]="confirmLoading">
             <svg *ngIf="!confirmLoading" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             {{ confirmLoading ? 'กำลังยืนยัน...' : 'ยืนยันรับการสอน' }}
@@ -511,7 +512,7 @@
 
         <!-- Teacher confirmed, waiting QR session -->
         <div class="action-buttons"
-             *ngIf="selectedSchedule.teacherConfirmed && selectedSchedule.status !== 'awaiting_confirmation' && selectedSchedule.status !== 'completed'">
+             *ngIf="selectedSchedule.teacherConfirmed && !isFinalStatus(selectedSchedule) && selectedSchedule.status !== 'awaiting_confirmation'">
           <a [routerLink]="['/dashboard/qr-display', selectedSchedule._id]"
              class="btn btn-primary"
              (click)="closeDetailModal()">
@@ -525,6 +526,14 @@
           <button class="btn btn-manager-confirm" (click)="doManagerConfirm()" [disabled]="confirmLoading">
             <svg *ngIf="!confirmLoading" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             {{ confirmLoading ? 'กำลังยืนยัน...' : 'ยืนยันเสร็จสิ้นการสอน (Manager)' }}
+          </button>
+        </div>
+
+        <!-- Manager/Admin: นักเรียนขาดเรียน (คลาสเดี่ยว 1:1 ที่ยังไม่เช็คชื่อ) -->
+        <div class="action-buttons" *ngIf="canMarkAbsent()">
+          <button class="btn btn-danger" type="button" (click)="doMarkAbsent()" [disabled]="confirmLoading">
+            <svg *ngIf="!confirmLoading" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            {{ confirmLoading ? 'กำลังบันทึก...' : 'นักเรียนขาดเรียน (คิดค่าปรับ)' }}
           </button>
         </div>
 

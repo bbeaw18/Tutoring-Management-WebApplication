@@ -319,9 +319,9 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
   try {
     const { month, teacherId, studentId } = req.query;
 
-    // กรอง schedule ที่เสร็จสิ้น (awaiting_confirmation หรือ completed)
+    // กรอง schedule ที่เสร็จสิ้น (awaiting_confirmation, completed) + นักเรียนขาด (absent)
     let scheduleQuery = {
-      status: { $in: ['awaiting_confirmation', 'completed'] }
+      status: { $in: ['awaiting_confirmation', 'completed', 'absent'] }
     };
 
     if (month) {
@@ -339,6 +339,7 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
       .populate('course', 'name subject type gradeLevel teachingType description coursePrice teacherIncomeGroup teacherIncomeIndividual incomeHourly')
       .populate('teacher', 'firstName lastName nickname email role')
       .populate('managerConfirmedBy', 'firstName lastName nickname')
+      .populate('absencePenalty.student', 'firstName lastName nickname')
       .sort({ date: -1 });
 
     // H5: เปลี่ยนจาก N+1 queries (Attendance.find + Payment.findOne per schedule)
@@ -394,11 +395,17 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
       const sid = s._id.toString();
       const attendances = attendancesByScheduleId.get(sid) || [];
 
-      // ถ้า filter studentId แล้วนักเรียนคนนั้นไม่ได้เข้าเรียน → ข้ามคลาสนี้
-      if (studentId && attendances.length === 0) continue;
+      // ── นักเรียนขาดเรียน (no-show) — คิดค่าปรับแทนการเข้าเรียน ──
+      const isAbsent = s.status === 'absent' && s.absencePenalty && (s.absencePenalty.penaltyAmount || 0) > 0;
+      const absentStudent = isAbsent ? s.absencePenalty.student : null;   // populated
+      const absentStudentId = absentStudent ? String(absentStudent._id || absentStudent) : null;
+      const penaltyAmount = isAbsent ? (s.absencePenalty.penaltyAmount || 0) : 0;
+
+      // ถ้า filter studentId แล้วนักเรียนคนนั้นไม่ได้เข้าเรียน (และไม่ใช่คนที่ขาด) → ข้ามคลาสนี้
+      if (studentId && attendances.length === 0 && !(isAbsent && absentStudentId === String(studentId))) continue;
 
       const effectivePrice = computeEffectivePrice(s);
-      const totalForSchedule = attendances.length * effectivePrice;
+      const totalForSchedule = attendances.length * effectivePrice + penaltyAmount;
       let paidForSchedule = 0;
 
       // ── ใช้ราคาปัจจุบัน (effectivePrice) สำหรับ KPI/display ──
@@ -420,10 +427,13 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
       // ── คำนวณ teacher income แบบ date-gated (ไม่พึ่ง flag เก่า) ──
       // ใช้ค่านี้แทน s.actualTeacherIncome ใน KPI + scheduleList
       // (ป้องกันค่าเก่าที่ถูกบันทึกตอน flag incomeHourly ไม่ตรงกับวันที่ rollout)
-      const effectiveTeacherIncome = computeEffectiveTeacherIncome(s, attendances.length);
+      // absent → ครูได้ค่าตอบแทน 50% ที่บันทึกไว้ (computeEffectiveTeacherIncome จะได้ 0 เพราะ attendances=0)
+      const effectiveTeacherIncome = isAbsent
+        ? (s.absencePenalty.teacherCompensation || s.actualTeacherIncome || 0)
+        : computeEffectiveTeacherIncome(s, attendances.length);
 
-      // ── คำนวณ teacher income split (manager-confirmed คลาสเท่านั้น) ──
-      if (s.status === 'completed') {
+      // ── คำนวณ teacher income split (คลาสที่ Manager ยืนยัน 'completed' หรือนักเรียนขาด 'absent') ──
+      if (s.status === 'completed' || s.status === 'absent') {
         const teacherRole = s.teacher?.role;
         if (teacherRole === 'manager') {
           kpiManagerIncome += effectiveTeacherIncome;
@@ -461,22 +471,37 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
         totalDurationMinutes: s.totalDurationMinutes || 0,
         note:                s.note || null,
         // ── Per-student payment ──
-        attendedStudents: attendances.map(att => {
-          const sid = s._id.toString();
-          const key = `${att.student._id.toString()}:${sid}`;
-          const payment = paymentByKey.get(key);
-          // paymentStatus: 'unpaid' (ยังไม่ทำอะไร) | 'pending' (รอ Manager ยืนยัน) | 'confirmed' (ชำระสำเร็จ)
-          const paymentStatus = payment ? payment.status : 'unpaid';
-          return {
-            studentId:    att.student._id,
-            name:         att.student.nickname || `${att.student.firstName} ${att.student.lastName}`,
-            scannedAt:    att.scannedAt,
-            paymentStatus,
-            paymentId:    payment?._id || null,
-            // แสดงราคาปัจจุบันของคลาส ไม่ใช่ payment.amount เก่า — เพื่อให้ตรงกับหน้าอื่น
-            paymentAmount: effectivePrice
-          };
-        }),
+        attendedStudents: (() => {
+          const rows = attendances.map(att => {
+            const key = `${att.student._id.toString()}:${sid}`;
+            const payment = paymentByKey.get(key);
+            // paymentStatus: 'unpaid' (ยังไม่ทำอะไร) | 'pending' (รอ Manager ยืนยัน) | 'confirmed' (ชำระสำเร็จ)
+            const paymentStatus = payment ? payment.status : 'unpaid';
+            return {
+              studentId:    att.student._id,
+              name:         att.student.nickname || `${att.student.firstName} ${att.student.lastName}`,
+              scannedAt:    att.scannedAt,
+              paymentStatus,
+              paymentId:    payment?._id || null,
+              // แสดงราคาปัจจุบันของคลาส ไม่ใช่ payment.amount เก่า — เพื่อให้ตรงกับหน้าอื่น
+              paymentAmount: effectivePrice,
+              isAbsent:      false
+            };
+          });
+          // นักเรียนที่ขาดเรียน (no-show) — เพิ่มแถวค่าปรับ
+          if (isAbsent && absentStudent) {
+            rows.push({
+              studentId:     absentStudent._id || absentStudent,
+              name:          absentStudent.nickname || `${absentStudent.firstName || ''} ${absentStudent.lastName || ''}`.trim() || 'นักเรียน',
+              scannedAt:     null,
+              paymentStatus: 'unpaid',
+              paymentId:     null,
+              paymentAmount: penaltyAmount,
+              isAbsent:      true
+            });
+          }
+          return rows;
+        })(),
         attendanceCount: attendances.length,
         coursePrice:     effectivePrice,
         // Raw rates from schedule — frontend uses these to render
@@ -489,6 +514,9 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
         unpaid:          totalForSchedule - paidForSchedule,
         status:          s.status,
         displayStatus:   deriveDisplayStatus(s),
+        // นักเรียนขาดเรียน (no-show)
+        isAbsent:        isAbsent,
+        penaltyAmount:   penaltyAmount,
         // ใช้ค่าที่คำนวณใหม่ตาม date gate (ไม่พึ่ง flag เก่าที่อาจผิด)
         actualTeacherIncome: effectiveTeacherIncome
       });

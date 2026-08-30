@@ -14,6 +14,7 @@ export type DisplayStatus =
   | 'confirmed'         // ยืนยันแล้ว (ทั้งครู + นักเรียน)
   | 'awaiting_manager'  // รอ Manager ยืนยันเสร็จสิ้น
   | 'completed'         // เสร็จสิ้น
+  | 'absent'            // นักเรียนขาดเรียน (no-show, มีค่าปรับ)
   | 'cancelled';        // ยกเลิก
 
 const STATUS_LABEL: Record<DisplayStatus, string> = {
@@ -22,6 +23,7 @@ const STATUS_LABEL: Record<DisplayStatus, string> = {
   confirmed:        'ยืนยันแล้ว',
   awaiting_manager: 'รอ Manager ยืนยัน',
   completed:        'เสร็จสิ้น',
+  absent:           'นักเรียนขาด',
   cancelled:        'ยกเลิก'
 };
 
@@ -32,6 +34,7 @@ const STATUS_CLASS: Record<DisplayStatus, string> = {
   confirmed:        'status-confirmed',
   awaiting_manager: 'status-awaiting-manager',
   completed:        'status-completed',
+  absent:           'status-absent',
   cancelled:        'status-cancelled'
 };
 
@@ -49,6 +52,7 @@ export function deriveDisplayStatus(input: {
   const s = input.status;
 
   if (s === 'cancelled')             return 'cancelled';
+  if (s === 'absent')                return 'absent';
   if (s === 'completed')             return 'completed';
   if (s === 'awaiting_confirmation') return 'awaiting_manager';
 

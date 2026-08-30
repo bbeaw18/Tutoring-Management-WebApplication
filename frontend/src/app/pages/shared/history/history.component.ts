@@ -243,6 +243,11 @@ export class HistoryComponent implements OnInit, OnDestroy {
     return getDisplayStatusClass(resolveDisplayStatus(s));
   }
 
+  /** ค่าปรับนักเรียนขาดเรียน (no-show) ของคลาสนี้ — 0 ถ้าไม่ใช่คลาส absent */
+  getAbsencePenalty(s: any): number {
+    return s?.status === 'absent' ? (s?.absencePenalty?.penaltyAmount || 0) : 0;
+  }
+
   getCourseName2(s: ISchedule): string {
     const c = s.course as any;
     return typeof c === 'object' ? (c.name || c.subject || '-') : '-';

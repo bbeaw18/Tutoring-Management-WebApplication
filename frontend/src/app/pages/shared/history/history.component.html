@@ -261,9 +261,11 @@
                (click)="openDetail(sch)"
                [class.tl-cancelled]="sch.status === 'cancelled'"
                [class.tl-completed]="sch.status === 'completed'"
+               [class.tl-absent]="sch.status === 'absent'"
                [class.tl-pending]="sch.status === 'pending' || sch.status === 'confirmed' || sch.status === 'scheduled'">
             <div class="h-tl-marker"
                  [class.marker-completed]="sch.status === 'completed'"
+                 [class.marker-absent]="sch.status === 'absent'"
                  [class.marker-cancelled]="sch.status === 'cancelled'"></div>
             <div class="h-tl-card">
               <div class="h-tl-card-top">
@@ -281,6 +283,10 @@
                 </span>
                 <span class="h-tl-meta-item">{{ formatDuration(sch.totalDurationMinutes || 0) }}</span>
                 <span [class]="'conf-badge ' + getConfirmClass(getMyConfirmStatus(sch))">{{ getConfirmLabel(getMyConfirmStatus(sch)) }}</span>
+              </div>
+              <div class="h-tl-penalty" *ngIf="sch.status === 'absent'">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                ขาดเรียนโดยไม่แจ้ง — ค่าปรับ ฿{{ getAbsencePenalty(sch) | number }}
               </div>
             </div>
           </div>
@@ -364,10 +370,12 @@
                (click)="openDetail(s)"
                [class.tl-cancelled]="s.status === 'cancelled'"
                [class.tl-completed]="s.status === 'completed'"
+               [class.tl-absent]="s.status === 'absent'"
                [class.tl-awaiting]="s.status === 'awaiting_confirmation'"
                [class.tl-pending]="s.status === 'pending' || s.status === 'confirmed' || s.status === 'scheduled'">
             <div class="h-tl-marker"
                  [class.marker-completed]="s.status === 'completed'"
+                 [class.marker-absent]="s.status === 'absent'"
                  [class.marker-awaiting]="s.status === 'awaiting_confirmation'"
                  [class.marker-cancelled]="s.status === 'cancelled'"></div>
             <div class="h-tl-card">

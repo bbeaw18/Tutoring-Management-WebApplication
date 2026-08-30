@@ -132,6 +132,14 @@ export class ScheduleService {
     );
   }
 
+  // ─── Manager/Admin ทำเครื่องหมาย "นักเรียนขาดเรียน" (คลาสเดี่ยว 1:1) ───
+  // นักเรียนโดนค่าปรับ 100% ของราคาคลาส, ครูได้ 50% ของรายได้ครูปกติ
+  markAbsent(id: string): Observable<{ scheduleId: string; penaltyAmount: number; teacherCompensation: number }> {
+    return this.http.patch<IApiResponse<any>>(`${this.apiUrl}/${id}/mark-absent`, {}).pipe(
+      map(res => res.data)
+    );
+  }
+
   getSchedulesByTeacher(teacherId: string): Observable<ISchedule[]> {
     return this.http.get<IApiResponse<ISchedule[]>>(`${this.apiUrl}?teacherId=${teacherId}`).pipe(
       map(res => res.data)

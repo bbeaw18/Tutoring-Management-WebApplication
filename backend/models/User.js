@@ -169,6 +169,20 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  // ── การยอมรับข้อตกลงการใช้บริการ (Terms of Service) ──
+  // เก็บแยกตามชุดเอกสาร (teacher / student) — เวอร์ชันที่ยอมรับ + เวลาที่กด
+  // teacher ยอมรับชุดครู, student ยอมรับชุดนักเรียน, admin/manager ยอมรับทั้งสองชุด
+  // ใช้เป็นหลักฐานการแสดงเจตนายอมรับทางอิเล็กทรอนิกส์
+  acceptedTerms: {
+    teacher: {
+      version: { type: String, default: null },
+      at: { type: Date, default: null }
+    },
+    student: {
+      version: { type: String, default: null },
+      at: { type: Date, default: null }
+    }
+  },
   // เก็บเฉพาะ hash ของ reset token (ไม่เก็บ raw token) — แม้ DB หลุดก็ใช้ไม่ได้
   resetPasswordTokenHash: {
     type: String,

@@ -134,6 +134,22 @@
 .status-scheduled  { background: #e0e7ff; color: #3730a3; }
 .status-pending    { background: #f1f5f9; color: #475569; }
 .status-cancelled  { background: #fee2e2; color: #991b1b; }
+.status-absent     { background: #ffedd5; color: #9a3412; }
+
+/* ค่าปรับนักเรียนขาดเรียน (no-show) */
+.h-tl-penalty {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 7px;
+  padding: 5px 9px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 7px;
+  color: #9a3412;
+  font-size: 12px;
+  font-weight: 700;
+}
 
 /* ─── Attendance count ────────────────────────────────────── */
 .attend-count {
@@ -418,6 +434,7 @@
 .marker-completed { background: #10b981; box-shadow: 0 0 0 1px #10b981, 0 0 0 5px rgba(16,185,129,.18); }
 .marker-awaiting { background: #f59e0b; box-shadow: 0 0 0 1px #f59e0b, 0 0 0 5px rgba(245,158,11,.18); animation: hMarkerPulse 2.2s ease-in-out infinite; }
 .marker-cancelled { background: #94a3b8; }
+.marker-absent { background: #f97316; box-shadow: 0 0 0 1px #f97316, 0 0 0 5px rgba(249,115,22,.22); animation: hMarkerPulse 2.2s ease-in-out infinite; }
 @keyframes hMarkerPulse {
   0%, 100% { box-shadow: 0 0 0 1px #f59e0b, 0 0 0 5px rgba(245,158,11,.18); }
   50%      { box-shadow: 0 0 0 1px #f59e0b, 0 0 0 9px rgba(245,158,11,0); }
@@ -439,6 +456,8 @@
 .tl-awaiting .h-tl-card  { box-shadow: inset 3px 0 0 #f59e0b; background: linear-gradient(180deg, #fffbeb 0%, #fff 60%); }
 .tl-cancelled .h-tl-card { box-shadow: inset 3px 0 0 #94a3b8; opacity: .68; }
 .tl-pending .h-tl-card   { box-shadow: inset 3px 0 0 #0ea5e9; }
+/* นักเรียนขาด — เน้นแบบ alert (ขอบส้มหนา + พื้นส้มอ่อน) */
+.tl-absent .h-tl-card    { box-shadow: inset 4px 0 0 #f97316, 0 0 0 1.5px #fdba74; background: linear-gradient(180deg, #fff7ed 0%, #fff 65%); }
 .tl-student.tl-cancelled .h-tl-card { background: #f8f9fa; }
 
 .h-tl-card-top {
