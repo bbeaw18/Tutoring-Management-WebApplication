@@ -659,6 +659,10 @@
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v8H4v-8"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
                   คอร์ส
                 </span>
+                <span class="cb2-paywait-badge" *ngIf="$any(course).coursePaymentPending" title="รอชำระเงินคอร์ส — ล็อคจนกว่าจะยืนยันที่หน้ารายรับรายจ่าย">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  รอชำระเงิน<ng-container *ngIf="$any(course).courseStudentCount"> {{ $any(course).coursePaidCount }}/{{ $any(course).courseStudentCount }}</ng-container>
+                </span>
                 <span class="cb2-badge" [ngClass]="cb2StatusClass(course)">{{ getStatusLabel(course) }}</span>
               </div>
 
