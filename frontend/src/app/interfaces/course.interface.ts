@@ -76,7 +76,7 @@ export interface IRecurrence {
   frequency: 'daily' | 'weekly' | 'monthly';
   interval: number;             // ทุก N วัน/สัปดาห์/เดือน
   weekdays?: number[];          // 0=อาทิตย์..6=เสาร์ — เฉพาะ weekly
-  endType: 'count' | 'until';
+  endType: 'never' | 'count' | 'until';
   count?: number;               // จบหลัง N ครั้ง
   until?: string;               // จบภายในวันที่ (YYYY-MM-DD)
 }

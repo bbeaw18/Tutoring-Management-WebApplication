@@ -29,13 +29,17 @@ function computeRecurrenceDates(baseDate, recurrence) {
   }
 
   const interval = Math.max(1, parseInt(recurrence.interval, 10) || 1);
-  const endType  = recurrence.endType === 'until' ? 'until' : 'count';
+  const endType  = ['never', 'until', 'count'].includes(recurrence.endType) ? recurrence.endType : 'count';
   const count    = Math.min(MAX_RECURRENCE, Math.max(1, parseInt(recurrence.count, 10) || 1));
   const until    = recurrence.until ? new Date(recurrence.until) : null;
   if (until) until.setHours(23, 59, 59, 999);
 
   const dates = [];
-  const reachedEnd = (d) => (endType === 'until' && until) ? d > until : dates.length >= count;
+  const reachedEnd = (d) => {
+    if (endType === 'until') return until ? d > until : dates.length >= MAX_RECURRENCE;
+    if (endType === 'never') return dates.length >= MAX_RECURRENCE;
+    return dates.length >= count;
+  };
 
   if (recurrence.frequency === 'daily') {
     let d = new Date(base);

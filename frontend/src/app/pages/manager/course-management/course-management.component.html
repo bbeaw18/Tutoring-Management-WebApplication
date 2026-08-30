@@ -137,36 +137,52 @@
               </div>
 
               <div class="cb2-recur-body" *ngIf="isRecurring">
-                <!-- interval -->
+                <!-- ทำซ้ำทุก N [หน่วย] -->
                 <div class="cb2-recur-line">
-                  <span>ทุก</span>
+                  <span>ทำซ้ำทุก</span>
                   <input type="number" min="1" formControlName="recurInterval" class="cb2-recur-num" (wheel)="$event.preventDefault()"/>
                   <span>{{ recurUnitLabel }}</span>
                 </div>
 
-                <!-- weekday chips (weekly) -->
-                <div class="cb2-recur-days" *ngIf="bookingForm.get('recurFreq')?.value === 'weekly'">
-                  <button type="button" class="cb2-recur-day" *ngFor="let lb of weekdayLabels; let i = index"
-                          [class.on]="isRecurWeekday(i)" (click)="toggleRecurWeekday(i)">{{ lb }}</button>
+                <!-- ทำซ้ำในวัน (weekly) -->
+                <div class="cb2-recur-field" *ngIf="bookingForm.get('recurFreq')?.value === 'weekly'">
+                  <span class="cb2-recur-fieldlb">ทำซ้ำในวัน</span>
+                  <div class="cb2-recur-days">
+                    <button type="button" class="cb2-recur-day" *ngFor="let lb of weekdayLabels; let i = index"
+                            [class.on]="isRecurWeekday(i)" (click)="toggleRecurWeekday(i)">{{ lb }}</button>
+                  </div>
                 </div>
 
-                <!-- end condition -->
-                <div class="cb2-recur-line cb2-recur-end">
-                  <span>สิ้นสุด</span>
-                  <label class="cb2-recur-radio">
-                    <input type="radio" formControlName="recurEndType" value="count"/> หลัง
-                    <input type="number" min="1" formControlName="recurCount" class="cb2-recur-num"
-                           (wheel)="$event.preventDefault()"/> ครั้ง
-                  </label>
-                  <label class="cb2-recur-radio">
-                    <input type="radio" formControlName="recurEndType" value="until"/> ภายในวันที่
-                    <input type="date" formControlName="recurUntil" class="cb2-recur-date"/>
-                  </label>
+                <!-- สิ้นสุด — เรียงแนวตั้งแบบ Google -->
+                <div class="cb2-recur-field">
+                  <span class="cb2-recur-fieldlb">สิ้นสุด</span>
+                  <div class="cb2-recur-ends">
+                    <label class="cb2-recur-end-opt">
+                      <input type="radio" formControlName="recurEndType" value="never"/>
+                      <span>ไม่มีวันที่สิ้นสุด</span>
+                    </label>
+                    <label class="cb2-recur-end-opt">
+                      <input type="radio" formControlName="recurEndType" value="until"/>
+                      <span>ในวันที่</span>
+                      <input type="date" formControlName="recurUntil" class="cb2-recur-date"
+                             (focus)="bookingForm.get('recurEndType')?.setValue('until')"/>
+                    </label>
+                    <label class="cb2-recur-end-opt">
+                      <input type="radio" formControlName="recurEndType" value="count"/>
+                      <span>หลังจาก</span>
+                      <input type="number" min="1" formControlName="recurCount" class="cb2-recur-num"
+                             (focus)="bookingForm.get('recurEndType')?.setValue('count')" (wheel)="$event.preventDefault()"/>
+                      <span>ครั้ง</span>
+                    </label>
+                  </div>
                 </div>
 
                 <div class="cb2-recur-prev" *ngIf="repeatPreviewDates.length > 1">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                   {{ repeatSummaryLabel }}
+                </div>
+                <div class="cb2-recur-cap" *ngIf="bookingForm.get('recurEndType')?.value === 'never'">
+                  ไม่มีวันสิ้นสุด — ระบบสร้างสูงสุด 60 คาบ
                 </div>
               </div>
             </div>

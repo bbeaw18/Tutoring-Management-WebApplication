@@ -220,7 +220,7 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
       frequency: freq,
       interval:  Math.max(1, Number(this.bookingForm.get('recurInterval')?.value) || 1),
       weekdays:  freq === 'weekly' ? [...this.recurWeekdays].sort((a, b) => a - b) : undefined,
-      endType:   this.bookingForm.get('recurEndType')?.value === 'until' ? 'until' : 'count',
+      endType:   this.bookingForm.get('recurEndType')?.value || 'count',
       count:     Math.max(1, Number(this.bookingForm.get('recurCount')?.value) || 1),
       until:     this.bookingForm.get('recurUntil')?.value || undefined
     };
@@ -237,14 +237,18 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     const MAX = 60;
     const freq     = this.bookingForm.get('recurFreq')?.value;
     const interval = Math.max(1, Number(this.bookingForm.get('recurInterval')?.value) || 1);
-    const endType  = this.bookingForm.get('recurEndType')?.value === 'until' ? 'until' : 'count';
+    const endType  = this.bookingForm.get('recurEndType')?.value; // never | until | count
     const count    = Math.min(MAX, Math.max(1, Number(this.bookingForm.get('recurCount')?.value) || 1));
     const untilRaw = this.bookingForm.get('recurUntil')?.value;
     const until    = untilRaw ? new Date(untilRaw) : null;
     if (until) until.setHours(23, 59, 59, 999);
 
     const dates: Date[] = [];
-    const reachedEnd = (d: Date) => (endType === 'until' && until) ? d > until : dates.length >= count;
+    const reachedEnd = (d: Date) => {
+      if (endType === 'until') return until ? d > until : dates.length >= MAX;
+      if (endType === 'never') return dates.length >= MAX;
+      return dates.length >= count;
+    };
 
     if (freq === 'daily') {
       const d = new Date(base);
