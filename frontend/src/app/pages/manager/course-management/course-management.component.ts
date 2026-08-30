@@ -174,7 +174,9 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
       recurInterval: [1, [Validators.min(1)]],
       recurEndType:  ['count'],             // count | until
       recurCount:    [4, [Validators.min(1)]],
-      recurUntil:    ['']
+      recurUntil:    [''],
+      // ── คอร์ส (แพ็กเกจ) — นักเรียนต้องจ่ายก่อนเช็คชื่อ ──
+      isCoursePackage: [false]
     });
     // ค่าเริ่มต้นของวันในสัปดาห์ — sync กับวันของ scheduledDate เมื่อยังไม่ได้เลือกเอง
     this.bookingForm.get('scheduledDate')?.valueChanges
@@ -632,7 +634,8 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
       teacherIncomeIndividual: Number(v.teacherIncomeIndividual) || 0,
       teacherIncomeGroup:      Number(v.teacherIncomeGroup) || 0,
       coursePrice:             Number(v.coursePrice) || 0,
-      recurrence:              this.buildRecurrence()
+      recurrence:              this.buildRecurrence(),
+      isCoursePackage:         !!v.isCoursePackage
     };
 
     this.submitting = true;
@@ -642,7 +645,7 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
       next: () => {
         this.submitting = false;
         this.showForm = false;
-        this.bookingForm.reset({ type: 'group', teacherIncomeIndividual: null, teacherIncomeGroup: null, coursePrice: null, recurFreq: 'none', recurInterval: 1, recurEndType: 'count', recurCount: 4, recurUntil: '' });
+        this.bookingForm.reset({ type: 'group', teacherIncomeIndividual: null, teacherIncomeGroup: null, coursePrice: null, recurFreq: 'none', recurInterval: 1, recurEndType: 'count', recurCount: 4, recurUntil: '', isCoursePackage: false });
         this.selectedStudentIds = [];
         this.recurWeekdays = [];
         // โหลด autocomplete ใหม่หลังสร้าง (เผื่อมีวิชาหรือประเภทการสอนใหม่)
@@ -883,7 +886,8 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
       recurInterval: 1,
       recurEndType: 'count',
       recurCount: 4,
-      recurUntil: ''
+      recurUntil: '',
+      isCoursePackage: false
     });
     this.selectedStudentIds = [];
     this.recurWeekdays = [];

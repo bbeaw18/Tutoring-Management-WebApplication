@@ -160,6 +160,18 @@
                 </div>
               </div>
             </div>
+
+            <!-- ── คอร์ส (แพ็กเกจ) — นักเรียนต้องจ่ายก่อนเรียน ── -->
+            <label class="cb2-pkg">
+              <input type="checkbox" formControlName="isCoursePackage" class="cb2-pkg-input"/>
+              <span class="cb2-pkg-box" [class.on]="bookingForm.get('isCoursePackage')?.value">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+              <span class="cb2-pkg-tx">
+                <strong>ตั้งเป็นคอร์ส (ชำระเงินก่อนเรียน)</strong>
+                <small>นักเรียนต้องชำระเงินทั้งคอร์สให้ครบก่อน จึงจะเช็คชื่อเข้าเรียนได้ · จำนวนคาบ = จำนวนครั้งที่ทำซ้ำ</small>
+              </span>
+            </label>
           </section>
 
           <!-- ── Section 2: รายละเอียดคลาส ── -->
@@ -618,6 +630,10 @@
             <div class="cb2-card-body">
               <div class="cb2-card-top">
                 <div class="cb2-card-subj">{{ course.subject }}<ng-container *ngIf="getCardStudentNames(course)"> - {{ getCardStudentNames(course) }}</ng-container><ng-container *ngIf="course.gradeLevel"> {{ course.gradeLevel }}</ng-container></div>
+                <span class="cb2-pkg-badge" *ngIf="$any(course).isCoursePackage" title="คอร์ส — ต้องชำระเงินก่อนเรียน">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v8H4v-8"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+                  คอร์ส
+                </span>
                 <span class="cb2-badge" [ngClass]="cb2StatusClass(course)">{{ getStatusLabel(course) }}</span>
               </div>
 

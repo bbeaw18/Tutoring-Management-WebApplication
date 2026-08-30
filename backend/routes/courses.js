@@ -91,7 +91,8 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
       teacherIncomeIndividual, teacherIncomeGroup, coursePrice,
       teachingType,
       repeatWeeklyUntilEndOfMonth,
-      recurrence
+      recurrence,
+      isCoursePackage
     } = req.body;
 
     // Validate required fields
@@ -170,6 +171,7 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
         incomeHourly:            true,   // โค้ดใหม่: คิดรายได้ต่อชั่วโมง × duration
         seriesId,
         seriesSize,
+        isCoursePackage:         !!isCoursePackage,
         status: 'pending',
         createdBy: req.user.id
       });

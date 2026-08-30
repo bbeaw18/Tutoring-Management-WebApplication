@@ -3185,6 +3185,18 @@
 .cb2-recur-date:focus{outline:none;border-color:var(--brand-400);}
 .cb2-recur-date:disabled{background:var(--gray-100);color:var(--text-tertiary);}
 .cb2-recur-prev{display:flex;align-items:center;gap:7px;padding:9px 13px;background:#fdf2f8;border:1px solid var(--accent-300);border-radius:var(--r-lg);font-size:12.5px;font-weight:600;color:var(--accent-600);}
+/* ── คอร์ส (แพ็กเกจ) toggle ── */
+.cb2-pkg{margin-top:var(--sp-3);display:flex;align-items:flex-start;gap:11px;padding:13px 15px;background:var(--warning-50);border:1.5px dashed var(--warning-100);border-radius:var(--r-lg);cursor:pointer;transition:border-color var(--dur-fast) var(--ease-out);}
+.cb2-pkg:hover{border-color:var(--warning-300,#f5b942);}
+.cb2-pkg-input{position:absolute;opacity:0;width:0;height:0;}
+.cb2-pkg-box{flex-shrink:0;width:20px;height:20px;border:1.5px solid var(--gray-300);border-radius:6px;background:#fff;display:flex;align-items:center;justify-content:center;color:#fff;margin-top:1px;transition:all var(--dur-fast) var(--ease-out);}
+.cb2-pkg-box svg{opacity:0;}
+.cb2-pkg-box.on{background:var(--warning-600);border-color:var(--warning-600);}
+.cb2-pkg-box.on svg{opacity:1;}
+.cb2-pkg-tx{display:flex;flex-direction:column;gap:2px;flex:1;}
+.cb2-pkg-tx strong{font-size:13.5px;font-weight:700;color:var(--warning-600);}
+.cb2-pkg-tx small{font-size:11.5px;color:var(--text-secondary);}
+.cb2-pkg-badge{flex-shrink:0;display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:var(--warning-50);border:1px solid var(--warning-100);border-radius:var(--r-full);font-size:10.5px;font-weight:700;color:var(--warning-600);}
 
 /* Students */
 .cb2-st-bar{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);margin-bottom:var(--sp-3);}

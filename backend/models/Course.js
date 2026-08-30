@@ -92,6 +92,9 @@ const CourseSchema = new mongoose.Schema({
   // seriesSize = จำนวนคลาสทั้งหมดในชุด (ใช้แสดงบน UI โดยไม่ต้อง query ทั้งชุด)
   seriesId:   { type: String, default: null, index: true },
   seriesSize: { type: Number, default: 1 },
+  // ── คอร์ส (แพ็กเกจ) ── นักเรียนต้องชำระเงินทั้งคอร์สก่อนจึงเช็คชื่อเข้าเรียนได้
+  //   ทุกคลาสในชุด (seriesId เดียวกัน) จะถูก stamp ค่านี้เหมือนกัน
+  isCoursePackage: { type: Boolean, default: false },
   status: {
     type: String,
     enum: ['pending', 'approved', 'active', 'completed', 'cancelled'],
