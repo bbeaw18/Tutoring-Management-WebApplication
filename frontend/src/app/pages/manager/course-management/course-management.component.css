@@ -3193,7 +3193,14 @@
 .cb2-recur-fieldlb{flex-shrink:0;width:78px;padding-top:7px;font-size:13px;font-weight:600;color:var(--text-secondary);}
 .cb2-recur-ends{display:flex;flex-direction:column;gap:9px;}
 .cb2-recur-end-opt{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary);cursor:pointer;}
-.cb2-recur-end-opt input[type=radio]{accent-color:var(--brand-500);width:16px;height:16px;cursor:pointer;}
+/* คืน native radio/checkbox — global styles.css บังคับ appearance:none ทำให้ติ๊กแล้วไม่ขึ้น */
+.cb2-recur-end-opt input[type=radio],
+.edit-scope-opt input[type=radio],
+.series-item-select input[type=checkbox]{
+  -webkit-appearance:auto;appearance:auto;
+  width:16px;height:16px;min-width:16px;padding:0;margin:0;border-radius:0;
+  accent-color:var(--brand-500);cursor:pointer;flex-shrink:0;
+}
 .cb2-recur-date{padding:6px 9px;border:1.5px solid var(--gray-200);border-radius:var(--r-md);background:#fff;font-family:var(--font-en);font-size:12.5px;}
 .cb2-recur-date:focus{outline:none;border-color:var(--brand-400);}
 .cb2-recur-date:disabled{background:var(--gray-100);color:var(--text-tertiary);}
