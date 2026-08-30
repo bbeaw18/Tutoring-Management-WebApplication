@@ -143,6 +143,19 @@ export class PaymentComponent implements OnInit, OnDestroy {
     });
   }
 
+  // ─── คอร์สของฉัน (paymentType='course', schedule=null) ─────────
+  get myCoursePayments(): any[] {
+    return (this.myPayments || [])
+      .filter((p: any) => p.paymentType === 'course')
+      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+  courseName(p: any): string {
+    return p?.course?.subject || p?.course?.name || 'คอร์สเรียน';
+  }
+  coursePayStatusLabel(status: string): string {
+    return status === 'confirmed' ? 'ชำระแล้ว' : (status === 'rejected' ? 'ถูกปฏิเสธ' : 'รอชำระ / รอยืนยัน');
+  }
+
   // ─── Filtered ────────────────────────────────────────────────
   get filteredHistory(): any[] {
     if (!this.selectedMonth) return this.attendanceHistory;

@@ -75,6 +75,27 @@
       </div>
     </div>
 
+    <!-- ─── คอร์สของฉัน (ต้องชำระทั้งคอร์สก่อนเรียน) ─────────────── -->
+    <div class="course-pay-section" *ngIf="myCoursePayments.length > 0">
+      <div class="course-pay-head">
+        <h2>คอร์สของฉัน</h2>
+        <span class="course-pay-hint">ต้องชำระเงินทั้งคอร์สก่อนจึงจะเข้าเรียนได้</span>
+      </div>
+      <div class="course-pay-list">
+        <div class="course-pay-card" *ngFor="let p of myCoursePayments" [class.is-paid]="p.status === 'confirmed'">
+          <div class="course-pay-info">
+            <div class="course-pay-name">{{ courseName(p) }}</div>
+            <div class="course-pay-amt">฿{{ p.amount | number }}</div>
+          </div>
+          <div class="course-pay-right">
+            <span class="course-pay-pill" [ngClass]="'cp-' + p.status">{{ coursePayStatusLabel(p.status) }}</span>
+            <span class="course-pay-note" *ngIf="p.status === 'pending'">โอนตามบัญชีด้านล่าง แล้วรอ Manager ยืนยัน</span>
+            <span class="course-pay-note ok" *ngIf="p.status === 'confirmed'">เข้าเรียนได้แล้ว</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ─── Overdue / Grace period warning banner ─────────────── -->
     <div *ngIf="unpaidCount > 0 && deadlineStatus === 'overdue'" class="deadline-banner deadline-banner-overdue">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
