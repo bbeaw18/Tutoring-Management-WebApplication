@@ -82,6 +82,8 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
   editIncomeGrp: number | null = null;
   editPrice: number | null = null;
   editType: 'individual' | 'group' = 'group';
+  /** ขอบเขตการแก้ไขชุดนัดสอน — this | following | all */
+  editScope: 'this' | 'following' | 'all' = 'this';
 
   // Autocomplete lists (โหลดจาก DB)
   savedSubjects: string[] = [];
@@ -803,6 +805,7 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     this.editIncomeGrp    = course.teacherIncomeGroup      ? course.teacherIncomeGroup      : null;
     this.editPrice        = course.coursePrice             ? course.coursePrice             : null;
     this.editType         = (course as any).type === 'individual' ? 'individual' : 'group';
+    this.editScope        = 'this';
   }
 
   /** เมื่อสลับประเภทใน edit modal — เคลียร์เฉพาะ "เดี่ยว" → "กลุ่ม" ไม่ต้องเคลียร์
@@ -839,7 +842,8 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
       type:                    this.editType,
       teacherIncomeIndividual: Number(this.editIncomeInd) || 0,
       teacherIncomeGroup:      Number(this.editIncomeGrp) || 0,
-      coursePrice:             Number(this.editPrice)     || 0
+      coursePrice:             Number(this.editPrice)     || 0,
+      scope:                   this.isSeriesCourse(this.editingCourse) ? this.editScope : 'this'
     };
 
     this.courseService.editCourseBooking(this.getId(this.editingCourse), payload as any)

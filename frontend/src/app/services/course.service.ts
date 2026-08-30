@@ -51,7 +51,7 @@ export class CourseService {
   }
 
   // แก้ไขรายละเอียดนัดสอน + อัพเดต Schedule + ส่งอีเมล
-  editCourseBooking(id: string, data: Partial<ICourseCreateRequest & { description?: string }>): Observable<ICourse> {
+  editCourseBooking(id: string, data: Partial<ICourseCreateRequest & { description?: string; scope?: 'this' | 'following' | 'all' }>): Observable<ICourse> {
     return this.http.patch<IApiResponse<ICourse>>(`${this.apiUrl}/${id}/edit-booking`, data).pipe(
       map(res => res.data)
     );

@@ -2720,6 +2720,14 @@
   flex-direction: column;
   gap: 10px;
 }
+/* ── ขอบเขตแก้ไขชุดนัดสอน ── */
+.edit-scope { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px dashed var(--gray-200); }
+.edit-scope-opts { display: flex; gap: 8px; flex-wrap: wrap; }
+.edit-scope-opt { display: inline-flex; align-items: center; gap: 7px; padding: 8px 13px; border: 1.5px solid var(--gray-200); border-radius: var(--r-lg); background: #fff; font-size: 13px; color: var(--text-secondary); cursor: pointer; transition: all var(--dur-fast) var(--ease-out); }
+.edit-scope-opt:hover { border-color: var(--brand-300); }
+.edit-scope-opt.on { border-color: var(--brand-500); background: var(--brand-50); color: var(--brand-700); font-weight: 600; }
+.edit-scope-opt input { accent-color: var(--brand-500); }
+.edit-scope-hint { margin: 0; font-size: 11.5px; color: var(--text-tertiary); }
 .edit-section-head {
   display: flex;
   align-items: center;

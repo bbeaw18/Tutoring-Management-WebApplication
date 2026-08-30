@@ -817,6 +817,26 @@
               <kms-time-picker [(ngModel)]="editEndTime" placeholder="สิ้นสุด" [minuteStep]="30"></kms-time-picker>
             </div>
           </div>
+
+          <!-- ขอบเขตการแก้ไข (เฉพาะคลาสที่เป็นชุด) -->
+          <div class="edit-scope" *ngIf="isSeriesCourse(editingCourse)">
+            <label class="edit-label">ใช้การแก้ไขนี้กับ</label>
+            <div class="edit-scope-opts">
+              <label class="edit-scope-opt" [class.on]="editScope === 'this'">
+                <input type="radio" name="editScope" value="this" [(ngModel)]="editScope"/>
+                <span>คลาสนี้เท่านั้น</span>
+              </label>
+              <label class="edit-scope-opt" [class.on]="editScope === 'following'">
+                <input type="radio" name="editScope" value="following" [(ngModel)]="editScope"/>
+                <span>คลาสนี้และหลังจากนี้</span>
+              </label>
+              <label class="edit-scope-opt" [class.on]="editScope === 'all'">
+                <input type="radio" name="editScope" value="all" [(ngModel)]="editScope"/>
+                <span>ทั้งชุด</span>
+              </label>
+            </div>
+            <p class="edit-scope-hint" *ngIf="editScope !== 'this'">วันของแต่ละคลาสจะไม่เปลี่ยน — ปรับเฉพาะเวลาและรายละเอียดให้คลาสอื่นในชุด</p>
+          </div>
         </section>
 
         <!-- Section 3: รายละเอียดคลาส -->

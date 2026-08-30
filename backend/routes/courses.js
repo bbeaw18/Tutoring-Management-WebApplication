@@ -649,8 +649,20 @@ router.patch('/:id/edit-booking', authenticateToken, roleCheck(['admin', 'manage
       scheduledDate, startTime, endTime,
       subject, teachingType, gradeLevel, description,
       teacher,
-      teacherIncomeIndividual, teacherIncomeGroup, coursePrice
+      teacherIncomeIndividual, teacherIncomeGroup, coursePrice,
+      scope   // 'this' (default) | 'following' | 'all' — ขอบเขตแก้ไขชุดนัดสอน
     } = req.body;
+
+    // duration (นาที) จากช่วงเวลา — ใช้ sync totalDurationMinutes ตอนแก้เวลาผ่าน updateMany
+    const durationFromTimes = (st, et) => {
+      if (!st || !et) return null;
+      const [sh, sm] = String(st).split(':').map(Number);
+      const [eh, em] = String(et).split(':').map(Number);
+      if ([sh, sm, eh, em].some(n => isNaN(n))) return null;
+      let d = (eh * 60 + em) - (sh * 60 + sm);
+      if (d <= 0) d += 24 * 60; // ข้ามเที่ยงคืน
+      return d > 0 ? d : null;
+    };
 
     const course = await Course.findById(req.params.id)
       .populate('teacher', 'firstName lastName nickname email')
@@ -722,6 +734,9 @@ router.patch('/:id/edit-booking', authenticateToken, roleCheck(['admin', 'manage
     if (startTime     !== undefined) scheduleUpdate.startTime = startTime;
     if (endTime       !== undefined) scheduleUpdate.endTime   = endTime;
     if (teacher       !== undefined) scheduleUpdate.teacher   = teacher;
+    // sync duration เมื่อแก้เวลา (updateMany bypass pre-save hook)
+    const anchorDur = durationFromTimes(course.startTime, course.endTime);
+    if ((startTime !== undefined || endTime !== undefined) && anchorDur) scheduleUpdate.totalDurationMinutes = anchorDur;
 
     const significantChange =
       scheduledDate !== undefined ||
@@ -743,6 +758,64 @@ router.patch('/:id/edit-booking', authenticateToken, roleCheck(['admin', 'manage
         { course: course._id, status: { $nin: ['cancelled', 'completed', 'awaiting_confirmation'] } },
         { $set: scheduleUpdate }
       );
+    }
+
+    // ── Series scope ── กระจายการแก้ไปยังคลาสอื่นในชุด (this and following / all)
+    //   ไม่กระจาย scheduledDate — แต่ละคลาสคงวันของตัวเอง (เปลี่ยนแค่ "เวลา" และรายละเอียด)
+    let spreadCount = 0;
+    if (scope && scope !== 'this' && course.seriesId) {
+      const courseSpread = {};
+      if (startTime    !== undefined) courseSpread.startTime    = startTime;
+      if (endTime      !== undefined) courseSpread.endTime      = endTime;
+      if (subject      !== undefined) courseSpread.subject      = subject;
+      if (teachingType !== undefined) courseSpread.teachingType = teachingType;
+      if (gradeLevel   !== undefined) courseSpread.gradeLevel   = gradeLevel;
+      if (description  !== undefined) courseSpread.description  = description;
+      if (teacher      !== undefined) courseSpread.teacher      = teacher;
+      if (teacherIncomeIndividual !== undefined) courseSpread.teacherIncomeIndividual = Number(teacherIncomeIndividual);
+      if (teacherIncomeGroup      !== undefined) courseSpread.teacherIncomeGroup      = Number(teacherIncomeGroup);
+      if (coursePrice             !== undefined) courseSpread.coursePrice             = Number(coursePrice);
+
+      const siblingFilter = { seriesId: course.seriesId, _id: { $ne: course._id }, status: { $ne: 'cancelled' } };
+      if (scope === 'following') siblingFilter.scheduledDate = { $gte: oldDate };
+
+      const siblingIds = (await Course.find(siblingFilter).select('_id')).map(s => s._id);
+      spreadCount = siblingIds.length;
+
+      if (siblingIds.length > 0 && Object.keys(courseSpread).length > 0) {
+        await Course.updateMany({ _id: { $in: siblingIds } }, { $set: courseSpread });
+
+        // Schedule: price sync ทุกสถานะ (ยกเว้น cancelled)
+        const sPrice = {};
+        if (courseSpread.teacherIncomeIndividual !== undefined) sPrice.teacherIncomeIndividual = courseSpread.teacherIncomeIndividual;
+        if (courseSpread.teacherIncomeGroup      !== undefined) sPrice.teacherIncomeGroup      = courseSpread.teacherIncomeGroup;
+        if (courseSpread.coursePrice             !== undefined) sPrice.coursePrice             = courseSpread.coursePrice;
+        if (Object.keys(sPrice).length > 0) {
+          await Schedule.updateMany({ course: { $in: siblingIds }, status: { $ne: 'cancelled' } }, { $set: sPrice });
+        }
+
+        // Schedule: time/teacher sync เฉพาะที่ยังไม่จบ + reset การยืนยันครู
+        const sTime = {};
+        if (startTime !== undefined) sTime.startTime = startTime;
+        if (endTime   !== undefined) sTime.endTime   = endTime;
+        if (teacher   !== undefined) sTime.teacher   = teacher;
+        const spreadDur = durationFromTimes(startTime ?? course.startTime, endTime ?? course.endTime);
+        if ((startTime !== undefined || endTime !== undefined) && spreadDur) sTime.totalDurationMinutes = spreadDur;
+        const sig = startTime !== undefined || endTime !== undefined || teacher !== undefined;
+        if (sig) { sTime.teacherConfirmed = false; sTime.teacherConfirmedAt = null; sTime.status = 'pending'; }
+        if (Object.keys(sTime).length > 0) {
+          await Schedule.updateMany(
+            { course: { $in: siblingIds }, status: { $nin: ['cancelled', 'completed', 'awaiting_confirmation'] } },
+            { $set: sTime }
+          );
+        }
+        if (sig) {
+          await Course.updateMany(
+            { _id: { $in: siblingIds }, status: 'approved' },
+            { $set: { teacherAccepted: false, status: 'pending' } }
+          );
+        }
+      }
     }
 
     // โหลดข้อมูลใหม่หลัง save
@@ -807,7 +880,8 @@ router.patch('/:id/edit-booking', authenticateToken, roleCheck(['admin', 'manage
       }).catch(e => console.error('[Email] EditStudent error:', e));
     }
 
-    sendResponse(res, 200, true, course, 'แก้ไขนัดสอนสำเร็จ — ส่งอีเมลแจ้งเตือนแล้ว');
+    const spreadMsg = spreadCount > 0 ? ` (ปรับใช้กับอีก ${spreadCount} คลาสในชุด)` : '';
+    sendResponse(res, 200, true, course, `แก้ไขนัดสอนสำเร็จ${spreadMsg} — ส่งอีเมลแจ้งเตือนแล้ว`);
   } catch (error) {
     console.error('Edit booking error:', error);
     sendResponse(res, 500, false, null, error.message);
