@@ -216,8 +216,17 @@
               ประเภทเดี่ยว — เลือกได้ 1 คนเท่านั้น
             </div>
 
+            <div class="cb2-st-search" *ngIf="students.length > 0">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" [(ngModel)]="studentSearch" [ngModelOptions]="{standalone: true}"
+                     class="cb2-st-search-in" placeholder="ค้นหาชื่อนักเรียน..." />
+              <button *ngIf="studentSearch" type="button" class="cb2-st-search-x" (click)="studentSearch = ''" aria-label="ล้าง">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+
             <div class="cb2-st-grid" *ngIf="students.length > 0; else noStudents">
-              <button type="button" class="cb2-student" *ngFor="let s of students"
+              <button type="button" class="cb2-student" *ngFor="let s of filteredStudents"
                 [class.is-selected]="isStudentSelected(getId(s))"
                 (click)="toggleStudentSelection(getId(s))">
                 <span class="cb2-avatar">{{ s.firstName.charAt(0) }}{{ s.lastName.charAt(0) }}</span>
@@ -228,6 +237,7 @@
                 <span class="cb2-st-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
               </button>
             </div>
+            <p class="empty-hint" *ngIf="students.length > 0 && filteredStudents.length === 0">ไม่พบนักเรียนที่ตรงกับ "{{ studentSearch }}"</p>
             <ng-template #noStudents>
               <p class="empty-hint">ยังไม่มีนักเรียนในระบบ</p>
             </ng-template>

@@ -37,6 +37,20 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
 
   students: IUser[] = [];
   selectedStudentIds: string[] = [];
+  /** คำค้นชื่อนักเรียนในฟอร์มสร้างนัดสอน */
+  studentSearch = '';
+
+  /** นักเรียนที่ตรงกับคำค้น (ชื่อจริง/นามสกุล/ชื่อเล่น/alias) — ว่าง = แสดงทั้งหมด */
+  get filteredStudents(): IUser[] {
+    const term = this.studentSearch.trim().toLowerCase();
+    if (!term) return this.students;
+    return this.students.filter(s => {
+      const id = this.getId(s);
+      const alias = this.aliasService.getAlias(id) || '';
+      const hay = `${s.firstName || ''} ${s.lastName || ''} ${s.nickname || ''} ${alias}`.toLowerCase();
+      return hay.includes(term);
+    });
+  }
 
   bookingForm!: FormGroup;
   loading = false;
