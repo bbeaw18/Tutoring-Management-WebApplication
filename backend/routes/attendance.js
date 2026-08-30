@@ -8,6 +8,7 @@ const Payment = require('../models/Payment');
 const { authenticateToken } = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
 const { sendResponse } = require('../utils/helpers');
+const { buildCoursePaymentMap } = require('../utils/coursePayment');
 const {
   buildPaymentSummariesByScheduleId,
   deriveDisplayStatus,
@@ -339,13 +340,23 @@ router.get('/teacher-history', authenticateToken, async (req, res) => {
 
     // เพิ่ม attendanceCount + paymentSummary แบบ batch (no N+1)
     const summaries = await buildPaymentSummariesByScheduleId(schedules);
+    const coursePayMap = await buildCoursePaymentMap(
+      schedules.filter(s => s.course).map(s => ({
+        _id: s.course._id, isCoursePackage: s.course.isCoursePackage,
+        seriesId: s.course.seriesId, students: s.students
+      }))
+    );
     const result = schedules.map(s => {
       const summary = summaries.get(s._id.toString()) || null;
+      const cpay = s.course ? coursePayMap.get(s.course._id.toString()) : null;
       return {
         ...s.toObject(),
         attendanceCount: summary?.attendanceCount || 0,
         paymentSummary:  summary,
-        displayStatus:   deriveDisplayStatus(s)
+        displayStatus:   deriveDisplayStatus(s),
+        coursePaymentPending: cpay ? !cpay.fullyPaid : false,
+        coursePaidCount:      cpay ? cpay.paidCount : null,
+        courseStudentCount:   cpay ? cpay.totalStudents : null
       };
     });
 

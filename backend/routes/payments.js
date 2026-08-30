@@ -611,6 +611,59 @@ router.get('/my-status', authenticateToken, roleCheck(['student']), async (req, 
   }
 });
 
+// GET /courses — รายการคอร์สทั้งหมด + สถานะชำระเงินรายคน (admin/manager)
+//   จัดกลุ่มตาม Course (anchor) — 1 กลุ่ม = 1 คอร์ส, มีนักเรียนหลายคน
+router.get('/courses', authenticateToken, roleCheck(['admin', 'manager']), async (req, res) => {
+  try {
+    const payments = await Payment.find({ paymentType: 'course' })
+      .populate('student', 'firstName lastName nickname email')
+      .populate({ path: 'course', select: 'name subject seriesId seriesSize scheduledDate startTime endTime coursePrice teacher', populate: { path: 'teacher', select: 'firstName lastName nickname' } })
+      .sort({ createdAt: -1 });
+
+    // group by course (anchor) id
+    const groups = new Map();
+    for (const p of payments) {
+      if (!p.course) continue;
+      const cid = p.course._id.toString();
+      if (!groups.has(cid)) {
+        groups.set(cid, {
+          course: {
+            _id: p.course._id,
+            name: p.course.name,
+            subject: p.course.subject,
+            seriesId: p.course.seriesId,
+            seriesSize: p.course.seriesSize,
+            scheduledDate: p.course.scheduledDate,
+            startTime: p.course.startTime,
+            endTime: p.course.endTime,
+            coursePrice: p.course.coursePrice
+          },
+          teacher: p.course.teacher || null,
+          students: [],
+          paidCount: 0,
+          totalCount: 0,
+          totalAmount: 0
+        });
+      }
+      const g = groups.get(cid);
+      g.students.push({
+        paymentId: p._id,
+        status: p.status,
+        amount: p.amount,
+        student: p.student
+      });
+      g.totalCount++;
+      g.totalAmount += p.amount || 0;
+      if (p.status === 'confirmed') g.paidCount++;
+    }
+
+    sendResponse(res, 200, true, Array.from(groups.values()), 'Course payments retrieved');
+  } catch (error) {
+    console.error('Get course payments error:', error);
+    sendResponse(res, 500, false, null, error.message);
+  }
+});
+
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const payment = await Payment.findById(req.params.id)
