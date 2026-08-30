@@ -15,14 +15,23 @@
           </svg>
           <span>รีเฟรช</span>
         </button>
-        <button class="btn-create" (click)="showForm = !showForm; errorMessage = ''">
-          <svg *ngIf="!showForm" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <button class="btn-create" [class.active]="showForm && formMode === 'appointment'" (click)="openForm('appointment')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
-          <svg *ngIf="showForm" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <span>สร้างนัดสอน</span>
+        </button>
+        <button class="btn-create btn-create-course" [class.active]="showForm && formMode === 'course'" (click)="openForm('course')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 12v8H4v-8"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+          </svg>
+          <span>สร้างคอร์ส</span>
+        </button>
+        <button *ngIf="showForm" class="btn-refresh" (click)="closeForm()" title="ปิดฟอร์ม">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
-          <span>{{ showForm ? 'ปิด' : 'สร้างนัดสอน' }}</span>
+          <span>ปิด</span>
         </button>
       </div>
     </div>
@@ -49,8 +58,9 @@
 
       <div class="cb2-head">
         <div>
-          <h1 class="cb2-h-title">สร้างนัดสอนใหม่</h1>
-          <p class="cb2-h-sub">กรอกข้อมูล 4 ส่วนด้านล่าง — ระบบจะส่งแจ้งเตือนไปยังครูและนักเรียนโดยอัตโนมัติ</p>
+          <h1 class="cb2-h-title">{{ formMode === 'course' ? 'สร้างคอร์สใหม่' : 'สร้างนัดสอนใหม่' }}</h1>
+          <p class="cb2-h-sub" *ngIf="formMode !== 'course'">กรอกข้อมูล 4 ส่วนด้านล่าง — ระบบจะส่งแจ้งเตือนไปยังครูและนักเรียนโดยอัตโนมัติ</p>
+          <p class="cb2-h-sub" *ngIf="formMode === 'course'">คอร์ส = หลายคาบเรียน · นักเรียนต้องชำระเงินทั้งคอร์สก่อนจึงเช็คชื่อเข้าเรียนได้ · ตั้งจำนวนคาบที่ "ทำซ้ำ"</p>
         </div>
       </div>
 
@@ -161,17 +171,16 @@
               </div>
             </div>
 
-            <!-- ── คอร์ส (แพ็กเกจ) — นักเรียนต้องจ่ายก่อนเรียน ── -->
-            <label class="cb2-pkg">
-              <input type="checkbox" formControlName="isCoursePackage" class="cb2-pkg-input"/>
-              <span class="cb2-pkg-box" [class.on]="bookingForm.get('isCoursePackage')?.value">
+            <!-- ── โหมดคอร์ส (คุมด้วยปุ่ม "สร้างคอร์ส") ── -->
+            <div class="cb2-pkg cb2-pkg-banner" *ngIf="formMode === 'course'">
+              <span class="cb2-pkg-box on">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </span>
               <span class="cb2-pkg-tx">
-                <strong>ตั้งเป็นคอร์ส (ชำระเงินก่อนเรียน)</strong>
-                <small>นักเรียนต้องชำระเงินทั้งคอร์สให้ครบก่อน จึงจะเช็คชื่อเข้าเรียนได้ · จำนวนคาบ = จำนวนครั้งที่ทำซ้ำ</small>
+                <strong>คอร์ส — ชำระเงินก่อนเรียน</strong>
+                <small>นักเรียนต้องชำระเงินทั้งคอร์สให้ครบก่อน จึงจะเช็คชื่อเข้าเรียนได้ · จำนวนคาบ = จำนวนครั้งที่ตั้งใน "ทำซ้ำ" ({{ repeatPreviewDates.length }} คาบ)</small>
               </span>
-            </label>
+            </div>
           </section>
 
           <!-- ── Section 2: รายละเอียดคลาส ── -->
@@ -448,7 +457,7 @@
 
             <button type="button" class="cb2-submit" (click)="submitBooking()" [disabled]="submitting">
               <svg *ngIf="!submitting" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-              {{ submitting ? 'กำลังสร้าง...' : 'สร้างนัดสอน' }}
+              {{ submitting ? 'กำลังสร้าง...' : (formMode === 'course' ? 'สร้างคอร์ส' : 'สร้างนัดสอน') }}
             </button>
             <button type="button" class="cb2-cancel" (click)="resetForm()">ยกเลิก</button>
           </div>

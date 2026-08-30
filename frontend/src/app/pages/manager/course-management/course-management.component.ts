@@ -56,6 +56,8 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
   loading = false;
   submitting = false;
   showForm = false;
+  /** โหมดฟอร์ม — 'appointment' = นัดสอนปกติ, 'course' = คอร์ส (จ่ายก่อนเรียน) */
+  formMode: 'appointment' | 'course' = 'appointment';
   successMessage = '';
   errorMessage = '';
 
@@ -522,6 +524,25 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
         next: (data) => { this.savedTeachingTypes = data; this.cdr.markForCheck(); },
         error: (err) => console.error('[CourseMgmt] getTeachingTypes failed:', err)
       });
+  }
+
+  /** เปิดฟอร์มตามโหมด — กดปุ่มเดิมซ้ำ = ปิด */
+  openForm(mode: 'appointment' | 'course'): void {
+    if (this.showForm && this.formMode === mode) { this.closeForm(); return; }
+    this.formMode = mode;
+    this.showForm = true;
+    this.errorMessage = '';
+    const isCourse = mode === 'course';
+    this.bookingForm.patchValue({ isCoursePackage: isCourse });
+    // คอร์ส = หลายคาบ → ตั้ง default recurrence ให้ manager ปรับจำนวนคาบได้เลย
+    if (isCourse && this.bookingForm.get('recurFreq')?.value === 'none') {
+      this.bookingForm.patchValue({ recurFreq: 'weekly', recurEndType: 'count', recurCount: 4 });
+    }
+  }
+
+  closeForm(): void {
+    this.showForm = false;
+    this.errorMessage = '';
   }
 
   toggleStudentSelection(studentId: string): void {
