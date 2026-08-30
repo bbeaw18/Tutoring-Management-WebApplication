@@ -198,4 +198,20 @@ export class PaymentService {
       map(res => res.data)
     );
   }
+
+  /** Manager ดูรายการคอร์สทั้งหมด + สถานะชำระเงินรายคน */
+  getCoursePayments(): Observable<ICoursePaymentGroup[]> {
+    return this.http.get<IApiResponse<ICoursePaymentGroup[]>>(`${this.apiUrl}/courses`).pipe(
+      map(res => res.data)
+    );
+  }
+}
+
+export interface ICoursePaymentGroup {
+  course: { _id: string; name: string; subject: string; seriesId: string | null; seriesSize: number; scheduledDate?: string; startTime?: string; endTime?: string; coursePrice?: number; };
+  teacher: any;
+  students: { paymentId: string; status: 'pending' | 'confirmed' | 'rejected'; amount: number; student: any; }[];
+  paidCount: number;
+  totalCount: number;
+  totalAmount: number;
 }

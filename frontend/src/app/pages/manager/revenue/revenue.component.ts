@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil, forkJoin } from 'rxjs';
 import { gsap } from 'gsap';
-import { PaymentService } from '../../../services/payment.service';
+import { PaymentService, ICoursePaymentGroup } from '../../../services/payment.service';
 import { UserService } from '../../../services/user.service';
 import { AliasService } from '../../../services/alias.service';
 import { ExpenseService, IExpense, ExpenseType, ExpenseCategory } from '../../../services/expense.service';
@@ -95,6 +95,10 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
 
   // Tracks the paymentId currently being confirmed (for button disable state)
   confirmingPaymentId: string | null = null;
+
+  // ── คอร์สทั้งหมด (course packages + สถานะชำระเงินรายคน) ──
+  coursePayments: ICoursePaymentGroup[] = [];
+  loadingCoursePayments = false;
 
   // Tracks "scheduleId|studentId" currently being manually confirmed by manager
   // (for unpaid rows where no Payment record exists yet)
@@ -187,6 +191,52 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
     this.loadReport();
     this.loadExpenses();
     this.loadTeacherPayouts();
+    this.loadCoursePayments();
+  }
+
+  /** โหลดรายการคอร์สทั้งหมด + สถานะชำระเงิน */
+  loadCoursePayments(): void {
+    this.loadingCoursePayments = true;
+    this.paymentService.getCoursePayments()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data) => { this.coursePayments = data || []; this.loadingCoursePayments = false; },
+        error: () => { this.loadingCoursePayments = false; }
+      });
+  }
+
+  /** Manager ยืนยันการชำระเงินคอร์สของนักเรียนคนหนึ่ง */
+  confirmCoursePayment(paymentId: string, studentName: string): void {
+    if (!paymentId || this.confirmingPaymentId) return;
+    if (!confirm(`ยืนยันการชำระเงินคอร์สของ ${studentName || 'นักเรียน'} ?\n\nนักเรียนจะสามารถเช็คชื่อและเรียนคอร์สนี้ได้`)) return;
+    this.confirmingPaymentId = paymentId;
+    this.paymentService.confirmPayment(paymentId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.confirmingPaymentId = null;
+          this.loadCoursePayments();
+        },
+        error: (err) => {
+          this.confirmingPaymentId = null;
+          alert(err?.error?.message || 'ไม่สามารถยืนยันการชำระเงินได้');
+        }
+      });
+  }
+
+  /** ชื่อเล่นครูของกลุ่มคอร์ส */
+  coursePayTeacherName(g: ICoursePaymentGroup): string {
+    const t: any = g.teacher;
+    if (!t) return '-';
+    const nick = this.aliasService.getAlias(t._id || t.id) || (t.nickname || '').trim() || `${t.firstName || ''} ${t.lastName || ''}`.trim();
+    return nick ? `ครู${nick}` : '-';
+  }
+
+  coursePayStudentName(st: any): string {
+    const s = st?.student;
+    if (!s) return 'นักเรียน';
+    const nick = this.aliasService.getAlias(s._id || s.id) || (s.nickname || '').trim() || `${s.firstName || ''} ${s.lastName || ''}`.trim();
+    return nick ? `น้อง${nick}` : `${s.firstName || ''} ${s.lastName || ''}`.trim();
   }
 
   ngOnDestroy(): void {
