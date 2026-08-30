@@ -289,6 +289,9 @@ const calendarMonthlyHandler = async (req, res) => {
       obj.coursePaymentPending = cpay ? !cpay.fullyPaid : false;
       obj.coursePaidCount      = cpay ? cpay.paidCount : null;
       obj.courseStudentCount   = cpay ? cpay.totalStudents : null;
+      // per-student: นักเรียนคนที่ดูปฏิทินยังไม่จ่ายคอร์สนี้หรือไม่ (ใช้ล็อคปุ่มยืนยันฝั่งนักเรียน)
+      obj.myCoursePaymentPending = (cpay && req.user.role === 'student')
+        ? !cpay.paidStudentIds.includes(req.user.id) : false;
       calendarData[dateKey].push(obj);
     });
 
@@ -339,6 +342,9 @@ const calendarWeeklyHandler = async (req, res) => {
       obj.coursePaymentPending = cpay ? !cpay.fullyPaid : false;
       obj.coursePaidCount      = cpay ? cpay.paidCount : null;
       obj.courseStudentCount   = cpay ? cpay.totalStudents : null;
+      // per-student: นักเรียนคนที่ดูปฏิทินยังไม่จ่ายคอร์สนี้หรือไม่ (ใช้ล็อคปุ่มยืนยันฝั่งนักเรียน)
+      obj.myCoursePaymentPending = (cpay && req.user.role === 'student')
+        ? !cpay.paidStudentIds.includes(req.user.id) : false;
       calendarData[dateKey].push(obj);
     });
 

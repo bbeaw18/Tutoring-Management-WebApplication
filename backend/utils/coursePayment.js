@@ -82,7 +82,8 @@ async function buildCoursePaymentMap(courses) {
       isPackage: true,
       fullyPaid: students.length > 0 && paidCount === students.length,
       paidCount,
-      totalStudents: students.length
+      totalStudents: students.length,
+      paidStudentIds: students.filter(id => paidSet.has(id))
     });
   }
   return result;

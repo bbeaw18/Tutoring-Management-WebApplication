@@ -3221,6 +3221,16 @@
 .cb2-pkg-tx small{font-size:11.5px;color:var(--text-secondary);}
 .cb2-pkg-badge{flex-shrink:0;display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:var(--warning-50);border:1px solid var(--warning-100);border-radius:var(--r-full);font-size:10.5px;font-weight:700;color:var(--warning-600);}
 .cb2-paywait-badge{flex-shrink:0;display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#fef2f2;border:1px solid #fecaca;border-radius:var(--r-full);font-size:10.5px;font-weight:700;color:#dc2626;}
+/* โหมดคอร์ส — จำนวนครั้ง + endTime auto */
+.cb2-label-note{font-weight:600;color:var(--warning-600);font-size:11.5px;}
+.cb2-endauto{display:inline-flex;align-items:center;padding:0 10px;height:38px;border:1.5px dashed var(--gray-200);border-radius:var(--r-md);background:var(--gray-50);font-family:var(--font-en);font-size:13px;color:var(--text-secondary);}
+.cb2-course-box{margin-top:var(--sp-3);display:flex;flex-direction:column;gap:12px;}
+.cb2-sessions{padding:13px 15px;background:var(--brand-50);border:1.5px solid var(--brand-200);border-radius:var(--r-lg);display:flex;flex-direction:column;gap:9px;}
+.cb2-sessions-row{display:flex;align-items:center;gap:9px;}
+.cb2-sessions-num{width:80px;padding:8px 10px;border:1.5px solid var(--gray-200);border-radius:var(--r-md);background:#fff;font-family:var(--font-en);font-size:15px;font-weight:700;text-align:center;}
+.cb2-sessions-num:focus{outline:none;border-color:var(--brand-400);}
+.cb2-sessions-unit{font-size:13px;color:var(--text-secondary);}
+.cb2-sessions-sum{display:flex;align-items:center;gap:7px;padding:8px 12px;background:#fff;border:1px solid var(--brand-200);border-radius:var(--r-md);font-size:12.5px;font-weight:600;color:var(--brand-700);}
 
 /* Students */
 .cb2-st-bar{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);margin-bottom:var(--sp-3);}
@@ -3416,6 +3426,7 @@
 .cb2-card.s-cp,.cb2-badge.s-cp{--st:#0d9488;--st-bg:#f0fdfa;}
 .cb2-card.s-ab,.cb2-badge.s-ab{--st:#c2410c;--st-bg:#ffedd5;}
 .cb2-card.s-cx,.cb2-badge.s-cx{--st:#e11d48;--st-bg:#fff1f2;}
+.cb2-card.s-paywait,.cb2-badge.s-paywait{--st:#dc2626;--st-bg:#fef2f2;}
 /* นักเรียนขาด — เน้นแบบ alert ให้เห็นง่ายว่าคลาสนี้เด็กขาด */
 .cb2-card.s-ab{ box-shadow: 0 0 0 2px #fb923c inset; }
 .cb2-card.s-ab::before{ width:5px; }

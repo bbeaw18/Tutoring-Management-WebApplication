@@ -178,8 +178,18 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
       recurCount:    [4, [Validators.min(1)]],
       recurUntil:    [''],
       // ── คอร์ส (แพ็กเกจ) — นักเรียนต้องจ่ายก่อนเช็คชื่อ ──
-      isCoursePackage: [false]
+      isCoursePackage: [false],
+      // ── จำนวนครั้งที่เรียน (โหมดคอร์ส) — 1 ครั้ง = 1 ชม. ──
+      courseSessions: [4, [Validators.min(1)]]
     });
+    // โหมดคอร์ส: แต่ละครั้ง 1 ชม. → ตั้ง endTime = startTime + 1 ชม. อัตโนมัติ
+    this.bookingForm.get('startTime')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(v => {
+        if (this.formMode === 'course' && v) {
+          this.bookingForm.patchValue({ endTime: this.addOneHour(v) }, { emitEvent: false });
+        }
+      });
     // ค่าเริ่มต้นของวันในสัปดาห์ — sync กับวันของ scheduledDate เมื่อยังไม่ได้เลือกเอง
     this.bookingForm.get('scheduledDate')?.valueChanges
       .pipe(takeUntil(this.destroy$))
@@ -212,8 +222,27 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     return ({ daily: 'วัน', weekly: 'สัปดาห์', monthly: 'เดือน' } as any)[this.bookingForm?.get('recurFreq')?.value] || '';
   }
 
-  /** สร้าง recurrence payload จาก form — null เมื่อไม่ทำซ้ำ */
+  /** "15:00" → "16:00" (+1 ชม.) */
+  private addOneHour(hhmm: string): string {
+    const [h, m] = String(hhmm).split(':').map(Number);
+    if (isNaN(h) || isNaN(m)) return hhmm;
+    const nh = (h + 1) % 24;
+    return `${String(nh).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
+
+  /** จำนวนครั้งที่เรียน (โหมดคอร์ส) */
+  get courseSessionsCount(): number {
+    return Math.max(1, Number(this.bookingForm?.get('courseSessions')?.value) || 1);
+  }
+
+  /** สร้าง recurrence payload — null เมื่อไม่ทำซ้ำ.
+   *  โหมดคอร์ส: รายสัปดาห์วันเดียวกัน × จำนวนครั้ง (1 ครั้ง = 1 ชม.) */
   private buildRecurrence(): any {
+    if (this.formMode === 'course') {
+      const base = this.bookingForm.get('scheduledDate')?.value;
+      const wd = base ? new Date(base).getDay() : new Date().getDay();
+      return { frequency: 'weekly', interval: 1, weekdays: [wd], endType: 'count', count: this.courseSessionsCount };
+    }
     if (!this.isRecurring) return null;
     const freq = this.bookingForm.get('recurFreq')?.value;
     return {
@@ -232,13 +261,14 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     if (!v) return [];
     const base = new Date(v);
     if (isNaN(base.getTime())) return [];
-    if (!this.isRecurring) return [new Date(base)];
+    const isCourse = this.formMode === 'course';
+    if (!isCourse && !this.isRecurring) return [new Date(base)];
 
     const MAX = 60;
-    const freq     = this.bookingForm.get('recurFreq')?.value;
-    const interval = Math.max(1, Number(this.bookingForm.get('recurInterval')?.value) || 1);
-    const endType  = this.bookingForm.get('recurEndType')?.value; // never | until | count
-    const count    = Math.min(MAX, Math.max(1, Number(this.bookingForm.get('recurCount')?.value) || 1));
+    const freq     = isCourse ? 'weekly' : this.bookingForm.get('recurFreq')?.value;
+    const interval = isCourse ? 1 : Math.max(1, Number(this.bookingForm.get('recurInterval')?.value) || 1);
+    const endType  = isCourse ? 'count' : this.bookingForm.get('recurEndType')?.value; // never | until | count
+    const count    = isCourse ? this.courseSessionsCount : Math.min(MAX, Math.max(1, Number(this.bookingForm.get('recurCount')?.value) || 1));
     const untilRaw = this.bookingForm.get('recurUntil')?.value;
     const until    = untilRaw ? new Date(untilRaw) : null;
     if (until) until.setHours(23, 59, 59, 999);
@@ -257,7 +287,7 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
         d.setDate(d.getDate() + interval);
       }
     } else if (freq === 'weekly') {
-      const weekdays = (this.recurWeekdays.length > 0 ? [...this.recurWeekdays] : [base.getDay()])
+      const weekdays = (!isCourse && this.recurWeekdays.length > 0 ? [...this.recurWeekdays] : [base.getDay()])
         .sort((a, b) => a - b);
       const weekStart = new Date(base);
       weekStart.setDate(weekStart.getDate() - weekStart.getDay());
@@ -368,6 +398,7 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
   // ── Booking List redesign (cb2-list) helpers ──────────────────
   /** map displayStatus → cb2 badge/rail class */
   cb2StatusClass(course: any): string {
+    if (course?.coursePaymentPending) return 's-paywait';
     return ({
       pending_teacher: 's-pt', pending_students: 's-ps', confirmed: 's-cf',
       awaiting_manager: 's-am', completed: 's-cp', absent: 's-ab', cancelled: 's-cx'
@@ -538,9 +569,11 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
     const isCourse = mode === 'course';
     this.bookingForm.patchValue({ isCoursePackage: isCourse });
-    // คอร์ส = หลายคาบ → ตั้ง default recurrence ให้ manager ปรับจำนวนคาบได้เลย
-    if (isCourse && this.bookingForm.get('recurFreq')?.value === 'none') {
-      this.bookingForm.patchValue({ recurFreq: 'weekly', recurEndType: 'count', recurCount: 4 });
+    if (isCourse) {
+      // คอร์สคุมด้วย "จำนวนครั้ง" — ปิด recurrence generic, บังคับแต่ละครั้ง 1 ชม.
+      this.bookingForm.patchValue({ recurFreq: 'none' });
+      const st = this.bookingForm.get('startTime')?.value;
+      if (st) this.bookingForm.patchValue({ endTime: this.addOneHour(st) }, { emitEvent: false });
     }
   }
 
@@ -670,7 +703,7 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
       next: () => {
         this.submitting = false;
         this.showForm = false;
-        this.bookingForm.reset({ type: 'group', teacherIncomeIndividual: null, teacherIncomeGroup: null, coursePrice: null, recurFreq: 'none', recurInterval: 1, recurEndType: 'count', recurCount: 4, recurUntil: '', isCoursePackage: false });
+        this.bookingForm.reset({ type: 'group', teacherIncomeIndividual: null, teacherIncomeGroup: null, coursePrice: null, recurFreq: 'none', recurInterval: 1, recurEndType: 'count', recurCount: 4, recurUntil: '', isCoursePackage: false, courseSessions: 4 });
         this.selectedStudentIds = [];
         this.recurWeekdays = [];
         // โหลด autocomplete ใหม่หลังสร้าง (เผื่อมีวิชาหรือประเภทการสอนใหม่)
@@ -912,7 +945,8 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
       recurEndType: 'count',
       recurCount: 4,
       recurUntil: '',
-      isCoursePackage: false
+      isCoursePackage: false,
+      courseSessions: 4
     });
     this.selectedStudentIds = [];
     this.recurWeekdays = [];
@@ -925,10 +959,12 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
    * Falls back to deriving from raw fields if missing.
    */
   getStatusLabel(course: any): string {
+    if (course?.coursePaymentPending) return 'รอชำระเงิน';
     return getDisplayStatusLabel(resolveDisplayStatus(course));
   }
 
   getStatusClass(course: any): string {
+    if (course?.coursePaymentPending) return 'status-paywait';
     return getDisplayStatusClass(resolveDisplayStatus(course));
   }
 
