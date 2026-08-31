@@ -406,10 +406,6 @@
       </div>
 
       <div class="detail-content">
-        <div class="mc-paywait" *ngIf="$any(selectedSchedule).coursePaymentPending">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          <span>คอร์สนี้รอชำระเงิน<ng-container *ngIf="$any(selectedSchedule).courseStudentCount"> ({{ $any(selectedSchedule).coursePaidCount }}/{{ $any(selectedSchedule).courseStudentCount }} คนจ่ายแล้ว)</ng-container> — ล็อคจนกว่า Manager ยืนยันการชำระเงินที่หน้ารายรับรายจ่าย</span>
-        </div>
         <div class="detail-row">
           <span class="detail-label">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>

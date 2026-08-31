@@ -20,21 +20,6 @@ const {
 const { sendScheduleCreatedEmail, sendScheduleConfirmedEmail, sendPaymentReminderEmail, sendScheduleRescheduledEmail, sendStudentBookingConfirmedEmail, sendStudentBookingDeclinedEmail, sendVideoLinkEmail } = require('../services/emailService');
 const { generateQRToken, generateQRCodeDataURL } = require('../services/qrService');
 const { reverseCompletedScheduleHours } = require('../services/hoursService');
-const { isStudentPaid, isClassFullyPaid, buildCoursePaymentMap } = require('../utils/coursePayment');
-
-// pseudo-course list จาก schedules → ใช้ buildCoursePaymentMap (กัน N+1)
-function pseudoCoursesFromSchedules(schedules) {
-  const seen = new Map();
-  for (const s of schedules) {
-    const c = s.course;
-    if (!c || !c._id) continue;
-    const cid = c._id.toString();
-    if (!seen.has(cid)) {
-      seen.set(cid, { _id: c._id, isCoursePackage: c.isCoursePackage, seriesId: c.seriesId, students: s.students });
-    }
-  }
-  return Array.from(seen.values());
-}
 
 // ── Timezone helper — แปลง schedule.date + timeString "HH:mm" เป็น Date (Bangkok UTC+7) ──
 function bangkokClassTime(scheduleDate, timeStr) {
@@ -275,7 +260,6 @@ const calendarMonthlyHandler = async (req, res) => {
 
     // Attach paymentSummary per schedule (batched — no N+1)
     const summaries = await buildPaymentSummariesByScheduleId(schedules);
-    const coursePayMap = await buildCoursePaymentMap(pseudoCoursesFromSchedules(schedules));
 
     // จัดกลุ่มตามวัน + แนบ paymentSummary
     const calendarData = {};
@@ -285,13 +269,6 @@ const calendarMonthlyHandler = async (req, res) => {
       const obj = schedule.toObject();
       obj.paymentSummary = summaries.get(schedule._id.toString()) || null;
       obj.displayStatus  = deriveDisplayStatus(schedule);
-      const cpay = schedule.course ? coursePayMap.get(schedule.course._id.toString()) : null;
-      obj.coursePaymentPending = cpay ? !cpay.fullyPaid : false;
-      obj.coursePaidCount      = cpay ? cpay.paidCount : null;
-      obj.courseStudentCount   = cpay ? cpay.totalStudents : null;
-      // per-student: นักเรียนคนที่ดูปฏิทินยังไม่จ่ายคอร์สนี้หรือไม่ (ใช้ล็อคปุ่มยืนยันฝั่งนักเรียน)
-      obj.myCoursePaymentPending = (cpay && req.user.role === 'student')
-        ? !cpay.paidStudentIds.includes(req.user.id) : false;
       calendarData[dateKey].push(obj);
     });
 
@@ -328,7 +305,6 @@ const calendarWeeklyHandler = async (req, res) => {
 
     // Attach paymentSummary per schedule (batched — no N+1)
     const summaries = await buildPaymentSummariesByScheduleId(schedules);
-    const coursePayMap = await buildCoursePaymentMap(pseudoCoursesFromSchedules(schedules));
 
     // จัดกลุ่มตามวัน + แนบ paymentSummary
     const calendarData = {};
@@ -338,13 +314,6 @@ const calendarWeeklyHandler = async (req, res) => {
       const obj = schedule.toObject();
       obj.paymentSummary = summaries.get(schedule._id.toString()) || null;
       obj.displayStatus  = deriveDisplayStatus(schedule);
-      const cpay = schedule.course ? coursePayMap.get(schedule.course._id.toString()) : null;
-      obj.coursePaymentPending = cpay ? !cpay.fullyPaid : false;
-      obj.coursePaidCount      = cpay ? cpay.paidCount : null;
-      obj.courseStudentCount   = cpay ? cpay.totalStudents : null;
-      // per-student: นักเรียนคนที่ดูปฏิทินยังไม่จ่ายคอร์สนี้หรือไม่ (ใช้ล็อคปุ่มยืนยันฝั่งนักเรียน)
-      obj.myCoursePaymentPending = (cpay && req.user.role === 'student')
-        ? !cpay.paidStudentIds.includes(req.user.id) : false;
       calendarData[dateKey].push(obj);
     });
 
@@ -365,7 +334,7 @@ router.get('/calendar/weekly', authenticateToken, calendarWeeklyHandler);
 router.post('/:id/confirm-teacher', authenticateToken, async (req, res) => {
   try {
     const schedule = await Schedule.findById(req.params.id)
-      .populate('course', 'name subject isCoursePackage seriesId')
+      .populate('course', 'name subject')
       .populate('teacher', 'firstName lastName nickname email')
       .populate('students', 'firstName lastName nickname email grade academicYear');
 
@@ -381,11 +350,6 @@ router.post('/:id/confirm-teacher', authenticateToken, async (req, res) => {
     // กันยืนยันทับคลาสที่จบ/ยกเลิก/นักเรียนขาดแล้ว (ป้องกันย้อนกลับ flow)
     if (['completed', 'cancelled', 'absent'].includes(schedule.status)) {
       return sendResponse(res, 400, false, null, `ไม่สามารถยืนยันรับการสอนได้: คลาสอยู่ในสถานะ "${schedule.status}"`);
-    }
-
-    // ── Course package gate ── คอร์สต้องชำระเงินครบทุกคนก่อน ครูจึงยืนยันได้
-    if (!(await isClassFullyPaid(schedule, schedule.course))) {
-      return sendResponse(res, 400, false, null, 'คลาสนี้เป็นคอร์ส — นักเรียนต้องชำระเงินให้ครบก่อนจึงจะยืนยันได้');
     }
 
     schedule.teacherConfirmed = true;
@@ -470,7 +434,7 @@ router.post('/:id/confirm-student', authenticateToken, roleCheck(['student']), a
     }
 
     const schedule = await Schedule.findById(req.params.id)
-      .populate('course', 'name subject isCoursePackage seriesId')
+      .populate('course', 'name subject')
       .populate('teacher', 'firstName lastName nickname email');
 
     if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
@@ -481,11 +445,6 @@ router.post('/:id/confirm-student', authenticateToken, roleCheck(['student']), a
     );
     if (!isInStudents) {
       return sendResponse(res, 403, false, null, 'You are not in this schedule');
-    }
-
-    // ── Course package gate ── นักเรียนต้องชำระเงินคอร์สก่อนจึงยืนยันนัดเรียนได้
-    if (schedule.course?.isCoursePackage && !(await isStudentPaid(schedule.course, req.user.id))) {
-      return sendResponse(res, 400, false, null, 'กรุณาชำระเงินคอร์สก่อนจึงจะยืนยันนัดเรียนได้');
     }
 
     // ถ้าอยู่ใน students แต่ยังไม่มีใน studentConfirmations (เช่น ลงทะเบียนหลังสร้าง schedule)
@@ -589,7 +548,7 @@ router.post('/:id/confirm-student', authenticateToken, roleCheck(['student']), a
 router.post('/:id/generate-qr', authenticateToken, async (req, res) => {
   try {
     const schedule = await Schedule.findById(req.params.id)
-      .populate('course', 'name isCoursePackage seriesId')
+      .populate('course', 'name')
       .populate('teacher', 'firstName lastName nickname');
 
     if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
@@ -599,11 +558,6 @@ router.post('/:id/generate-qr', authenticateToken, async (req, res) => {
 
     if (!isTeacher && !isManagerOrAdmin) {
       return sendResponse(res, 403, false, null, 'Only teacher or manager can generate QR');
-    }
-
-    // ── Course package gate ── ต้องชำระเงินครบทุกคนก่อนเปิด QR
-    if (!(await isClassFullyPaid(schedule, schedule.course))) {
-      return sendResponse(res, 400, false, null, 'คลาสนี้เป็นคอร์ส — นักเรียนต้องชำระเงินให้ครบก่อนจึงจะเปิด QR ได้');
     }
 
     // ── ตรวจ status: เปิด QR ได้เฉพาะคลาสที่ยังไม่จบ ──

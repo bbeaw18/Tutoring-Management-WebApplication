@@ -385,9 +385,6 @@
                   {{ s.startTime }} – {{ s.endTime }}
                 </div>
                 <span [class]="'status-badge ' + getStatusClass(s)">{{ getStatusLabel(s) }}</span>
-                <span class="course-paywait-pill" *ngIf="$any(s).coursePaymentPending" title="คอร์ส — รอชำระเงิน">
-                  🔒 รอชำระเงิน<ng-container *ngIf="$any(s).courseStudentCount"> {{ $any(s).coursePaidCount }}/{{ $any(s).courseStudentCount }}</ng-container>
-                </span>
               </div>
               <div class="h-tl-title">
                 {{ getCourseWithTeacher(s) }}

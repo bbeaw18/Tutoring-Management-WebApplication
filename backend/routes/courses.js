@@ -8,7 +8,6 @@ const { deriveDisplayStatus } = require('../utils/scheduleAggregation');
 const User = require('../models/User');
 const Enrollment = require('../models/Enrollment');
 const Notification = require('../models/Notification');
-const Payment = require('../models/Payment');
 const { authenticateToken } = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
 const { sendResponse, getPaginationParams, createPaginationObject } = require('../utils/helpers');
@@ -17,7 +16,6 @@ const {
   sendScheduleEditedTeacherEmail, sendScheduleEditedStudentEmail
 } = require('../services/emailService');
 const { reverseCompletedScheduleHours } = require('../services/hoursService');
-const { buildCoursePaymentMap } = require('../utils/coursePayment');
 
 // ── Recurrence generator (แบบ Google Calendar) ─────────────────────────────
 // รับ baseDate + recurrence config → คืน array ของวันที่ทั้งหมดที่จะนัดสอน
@@ -97,8 +95,7 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
       teacherIncomeIndividual, teacherIncomeGroup, coursePrice,
       teachingType,
       repeatWeeklyUntilEndOfMonth,
-      recurrence,
-      isCoursePackage
+      recurrence
     } = req.body;
 
     // Validate required fields
@@ -177,7 +174,6 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
         incomeHourly:            true,   // โค้ดใหม่: คิดรายได้ต่อชั่วโมง × duration
         seriesId,
         seriesSize,
-        isCoursePackage:         !!isCoursePackage,
         status: 'pending',
         createdBy: req.user.id
       });
@@ -223,29 +219,6 @@ router.post('/', authenticateToken, roleCheck(['admin', 'manager']), async (req,
     // เก็บ Course แรกสำหรับ response/notification (compatible กับโค้ดเดิม)
     const course = createdCourses[0];
     const schedule = createdSchedules[0];
-
-    // ── คอร์ส (แพ็กเกจ) — สร้าง Payment status=pending ต่อ 1 นักเรียน (จ่ายทั้งคอร์สครั้งเดียว) ──
-    //   ผูกกับ Course แรก (anchor) + seriesId; manager ยืนยันภายหลังที่หน้ารายรับรายจ่าย
-    if (isCoursePackage && studentIds.length > 0) {
-      const [sh, sm] = String(startTime).split(':').map(Number);
-      const [eh, em] = String(endTime).split(':').map(Number);
-      let durMin = (eh * 60 + em) - (sh * 60 + sm);
-      if (durMin <= 0) durMin += 24 * 60;
-      const hours = durMin / 60;
-      const amountPerStudent = Math.round((Number(coursePrice) || 0) * hours * scheduleDates.length);
-      for (const studentId of studentIds) {
-        await new Payment({
-          student: studentId,
-          course: course._id,
-          schedule: null,
-          seriesId: seriesId || null,
-          paymentType: 'course',
-          amount: amountPerStudent,
-          method: 'unspecified',
-          status: 'pending'
-        }).save();
-      }
-    }
 
     // ── ส่ง Notification ในเว็บ ──
     const dateFormatted = new Date(scheduledDate).toLocaleDateString('th-TH', {
@@ -386,20 +359,12 @@ router.get('/', authenticateToken, async (req, res) => {
       }
     }
 
-    // สถานะชำระเงินคอร์ส (batch) — สำหรับ badge/lock บนหน้าจัดการรายวิชา
-    const payMap = await buildCoursePaymentMap(courses);
-
     const result = courses.map(c => {
       const sch = latestScheduleByCourseId.get(c._id.toString());
-      const pay = payMap.get(c._id.toString());
       return {
         ...c.toObject(),
         scheduleId: sch ? sch._id.toString() : null,
-        displayStatus: deriveDisplayStatus(sch || { status: c.status, teacherConfirmed: c.teacherAccepted, isFullyConfirmed: false, students: c.students }),
-        // คอร์ส: รอชำระเงิน (ยังจ่ายไม่ครบทุกคน) → ล็อค action
-        coursePaymentPending: pay ? !pay.fullyPaid : false,
-        coursePaidCount: pay ? pay.paidCount : null,
-        courseStudentCount: pay ? pay.totalStudents : null
+        displayStatus: deriveDisplayStatus(sch || { status: c.status, teacherConfirmed: c.teacherAccepted, isFullyConfirmed: false, students: c.students })
       };
     });
 

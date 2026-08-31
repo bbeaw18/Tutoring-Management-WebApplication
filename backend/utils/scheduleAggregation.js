@@ -97,7 +97,7 @@ async function buildPaymentSummariesByScheduleId(scheduleObjs) {
 }
 
 /** Standard populate field specs for Schedule responses */
-const SCHEDULE_COURSE_FIELDS = 'name subject type gradeLevel teachingType description coursePrice teacherIncomeGroup teacherIncomeIndividual incomeHourly isCoursePackage seriesId';
+const SCHEDULE_COURSE_FIELDS = 'name subject type gradeLevel teachingType description coursePrice teacherIncomeGroup teacherIncomeIndividual incomeHourly';
 const SCHEDULE_TEACHER_FIELDS = 'firstName lastName nickname email role';
 const SCHEDULE_STUDENT_FIELDS = 'firstName lastName nickname email grade academicYear';
 

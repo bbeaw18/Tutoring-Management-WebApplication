@@ -782,52 +782,6 @@
       </div>
     </div>
 
-    <!-- ═══ คอร์สทั้งหมด — ยืนยันการชำระเงินคอร์ส (ปลดล็อกการเรียน) ═══ -->
-    <div class="rev-course-wrap">
-      <div class="table-section-header">
-        <h3 class="table-section-title">คอร์สทั้งหมด</h3>
-        <span class="table-section-count">{{ coursePayments.length }} คอร์ส</span>
-      </div>
-
-      <div class="rev-course-empty" *ngIf="!loadingCoursePayments && coursePayments.length === 0">
-        ยังไม่มีคอร์ส — สร้างได้ที่หน้า "จัดการรายวิชา" → ปุ่ม "สร้างคอร์ส"
-      </div>
-
-      <div class="rev-course-list" *ngIf="coursePayments.length > 0">
-        <div class="rev-course-card" *ngFor="let g of coursePayments">
-          <div class="rev-course-head">
-            <div class="rev-course-title">
-              <span class="rev-course-subj">{{ g.course.subject || g.course.name }}</span>
-              <span class="rev-course-teacher">{{ coursePayTeacherName(g) }}</span>
-            </div>
-            <span class="rev-course-prog" [class.done]="g.paidCount === g.totalCount">
-              จ่ายแล้ว {{ g.paidCount }}/{{ g.totalCount }}
-            </span>
-          </div>
-          <div class="rev-course-meta">
-            <span>{{ g.course.seriesSize || 1 }} คาบ</span>
-            <span *ngIf="g.course.startTime">· {{ g.course.startTime }}–{{ g.course.endTime }}</span>
-            <span>· รวม ฿{{ g.totalAmount | number:'1.0-0' }}</span>
-          </div>
-
-          <div class="rev-course-students">
-            <div class="rev-course-stu" *ngFor="let st of g.students">
-              <span class="rev-course-stu-name">{{ coursePayStudentName(st) }}</span>
-              <span class="rev-course-stu-amt">฿{{ st.amount | number:'1.0-0' }}</span>
-              <span class="rev-course-pill" [ngClass]="'p-' + st.status">
-                {{ st.status === 'confirmed' ? 'ชำระแล้ว' : (st.status === 'rejected' ? 'ปฏิเสธ' : 'รอชำระ') }}
-              </span>
-              <button *ngIf="st.status === 'pending'" type="button" class="rev-course-confirm"
-                      [disabled]="confirmingPaymentId === st.paymentId"
-                      (click)="confirmCoursePayment(st.paymentId, coursePayStudentName(st))">
-                {{ confirmingPaymentId === st.paymentId ? 'กำลังยืนยัน...' : 'ยืนยันชำระเงิน' }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
   </div>
 
   <!-- ─── Student Monthly Modal — คลาสทั้งหมดของนักเรียนในเดือนนี้ ─── -->

@@ -2,13 +2,11 @@ const express = require('express');
 const router = express.Router();
 const Attendance = require('../models/Attendance');
 const Schedule = require('../models/Schedule');
-const Course = require('../models/Course');
 const User = require('../models/User');
 const Payment = require('../models/Payment');
 const { authenticateToken } = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
 const { sendResponse } = require('../utils/helpers');
-const { buildCoursePaymentMap } = require('../utils/coursePayment');
 const {
   buildPaymentSummariesByScheduleId,
   deriveDisplayStatus,
@@ -37,7 +35,7 @@ router.post('/scan', authenticateToken, roleCheck(['student']), async (req, res)
     }
 
     const schedule = await Schedule.findById(scheduleId)
-      .populate('course', 'name isCoursePackage seriesId')
+      .populate('course', 'name')
       .populate('teacher', 'firstName lastName nickname');
 
     if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
@@ -78,25 +76,6 @@ router.post('/scan', authenticateToken, roleCheck(['student']), async (req, res)
     const isStudent = schedule.students.some(s => s.toString() === req.user.id);
     if (!isStudent) {
       return sendResponse(res, 403, false, null, 'You are not enrolled in this class');
-    }
-
-    // ── Course package gate ── คลาสที่เป็นคอร์สต้องชำระเงินทั้งคอร์ส (confirmed) ก่อนเช็คชื่อ
-    //   จ่ายครั้งเดียวครอบคลุมทุกคาบในชุด — เช็ค payment confirmed ของคอร์สใดคอร์สหนึ่งในชุด
-    if (schedule.course?.isCoursePackage) {
-      let courseIds = [schedule.course._id];
-      if (schedule.course.seriesId) {
-        const siblings = await Course.find({ seriesId: schedule.course.seriesId }).select('_id');
-        if (siblings.length > 0) courseIds = siblings.map(c => c._id);
-      }
-      const paid = await Payment.findOne({
-        student: req.user.id,
-        course: { $in: courseIds },
-        status: 'confirmed'
-      });
-      if (!paid) {
-        return sendResponse(res, 403, false, null,
-          'กรุณาชำระเงินคอร์สก่อนจึงจะเช็คชื่อเข้าเรียนได้');
-      }
     }
 
     // บันทึก attendance (unique index จะป้องกันสแกนซ้ำ)
@@ -340,23 +319,13 @@ router.get('/teacher-history', authenticateToken, async (req, res) => {
 
     // เพิ่ม attendanceCount + paymentSummary แบบ batch (no N+1)
     const summaries = await buildPaymentSummariesByScheduleId(schedules);
-    const coursePayMap = await buildCoursePaymentMap(
-      schedules.filter(s => s.course).map(s => ({
-        _id: s.course._id, isCoursePackage: s.course.isCoursePackage,
-        seriesId: s.course.seriesId, students: s.students
-      }))
-    );
     const result = schedules.map(s => {
       const summary = summaries.get(s._id.toString()) || null;
-      const cpay = s.course ? coursePayMap.get(s.course._id.toString()) : null;
       return {
         ...s.toObject(),
         attendanceCount: summary?.attendanceCount || 0,
         paymentSummary:  summary,
-        displayStatus:   deriveDisplayStatus(s),
-        coursePaymentPending: cpay ? !cpay.fullyPaid : false,
-        coursePaidCount:      cpay ? cpay.paidCount : null,
-        courseStudentCount:   cpay ? cpay.totalStudents : null
+        displayStatus:   deriveDisplayStatus(s)
       };
     });
 

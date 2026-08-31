@@ -1336,7 +1336,3 @@
 @media (prefers-reduced-motion: reduce) {
   .mc-agenda-event { transition: none !important; }
 }
-
-/* คอร์ส: แจ้งรอชำระเงินในรายละเอียด event */
-.mc-paywait{display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;font-size:12.5px;font-weight:600;color:#dc2626;line-height:1.4;}
-.mc-paywait svg{flex-shrink:0;}

@@ -23,16 +23,10 @@ const PaymentSchema = new mongoose.Schema({
     default: null
   },
   // ประเภทการชำระ
-  //   per_class = ต่อคลาส, monthly = รายเดือน, course = ทั้งคอร์ส (แพ็กเกจ) จ่ายครั้งเดียว
   paymentType: {
     type: String,
-    enum: ['per_class', 'monthly', 'course'],
+    enum: ['per_class', 'monthly'],
     default: 'per_class'
-  },
-  // seriesId ของคอร์ส (เฉพาะ paymentType='course') — ผูก payment กับชุดคลาสทั้งชุด
-  seriesId: {
-    type: String,
-    default: null
   },
   amount: {
     type: Number,
@@ -40,7 +34,7 @@ const PaymentSchema = new mongoose.Schema({
   },
   method: {
     type: String,
-    enum: ['transfer', 'promptpay', 'credit_card', 'gateway', 'unspecified'],
+    enum: ['transfer', 'promptpay', 'credit_card', 'gateway'],
     required: true
   },
   slipImage: {

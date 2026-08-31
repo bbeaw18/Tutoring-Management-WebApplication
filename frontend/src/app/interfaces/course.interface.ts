@@ -25,12 +25,6 @@ export interface ICourse {
   seriesId?: string | null;
   /** จำนวนคลาสทั้งหมดในชุด */
   seriesSize?: number;
-  /** true = คอร์ส (แพ็กเกจ) นักเรียนต้องชำระเงินทั้งคอร์สก่อนจึงเช็คชื่อได้ */
-  isCoursePackage?: boolean;
-  /** คอร์ส: ยังจ่ายไม่ครบทุกคน → ล็อค action (แนบโดย backend) */
-  coursePaymentPending?: boolean;
-  coursePaidCount?: number | null;
-  courseStudentCount?: number | null;
   /** Unified display status — แนบโดย backend (GET /courses) เพื่อให้ทุกหน้าใช้ค่าตรงกัน */
   displayStatus?: 'pending_teacher' | 'pending_students' | 'confirmed' | 'awaiting_manager' | 'completed' | 'cancelled';
   /** id ของ Schedule ล่าสุดที่ผูกกับคอร์สนี้ — แนบโดย backend (GET /courses)
@@ -72,8 +66,6 @@ export interface ICourseCreateRequest {
   coursePrice?: number;
   /** ตั้งค่าการทำซ้ำแบบ Google Calendar (ถ้าไม่ส่ง = สร้างคลาสเดียว) */
   recurrence?: IRecurrence;
-  /** true = คอร์ส (แพ็กเกจ) — นักเรียนต้องชำระเงินก่อนเช็คชื่อ */
-  isCoursePackage?: boolean;
 }
 
 export interface IRecurrence {
