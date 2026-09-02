@@ -644,11 +644,28 @@ router.post('/:id/close-qr', authenticateToken, async (req, res) => {
     }
 
     // ── ต้องมีนักเรียนเช็คชื่ออย่างน้อย 1 คน — ยกเว้น admin (ปิดได้แม้ยังไม่มีคนเช็คชื่อ) ──
-    const attendanceCount = await Attendance.countDocuments({ schedule: schedule._id });
+    let attendanceCount = await Attendance.countDocuments({ schedule: schedule._id });
     const isAdmin = req.user.role === 'admin';
     if (attendanceCount === 0 && !isAdmin) {
       return sendResponse(res, 400, false, null,
         'ยังไม่มีนักเรียนเช็คชื่อ — กรุณารอนักเรียนสแกน QR ก่อนยืนยันเสร็จสิ้นการสอน');
+    }
+
+    // ── Admin force-close ทั้งที่ยังไม่มีใครเช็คชื่อ ──
+    // การที่ admin ยืนยันปิดคาบ = คาบนี้สอนจริงและนักเรียนที่ลงทะเบียนอยู่ในคาบ
+    // → บันทึกการเข้าเรียนให้นักเรียนที่ลงทะเบียนทุกคน มิฉะนั้นคาบจะถูกปิดด้วย
+    //   attendance = 0 → รายได้ครู = 0, นักเรียนไม่ถูกคิดเงิน, ไม่โผล่ในรายงานรายได้
+    if (attendanceCount === 0 && isAdmin && Array.isArray(schedule.students) && schedule.students.length > 0) {
+      await Attendance.insertMany(
+        schedule.students.map(sid => ({
+          schedule: schedule._id,
+          student:  sid,
+          scannedAt: new Date(),
+          deviceInfo: `admin-force-close:${req.user.id}`
+        })),
+        { ordered: false }
+      ).catch(() => {}); // เผื่อบางคนมี record อยู่แล้ว (unique index) — ข้ามตัวซ้ำ
+      attendanceCount = await Attendance.countDocuments({ schedule: schedule._id });
     }
 
     schedule.qrActive = false;
