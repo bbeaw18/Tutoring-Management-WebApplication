@@ -114,7 +114,7 @@ router.get('/students', authenticateToken, roleCheck(['admin', 'manager']), asyn
     const { page, limit, skip } = getPaginationParams(req.query);
     const { search } = req.query;
 
-    let query = { role: 'student' };
+    let query = { role: 'student', isActive: true };
 
     if (search) {
       query.$or = [
