@@ -420,6 +420,13 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
           paidForSchedule += effectivePrice;
         }
       }
+      // absent → นับค่าปรับที่ชำระแล้วเป็น paid ด้วย (ไม่มี attendance ให้วน)
+      if (isAbsent && absentStudentId) {
+        const key = `${absentStudentId}:${sid}`;
+        if ((paidAmountByKey.get(key) || 0) > 0) {
+          paidForSchedule += penaltyAmount;
+        }
+      }
 
       kpiTotal += totalForSchedule;
       kpiPaid  += paidForSchedule;
@@ -490,12 +497,13 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
           });
           // นักเรียนที่ขาดเรียน (no-show) — เพิ่มแถวค่าปรับ
           if (isAbsent && absentStudent) {
+            const penaltyPayment = paymentByKey.get(`${absentStudentId}:${sid}`);
             rows.push({
               studentId:     absentStudent._id || absentStudent,
               name:          absentStudent.nickname || `${absentStudent.firstName || ''} ${absentStudent.lastName || ''}`.trim() || 'นักเรียน',
               scannedAt:     null,
-              paymentStatus: 'unpaid',
-              paymentId:     null,
+              paymentStatus: penaltyPayment ? penaltyPayment.status : 'unpaid',
+              paymentId:     penaltyPayment?._id || null,
               paymentAmount: penaltyAmount,
               isAbsent:      true
             });
@@ -902,12 +910,22 @@ router.post('/manual-confirm', authenticateToken, roleCheck(['admin', 'manager']
     const isStudent = schedule.students.some(s => s.toString() === studentId);
     if (!isStudent) return sendResponse(res, 400, false, null, 'นักเรียนไม่ได้ลงทะเบียนในคลาสนี้');
 
-    if (!['completed', 'awaiting_confirmation'].includes(schedule.status)) {
+    // absent = คลาสปิดแล้ว (นักเรียนขาด) → ยืนยันชำระ "ค่าปรับ" ได้ ไม่ต้องมี attendance
+    const isAbsent = schedule.status === 'absent';
+
+    if (!isAbsent && !['completed', 'awaiting_confirmation'].includes(schedule.status)) {
       return sendResponse(res, 400, false, null, 'ยังไม่สามารถยืนยันได้: คลาสยังไม่เสร็จสิ้น');
     }
 
-    const attended = await Attendance.findOne({ schedule: scheduleId, student: studentId });
-    if (!attended) return sendResponse(res, 400, false, null, 'นักเรียนยังไม่ได้เช็คชื่อในคลาสนี้');
+    if (isAbsent) {
+      const penaltyStudentId = schedule.absencePenalty?.student?.toString();
+      if (!penaltyStudentId || penaltyStudentId !== studentId) {
+        return sendResponse(res, 400, false, null, 'นักเรียนคนนี้ไม่ได้ถูกทำเครื่องหมายขาดเรียนในคลาสนี้');
+      }
+    } else {
+      const attended = await Attendance.findOne({ schedule: scheduleId, student: studentId });
+      if (!attended) return sendResponse(res, 400, false, null, 'นักเรียนยังไม่ได้เช็คชื่อในคลาสนี้');
+    }
 
     const existing = await Payment.findOne({
       student: studentId, schedule: scheduleId,
@@ -922,7 +940,8 @@ router.post('/manual-confirm', authenticateToken, roleCheck(['admin', 'manager']
 
     if (!schedule.course?._id) return sendResponse(res, 400, false, null, 'ไม่พบคอร์สที่เชื่อมโยง');
 
-    const amount = computeEffectivePrice(schedule) || 0;
+    // absent → เก็บ "ค่าปรับ" ที่บันทึกไว้ตอน mark-absent; ปกติ → ราคาคลาส
+    const amount = (isAbsent ? (schedule.absencePenalty?.penaltyAmount || 0) : computeEffectivePrice(schedule)) || 0;
 
     const manager = await User.findById(req.user.id).select('nickname firstName');
     const managerNick = (manager?.nickname || manager?.firstName || 'unknown').trim();
@@ -937,7 +956,9 @@ router.post('/manual-confirm', authenticateToken, roleCheck(['admin', 'manager']
       method: 'transfer',
       status: 'confirmed',
       confirmedBy: req.user.id,
-      note: `manager_${managerNick} ยืนยันเอง (ไม่มี slip จากนักเรียน)`
+      note: isAbsent
+        ? `manager_${managerNick} ยืนยันชำระค่าปรับขาดเรียน (ไม่มี slip จากนักเรียน)`
+        : `manager_${managerNick} ยืนยันเอง (ไม่มี slip จากนักเรียน)`
     });
     await payment.save();
 
