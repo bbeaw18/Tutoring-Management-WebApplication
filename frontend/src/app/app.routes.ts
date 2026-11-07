@@ -146,6 +146,13 @@ export const appRoutes: Routes = [
         data: { roles: ['admin', 'manager'] }
       },
 
+      {
+        path: 'teacher-reviews',
+        loadComponent: () => import('./pages/admin/teacher-reviews/teacher-reviews.component').then(m => m.TeacherReviewsComponent),
+        canActivate: [roleGuard],
+        data: { roles: ['admin'] }
+      },
+
       // ─── Shared (teacher + manager) — QR Display ─────────────
       {
         path: 'qr-display/:id',

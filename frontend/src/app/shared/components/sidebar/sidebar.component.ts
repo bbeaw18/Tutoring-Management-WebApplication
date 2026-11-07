@@ -581,6 +581,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
     { label: 'VDO Online',        path: '/dashboard/vdo-online',       icon: this.ICON_PLAY,      roles: ['manager', 'admin'] },
     { label: 'บุคลากร',           path: '/dashboard/staff',            icon: this.ICON_USERS,     roles: ['manager', 'admin'] },
     { label: 'อนุมัติครู',        path: '/dashboard/teacher-approval', icon: this.ICON_CHECK,     roles: ['admin', 'manager'] },
+    { label: 'รีวิวคลาสและครูผู้สอน', path: '/dashboard/teacher-reviews', icon: this.ICON_HISTORY, roles: ['admin'] },
     // ประวัติส่วนตัว — manager/admin (วางล่างสุด)
     { label: 'ประวัติส่วนตัว',    path: '/dashboard/profile',          icon: this.ICON_CLOCK,     roles: ['manager', 'admin'] },
   ];

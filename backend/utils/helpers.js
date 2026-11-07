@@ -97,7 +97,19 @@ const computeEffectiveTeacherIncome = (schedule, attendanceCount) => {
   return rate;
 };
 
+/**
+ * ช่วงเดือนปฏิทินแบบ Asia/Bangkok เป็น UTC instants: [วันที่ 1 00:00 Bangkok, วันที่ 1 เดือนถัดไป 00:00 Bangkok)
+ * ไม่ขึ้นกับ timezone ของ process (เดิมใช้ new Date(y, m-1, 1) ซึ่งเป็นเวลา local ของ server)
+ * รับ 'YYYY-MM' หรือ (year, month)
+ */
+const bangkokMonthRange = (yearOrKey, month) => {
+  const [y, m] = month === undefined ? String(yearOrKey).split('-').map(Number) : [Number(yearOrKey), Number(month)];
+  const offset = 7 * 60 * 60 * 1000;
+  return { start: new Date(Date.UTC(y, m - 1, 1) - offset), end: new Date(Date.UTC(y, m, 1) - offset) };
+};
+
 module.exports = {
+  bangkokMonthRange,
   generateToken,
   sendResponse,
   getPaginationParams,

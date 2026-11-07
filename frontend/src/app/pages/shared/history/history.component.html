@@ -837,6 +837,15 @@
           </div>
         </section>
 
+        <section class="hd-section" *ngIf="classReview as review">
+          <button type="button" class="btn-confirm" *ngIf="!review.submitted" (click)="openClassReview()">ให้คะแนนครูผู้สอน</button>
+          <span *ngIf="review.submitted">ส่งรีวิวสำหรับคลาสนี้แล้ว</span>
+        </section>
+        <section class="hd-section" *ngIf="reviewError">
+          <span role="alert">ตรวจสอบสิทธิ์รีวิวไม่สำเร็จ</span>
+          <button type="button" class="btn-confirm" (click)="loadClassReview(selectedSchedule._id)">ลองอีกครั้ง</button>
+        </section>
+
         <div *ngIf="paymentsLoading" class="hd-loading">กำลังโหลดข้อมูลการชำระเงิน...</div>
 
         <div class="hd-mgr-confirm"

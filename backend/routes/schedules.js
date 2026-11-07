@@ -669,6 +669,7 @@ router.post('/:id/close-qr', authenticateToken, async (req, res) => {
     }
 
     schedule.qrActive = false;
+    schedule.qrClosedAt = new Date();
 
     // คำนวณรายได้จริงตามจำนวนผู้เช็คชื่อ
     // ใช้ "วันที่" ของคลาสเป็นตัวตัด (TEACHER_HOURLY_FROM = 8 พ.ค. 2569)

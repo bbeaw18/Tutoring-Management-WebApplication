@@ -6,6 +6,7 @@ import { takeUntil } from 'rxjs/operators';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { SidebarComponent } from '../../shared/components/sidebar/sidebar.component';
 import { TermsAgreementComponent } from '../../shared/components/terms-agreement/terms-agreement.component';
+import { ReviewPromptComponent } from '../../shared/components/review-prompt/review-prompt.component';
 import { AvailabilityEditorComponent } from '../../shared/components/availability-editor/availability-editor.component';
 import { AuthService } from '../../services/auth.service';
 import { TeacherAvailabilityService } from '../../services/teacher-availability.service';
@@ -15,7 +16,7 @@ import { TermsDocument, getRequiredTermsForRole, TERMS_VERSION } from '../../sha
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, HeaderComponent, SidebarComponent, TermsAgreementComponent, AvailabilityEditorComponent],
+  imports: [CommonModule, RouterOutlet, HeaderComponent, SidebarComponent, TermsAgreementComponent, ReviewPromptComponent, AvailabilityEditorComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })

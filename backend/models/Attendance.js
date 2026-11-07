@@ -15,6 +15,7 @@ const AttendanceSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+  reviewPromptDismissedAt: Date,
   // IP/device fingerprint (optional - ป้องกันสแกนซ้ำ)
   deviceInfo: {
     type: String,
@@ -26,5 +27,6 @@ const AttendanceSchema = new mongoose.Schema({
 
 // กัน student สแกนซ้ำใน schedule เดียวกัน
 AttendanceSchema.index({ schedule: 1, student: 1 }, { unique: true });
+AttendanceSchema.index({ student: 1 });
 
 module.exports = mongoose.model('Attendance', AttendanceSchema);

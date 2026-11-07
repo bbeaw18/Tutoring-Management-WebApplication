@@ -141,6 +141,7 @@ const ScheduleSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  qrClosedAt: Date,
 
   // ── Manager Confirmation ──────────────────────────────────────
   managerConfirmedBy: {

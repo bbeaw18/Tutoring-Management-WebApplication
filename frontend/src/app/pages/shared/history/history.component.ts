@@ -10,6 +10,7 @@ import { UserService } from '../../../services/user.service';
 import { AliasService } from '../../../services/alias.service';
 import { ScheduleService } from '../../../services/schedule.service';
 import { PaymentService } from '../../../services/payment.service';
+import { ReviewService, StudentReview } from '../../../services/review.service';
 import { ISchedule } from '../../../interfaces/schedule.interface';
 import { MonthPickerComponent } from '../../../shared/components/month-picker/month-picker.component';
 import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
@@ -51,6 +52,8 @@ export class HistoryComponent implements OnInit, OnDestroy {
   selectedSchedule: any = null;
   schedulePayments: any[] = [];
   paymentsLoading = false;
+  classReview: StudentReview | null = null;
+  reviewError = false;
 
   constructor(
     private authService: AuthService,
@@ -58,7 +61,8 @@ export class HistoryComponent implements OnInit, OnDestroy {
     private userService: UserService,
     private scheduleService: ScheduleService,
     private paymentService: PaymentService,   // kept for teacher/manager payment QR
-    private aliasService: AliasService
+    private aliasService: AliasService,
+    private reviewService: ReviewService
   ) {}
 
   ngOnDestroy(): void {
@@ -488,6 +492,29 @@ export class HistoryComponent implements OnInit, OnDestroy {
     this.showDetailModal = true;
     this.schedulePayments = [];
     this.loadSchedulePayments(schedule._id);
+    this.classReview = null;
+    this.reviewError = false;
+    if (this.role === 'student' && ['awaiting_confirmation', 'completed'].includes(schedule.status)) {
+      this.loadClassReview(schedule._id);
+    }
+  }
+
+  loadClassReview(scheduleId: string): void {
+    this.reviewError = false;
+    this.reviewService.getMine(scheduleId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: entry => {
+        if (this.selectedSchedule?._id === scheduleId) this.classReview = entry;
+      },
+      error: () => {
+        if (this.selectedSchedule?._id === scheduleId) this.reviewError = true;
+      }
+    });
+  }
+
+  openClassReview(): void {
+    if (!this.classReview || this.classReview.submitted) return;
+    this.reviewService.openReview(this.classReview);
+    this.closeDetail();
   }
 
   closeDetail(): void {

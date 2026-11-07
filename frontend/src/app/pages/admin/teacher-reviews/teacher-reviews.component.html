@@ -1,0 +1,138 @@
+<section class="reviews-page">
+  <header class="page-header">
+    <div>
+      <h1>รีวิวคลาสและครูผู้สอน</h1>
+      <p>คะแนนและความคิดเห็นจากนักเรียนหลังจบคลาส</p>
+    </div>
+    <div class="review-badges">
+      <span *ngIf="!loading && !loadError">รีวิวใหม่สัปดาห์นี้ {{ newThisWeek }} รายการ</span>
+      <strong>🔒 เฉพาะแอดมิน</strong>
+    </div>
+  </header>
+
+  <div class="review-filters">
+    <kms-month-picker [value]="month" [allowClear]="false" (valueChange)="changeMonth($event)"></kms-month-picker>
+    <select aria-label="กรองตามครูผู้สอน" [(ngModel)]="teacherId">
+      <option value="">ครูทุกคน</option>
+      <option *ngFor="let teacher of teachers" [value]="teacher._id">{{ teacher | displayName:'full' }}</option>
+    </select>
+    <div class="rating-filters" aria-label="กรองตามคะแนนและความคิดเห็น" role="group">
+      <button *ngFor="let item of filters" type="button" [attr.aria-pressed]="filter === item.key" (click)="filter = item.key">
+        {{ item.label }}
+      </button>
+    </div>
+    <input type="search" placeholder="ค้นหาวิชา, ครู, นักเรียน…" aria-label="ค้นหาวิชา ครู หรือนักเรียน" [(ngModel)]="search">
+  </div>
+
+  <p *ngIf="loading" class="review-state" role="status">กำลังโหลดรีวิว…</p>
+  <div *ngIf="loadError" class="review-state" role="alert">
+    <p>โหลดรีวิวไม่สำเร็จ</p>
+    <button type="button" (click)="reload()">ลองอีกครั้ง</button>
+  </div>
+
+  <ng-container *ngIf="!loading && !loadError">
+    <ng-container *ngIf="filteredClasses as results">
+      <p *ngIf="!results.length" class="review-state">ไม่พบรีวิวในเดือนและตัวกรองที่เลือก</p>
+      <div class="class-grid">
+        <article class="class-card" *ngFor="let lesson of results">
+          <div class="class-top">
+            <div>
+              <h2>{{ lesson.course?.name || lesson.course?.subject || 'คลาสเรียน' }}</h2>
+              <p>{{ lesson.date | date:'d MMM y':'+0700':'th' }} · {{ lesson.startTime }}–{{ lesson.endTime }} น.<ng-container *ngIf="lesson.room || lesson.course?.teachingType as location"> · {{ location }}</ng-container></p>
+            </div>
+            <strong class="score">{{ average(lesson) | number:'1.1-1' }} <span aria-hidden="true">★</span></strong>
+          </div>
+          <p class="class-teacher">{{ lesson.teacher | displayName:'teacher' }}</p>
+          <ul class="review-list">
+            <li *ngFor="let review of lesson.reviews | slice:0:3">
+              <strong>{{ (review.student | displayName:'full') || 'นักเรียน' }}</strong>
+              <span class="review-rating">{{ review.rating }}/5 ★</span>
+              <p class="comment-preview">{{ review.comment || 'ไม่มีความคิดเห็นเพิ่มเติม' }}</p>
+            </li>
+          </ul>
+          <div class="class-foot">
+            <div>{{ lesson.reviews.length }} รีวิว · เช็กชื่อ {{ lesson.paymentSummary.attendanceCount }}/{{ lesson.studentCount }}
+              <br>{{ statusLabel(lesson.displayStatus) }} · ชำระแล้ว {{ lesson.paymentSummary.paidCount }}/{{ lesson.paymentSummary.attendanceCount }}</div>
+            <button type="button" (click)="openDetail(lesson)" [attr.aria-label]="'ดูรายละเอียด ' + (lesson.course?.name || 'คลาสเรียน')">
+              ดูรายละเอียด <span aria-hidden="true">→</span>
+            </button>
+          </div>
+        </article>
+      </div>
+    </ng-container>
+  </ng-container>
+</section>
+
+<dialog #detail aria-labelledby="class-review-title" (close)="selected = null">
+  <ng-container *ngIf="selected as lesson">
+    <header class="detail-header">
+      <div>
+        <h2 id="class-review-title">{{ lesson.course?.name || lesson.course?.subject || 'คลาสเรียน' }}</h2>
+        <p>{{ lesson.teacher | displayName:'full' }} · {{ lesson.date | date:'d MMM y':'+0700':'th' }}
+          · {{ lesson.startTime }}–{{ lesson.endTime }} น.<ng-container *ngIf="lesson.room || lesson.course?.teachingType as location"> · {{ location }}</ng-container>
+          <ng-container *ngIf="lesson.totalDurationMinutes"> · {{ lesson.totalDurationMinutes }} นาที</ng-container></p>
+      </div>
+      <button type="button" (click)="closeDetail()">ปิด</button>
+    </header>
+    <div class="detail-grid">
+      <section>
+        <h3>สถานะคลาส</h3>
+        <dl>
+          <div><dt>สถานะ</dt><dd>{{ statusLabel(lesson.displayStatus) }}</dd></div>
+          <div *ngIf="(lesson.course?.seriesSize || 0) > 1"><dt>ชุดนัดสอน</dt><dd>{{ lesson.course?.seriesSize }} คลาส</dd></div>
+          <div><dt>นักเรียนยืนยัน</dt><dd>{{ lesson.confirmedCount }}/{{ lesson.studentCount }} คน</dd></div>
+          <div><dt>เช็กชื่อแล้ว</dt><dd>{{ lesson.paymentSummary.attendanceCount }}/{{ lesson.studentCount }} คน</dd></div>
+          <div><dt>ค่าเรียนต่อคน</dt><dd>฿{{ lesson.paymentSummary.effectivePrice | number }}</dd></div>
+          <div *ngIf="lesson.actualTeacherIncome != null"><dt>รายได้ครู</dt><dd>฿{{ lesson.actualTeacherIncome | number }}</dd></div>
+          <div><dt>การชำระเงิน</dt><dd>ชำระแล้ว {{ lesson.paymentSummary.paidCount }} · รอตรวจสอบ {{ lesson.paymentSummary.pendingCount }} · ค้างชำระ {{ lesson.paymentSummary.unpaidCount }}</dd></div>
+        </dl>
+        <p *ngIf="!selectedDetails && !detailsError" role="status">กำลังโหลดรายละเอียดเพิ่มเติม…</p>
+        <div *ngIf="detailsError" role="alert">
+          <p>โหลดรายละเอียดเพิ่มเติมไม่สำเร็จ</p>
+          <button type="button" (click)="loadDetails(lesson._id)">ลองอีกครั้ง</button>
+        </div>
+        <dl *ngIf="selectedDetails as details" class="payment-detail">
+          <div *ngFor="let item of details.checkIns">
+            <dt>{{ (item.student | displayName:'full') || 'นักเรียน' }}</dt>
+            <dd>{{ paymentLabels[item.paymentStatus] }}</dd>
+          </div>
+        </dl>
+        <h3>ลำดับเหตุการณ์</h3>
+        <dl>
+          <div *ngIf="lesson.createdAt"><dt>สร้างนัดสอน</dt><dd>{{ lesson.createdAt | date:'d MMM HH:mm':'+0700':'th' }}</dd></div>
+          <div *ngIf="lesson.teacherConfirmedAt"><dt>ครูยืนยันนัด</dt><dd>{{ lesson.teacherConfirmedAt | date:'d MMM HH:mm':'+0700':'th' }}</dd></div>
+          <div *ngIf="lesson.qrGeneratedAt"><dt>เปิด QR เช็กชื่อ</dt><dd>{{ lesson.qrGeneratedAt | date:'d MMM HH:mm':'+0700':'th' }}</dd></div>
+          <div *ngIf="lesson.qrClosedAt"><dt>ปิด QR เช็กชื่อ</dt><dd>{{ lesson.qrClosedAt | date:'d MMM HH:mm':'+0700':'th' }}</dd></div>
+          <div *ngIf="lesson.managerConfirmedAt"><dt>ยืนยันเสร็จสิ้น</dt><dd>{{ lesson.managerConfirmedAt | date:'d MMM HH:mm':'+0700':'th' }}</dd></div>
+        </dl>
+      </section>
+      <section>
+        <h3>รีวิวจากนักเรียน · {{ lesson.reviews.length }} รายการ</h3>
+        <div class="detail-score">
+          <strong class="score">{{ average(lesson) | number:'1.1-1' }} <span aria-hidden="true">★</span></strong>
+          <div class="rating-distribution">
+            <div *ngFor="let rating of ratings" class="rating-row">
+              <span>{{ rating }}★</span>
+              <progress [max]="lesson.reviews.length" [value]="ratingCount(lesson, rating)" [attr.aria-label]="rating + ' ดาว'"></progress>
+              <span>{{ ratingCount(lesson, rating) }}</span>
+            </div>
+          </div>
+        </div>
+        <p *ngIf="selectedDetails?.teacherScore as score" class="teacher-score">คะแนนเฉลี่ยรวมของครู {{ score.average | number:'1.1-1' }} จาก {{ score.count }} รีวิว</p>
+        <ul class="review-list detail-list">
+          <li *ngFor="let review of lesson.reviews">
+            <strong>{{ (review.student | displayName:'full') || 'นักเรียน' }}</strong>
+            <span class="review-rating">{{ review.rating }}/5 ★</span>
+            <p>{{ review.comment || 'ไม่มีความคิดเห็นเพิ่มเติม' }}</p>
+            <time *ngIf="checkedInAt(review.student?._id) as checkedIn" [attr.datetime]="checkedIn">เช็กชื่อ {{ checkedIn | date:'HH:mm':'+0700' }} น. · </time>
+            <time [attr.datetime]="review.createdAt">รีวิวเมื่อ {{ review.createdAt | date:'d MMM y HH:mm':'+0700':'th' }} น.</time>
+          </li>
+        </ul>
+        <p class="privacy-note">🔒 ข้อมูลลับ เฉพาะแอดมินเท่านั้นที่มองเห็น</p>
+      </section>
+    </div>
+    <footer class="detail-footer">
+      <a routerLink="/dashboard/history">ไปที่ประวัติการสอน</a>
+    </footer>
+  </ng-container>
+</dialog>

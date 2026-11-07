@@ -1,0 +1,63 @@
+<dialog #dialog aria-labelledby="review-title" (cancel)="dismiss($event)">
+  <ng-container *ngIf="entry as review">
+    <section class="review-done" *ngIf="done; else formView">
+      <span class="done-icon" aria-hidden="true">✓</span>
+      <h2 id="review-title">ขอบคุณสำหรับรีวิว</h2>
+      <p>แอดมินได้รับรีวิวของน้องแล้วค่ะ</p>
+      <button #doneButton type="button" class="review-primary" (click)="dismiss()">ปิดหน้าต่าง</button>
+    </section>
+
+    <ng-template #formView>
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <header>
+          <div class="review-badges">
+            <span>✓ คลาสจบแล้ว</span>
+            <span>เช็กชื่อเมื่อ {{ review.scannedAt | date:'HH:mm':'+0700' }} น.</span>
+          </div>
+          <h2 id="review-title">ให้คะแนนครูผู้สอน</h2>
+          <p>คลาสวันนี้เป็นอย่างไรบ้าง?</p>
+        </header>
+
+        <div class="review-class">
+          <span class="review-avatar" aria-hidden="true">{{ (review.lesson.teacher?.nickname || review.lesson.teacher?.firstName || 'ค').charAt(0) }}</span>
+          <div>
+            <strong>{{ review.lesson.course?.name || review.lesson.course?.subject || 'คลาสเรียน' }}</strong>
+            <p>{{ review.lesson.teacher | displayName:'teacher' }} · {{ review.lesson.date | date:'d MMM y':'+0700':'th' }}
+              · {{ review.lesson.startTime }}–{{ review.lesson.endTime }} น.<ng-container *ngIf="review.lesson.room || review.lesson.course?.teachingType as location"> · {{ location }}</ng-container></p>
+          </div>
+        </div>
+
+        <fieldset [disabled]="busy">
+          <legend class="visually-hidden">คะแนนครูผู้สอน</legend>
+          <div class="review-stars">
+            <label *ngFor="let star of stars" [class.selected]="star <= form.controls.rating.value">
+              <input class="visually-hidden" type="radio" name="rating" formControlName="rating" [value]="star" [attr.aria-label]="star + ' ดาว'">
+              <span aria-hidden="true">★</span>
+            </label>
+          </div>
+          <p class="rating-label">{{ ratingLabels[form.controls.rating.value] }}</p>
+
+          <label class="review-label" for="review-comment">ความคิดเห็นเพิ่มเติม <span>(ไม่บังคับ)</span></label>
+          <textarea id="review-comment" formControlName="comment" maxlength="500" rows="3"
+            placeholder="เช่น อธิบายเข้าใจง่ายไหม หรือมีอะไรอยากให้ปรับ"></textarea>
+          <p class="review-count">{{ form.controls.comment.value.length }} / 500</p>
+        </fieldset>
+
+        <aside class="review-privacy">
+          <strong>🔒 รีวิวนี้เป็นความลับ — เฉพาะแอดมินเท่านั้นที่มองเห็น</strong>
+          <p>ความคิดเห็นของน้อง ๆ จะไม่ถูกส่งให้ครูผู้สอนโดยตรง สามารถรีวิวและให้ข้อเสนอแนะได้อย่างตรงไปตรงมาเลยนะคะ</p>
+          <p>💗 ทุกความคิดเห็นจะช่วยให้ทางสถาบันนำไปพัฒนาและปรับปรุงคุณภาพการเรียนการสอนให้ดียิ่งขึ้นค่ะ</p>
+        </aside>
+
+        <p *ngIf="error" class="review-error" role="alert">{{ error }}</p>
+        <footer>
+          <small>กลับมาให้คะแนนภายหลังได้จากหน้า “ประวัติการเรียน”</small>
+          <div class="review-actions">
+            <button type="button" class="review-secondary" [disabled]="busy" (click)="dismiss()">ไว้ทีหลัง</button>
+            <button type="submit" class="review-primary" [disabled]="busy || form.invalid">ส่งรีวิว</button>
+          </div>
+        </footer>
+      </form>
+    </ng-template>
+  </ng-container>
+</dialog>
