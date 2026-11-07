@@ -17,6 +17,7 @@ const schedulesRoutes = require('./routes/schedules');
 const notificationsRoutes = require('./routes/notifications');
 const attendanceRoutes = require('./routes/attendance');
 const expensesRoutes = require('./routes/expenses');
+const teacherAvailabilityRoutes = require('./routes/teacherAvailability');
 
 const app = express();
 
@@ -99,6 +100,7 @@ app.use('/api/schedules', schedulesRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/expenses', expensesRoutes);
+app.use('/api/teacher-availability', teacherAvailabilityRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ success: true, message: 'Server is running' });

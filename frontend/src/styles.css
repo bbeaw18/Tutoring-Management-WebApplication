@@ -1882,3 +1882,9 @@ router-outlet + * {
   .kms-stagger > * { opacity: 1; transform: none; animation: none; }
 }
 
+.kms-calendar-free {
+  position: absolute;
+  inset-inline: 0;
+  background: oklch(90% .085 150 / .75);
+  pointer-events: none;
+}

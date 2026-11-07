@@ -9,13 +9,15 @@ import { ScheduleService } from '../../../services/schedule.service';
 import { AuthService } from '../../../services/auth.service';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { ISchedule } from '../../../interfaces/schedule.interface';
+import { AvailabilityWeek, TeacherAvailabilityService, availabilityTime } from '../../../services/teacher-availability.service';
+import { AvailabilitySummaryComponent } from '../../../shared/components/availability-summary/availability-summary.component';
 
 type CalendarViewMode = 'monthly' | 'weekly';
 
 @Component({
   selector: 'app-teacher-calendar',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LoadingComponent],
+  imports: [CommonModule, FormsModule, RouterModule, LoadingComponent, AvailabilitySummaryComponent],
   templateUrl: './teacher-calendar.component.html',
   styleUrls: ['./teacher-calendar.component.css']
 })
@@ -38,6 +40,12 @@ export class TeacherCalendarComponent implements OnInit, OnDestroy, AfterViewIni
 
   weekStart: Date = this.getMonday(new Date());
   weekDays: Array<{ date: Date; schedules: ISchedule[] }> = [];
+  availabilityWeek: AvailabilityWeek | null = null;
+  availabilityEnabled = false;
+  availabilityError = false;
+  private availabilityRequest = 0;
+  private calendarRequest = 0;
+  readonly availabilityTime = availabilityTime;
 
   selectedSchedule: ISchedule | null = null;
   showDetailModal = false;
@@ -95,7 +103,8 @@ export class TeacherCalendarComponent implements OnInit, OnDestroy, AfterViewIni
   constructor(
     private scheduleService: ScheduleService,
     private authService: AuthService,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    private availability: TeacherAvailabilityService
   ) {}
 
   ngAfterViewInit(): void {
@@ -162,6 +171,17 @@ export class TeacherCalendarComponent implements OnInit, OnDestroy, AfterViewIni
   ngOnInit(): void {
     this.currentUser = this.authService.getCurrentUser();
     this.loadCalendar();
+    this.availability.enabled$.pipe(takeUntil(this.destroy$)).subscribe(enabled => {
+      this.availabilityEnabled = enabled;
+      if (enabled && this.viewMode === 'weekly') this.loadAvailability();
+    });
+    this.availability.saved$.pipe(takeUntil(this.destroy$)).subscribe(({ week, data }) => {
+      if (this.viewMode === 'weekly' && week === this.toLocalDateStr(this.weekStart)) {
+        this.availabilityRequest++;
+        this.availabilityError = false;
+        this.availabilityWeek = data;
+      }
+    });
     // ── Auto-refresh เมื่อกลับมาที่ tab — เพื่อเห็นสถานะที่ Manager อัปเดต ──
     document.addEventListener('visibilitychange', this.onVisibilityChange);
   }
@@ -179,12 +199,17 @@ export class TeacherCalendarComponent implements OnInit, OnDestroy, AfterViewIni
   }
 
   loadMonthly(): void {
+    const request = ++this.calendarRequest;
     this.loading = true;
     this.scheduleService.getCalendarMonthly(this.currentYear, this.currentMonth)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (data) => { this.buildMonthlyGrid(data); this.loading = false; },
-        error: () => { this.loading = false; }
+        next: (data) => {
+          if (request !== this.calendarRequest) return;
+          this.buildMonthlyGrid(data);
+          this.loading = false;
+        },
+        error: () => { if (request === this.calendarRequest) this.loading = false; }
       });
   }
 
@@ -209,7 +234,9 @@ export class TeacherCalendarComponent implements OnInit, OnDestroy, AfterViewIni
   }
 
   loadWeekly(): void {
+    const request = ++this.calendarRequest;
     this.loading = true;
+    this.loadAvailability();
     const endDate = new Date(this.weekStart);
     endDate.setDate(endDate.getDate() + 6);
     this.scheduleService.getCalendarWeekly(
@@ -218,6 +245,7 @@ export class TeacherCalendarComponent implements OnInit, OnDestroy, AfterViewIni
     ).pipe(takeUntil(this.destroy$))
     .subscribe({
       next: (data) => {
+        if (request !== this.calendarRequest) return;
         this.weekDays = [];
         for (let i = 0; i < 7; i++) {
           const d = new Date(this.weekStart); d.setDate(d.getDate() + i);
@@ -226,8 +254,23 @@ export class TeacherCalendarComponent implements OnInit, OnDestroy, AfterViewIni
         }
         this.loading = false;
       },
-      error: () => { this.loading = false; }
+      error: () => { if (request === this.calendarRequest) this.loading = false; }
     });
+  }
+
+  loadAvailability(): void {
+    const request = ++this.availabilityRequest;
+    this.availabilityError = false;
+    this.availabilityWeek = null;
+    if (!this.availabilityEnabled) return;
+    this.availability.get(this.toLocalDateStr(this.weekStart)).pipe(takeUntil(this.destroy$)).subscribe({
+      next: data => { if (request === this.availabilityRequest) this.availabilityWeek = data; },
+      error: () => { if (request === this.availabilityRequest) this.availabilityError = true; }
+    });
+  }
+
+  editAvailability(): void {
+    if (this.availabilityEnabled) this.availability.edit(this.toLocalDateStr(this.weekStart));
   }
 
   // ─── Navigation ───────────────────────────────────────────

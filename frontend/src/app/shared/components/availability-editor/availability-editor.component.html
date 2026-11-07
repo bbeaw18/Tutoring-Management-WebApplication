@@ -1,0 +1,104 @@
+<dialog #dialog aria-labelledby="availability-title" (cancel)="close($event)">
+  <header class="editor-header">
+    <div>
+      <h2 id="availability-title">แจ้งช่วงเวลาว่าง</h2>
+      <p *ngIf="dates.length && !loading">{{ dates[0] | date:'d MMM':'UTC':'th' }} ถึง {{ dates[6] | date:'d MMM y':'UTC':'th' }}</p>
+    </div>
+    <button type="button" aria-label="ปิดหน้าต่างเวลาว่าง" [disabled]="saving || loading || copying" (click)="close()">ปิด</button>
+  </header>
+
+  <p class="editor-state" *ngIf="loading" role="status">กำลังโหลดตารางสอนและเวลาว่าง…</p>
+  <div class="editor-state" *ngIf="loadFailed" role="alert">
+    <p>โหลดข้อมูลไม่สำเร็จ</p>
+    <button type="button" (click)="open(week)">ลองอีกครั้ง</button>
+  </div>
+
+  <section *ngIf="conflicts.length" class="conflict-section" aria-labelledby="availability-conflict-title">
+    <h3 #conflictTitle id="availability-conflict-title" tabindex="-1">คุณมีคลาสสอนที่นัดล่วงหน้าอยู่</h3>
+    <p>ระบบจะเก็บช่วงที่แจ้งไว้ และแสดงเฉพาะส่วนที่ว่างจริงในปฏิทิน คลาสด้านล่างจะอยู่ตามเวลาเดิม</p>
+    <ul class="range-list">
+      <li *ngFor="let lesson of conflicts">
+        <div>
+          <strong>{{ lesson.name }}</strong>
+          <span>{{ lesson.date | date:'EEE d MMM':'UTC':'th' }} · {{ lesson.startTime }}–{{ lesson.endTime }} น.<ng-container *ngIf="lesson.endTime <= lesson.startTime"> (ข้ามวัน)</ng-container></span>
+        </div>
+      </li>
+    </ul>
+    <p class="error" *ngIf="error" role="alert">{{ error }}</p>
+    <footer class="editor-actions">
+      <button type="button" [disabled]="saving" (click)="backToEdit()">กลับไปแก้เวลา</button>
+      <button type="button" class="primary" [disabled]="saving" (click)="save(true)">ยืนยันบันทึกเวลาว่าง</button>
+    </footer>
+  </section>
+
+  <ng-container *ngIf="!loading && !loadFailed && !conflicts.length && dates.length">
+    <div class="editor-body">
+      <div class="editor-tools">
+        <form [formGroup]="form" (ngSubmit)="addRange()" class="range-form">
+          <label for="availability-day">วัน</label>
+          <label for="availability-start">เวลาเริ่ม</label>
+          <label for="availability-end">เวลาสิ้นสุด</label>
+          <select id="availability-day" formControlName="day">
+            <option *ngFor="let date of dates; let i = index" [ngValue]="i">{{ date | date:'EEE d MMM':'UTC':'th' }}</option>
+          </select>
+          <input id="availability-start" type="time" formControlName="start" required>
+          <input id="availability-end" type="time" formControlName="end" required>
+          <button type="submit" [disabled]="saving || copying">เพิ่มช่วง</button>
+        </form>
+        <p class="range-note">เลือก 00:00 เป็นเวลาสิ้นสุดเพื่อว่างถึงเที่ยงคืน</p>
+        <p class="error" *ngIf="rangeError" role="alert">{{ rangeError }}</p>
+        <div class="presets">
+          <button type="button" [disabled]="saving || copying" (click)="copyLastWeek()">ใช้เวลาจากสัปดาห์ก่อน</button>
+          <button type="button" [disabled]="saving || copying" (click)="evenings()">เย็นทุกวัน 17:00–20:00</button>
+          <button type="button" [disabled]="saving || copying || !slots.length" (click)="slots = []">ล้างช่วงที่เลือก</button>
+        </div>
+      </div>
+
+      <div class="grid-caption">
+        <p aria-live="polite">{{ holdingReady ? 'ลากเพื่อเลือกเวลาสิ้นสุดได้แล้ว' : 'กดค้าง 2 วินาที แล้วลากเลือกช่วงในวันเดียวกัน' }}</p>
+        <span class="draft-key">ช่วงที่เลือก</span>
+        <span class="class-key">มีคลาสแล้ว</span>
+        <p class="touch-scroll-hint">ปัดที่คอลัมน์ตัวเลขเวลาเพื่อเลื่อนตาราง</p>
+      </div>
+      <div #gridScroll class="grid-scroll" tabindex="0" role="region" aria-label="ตารางเลือกช่วงเวลาว่าง">
+        <div class="availability-grid">
+          <div class="grid-head" aria-hidden="true"></div>
+          <div class="grid-head" *ngFor="let date of dates">{{ date | date:'EEE d':'UTC':'th' }}</div>
+          <div class="time-column" aria-hidden="true">
+            <span *ngFor="let hour of hours">{{ time(hour * 60) }}</span>
+          </div>
+          <div class="selection-column" *ngFor="let date of dates; let i = index"
+            [attr.data-day]="i" [class.holding]="holdDay === i" [class.ready]="holdDay === i && holdingReady"
+            (pointerdown)="startHold($event, i)" (pointermove)="moveHold($event)" (pointerup)="finishHold($event)"
+            (pointercancel)="clearHold()" (lostpointercapture)="clearHold()" (contextmenu)="$event.preventDefault()">
+            <ng-container *ngFor="let slot of slots">
+              <div *ngIf="slot.day === i" class="grid-slot draft-slot"
+                [style.top.%]="slot.start / 14.4" [style.height.%]="(slot.end - slot.start) / 14.4"></div>
+            </ng-container>
+            <div *ngIf="dragPreview?.day === i" class="grid-slot preview-slot"
+              [style.top.%]="(dragPreview?.start || 0) / 14.4"
+              [style.height.%]="((dragPreview?.end || 0) - (dragPreview?.start || 0)) / 14.4"></div>
+            <div *ngFor="let busy of busyByDay[i]" class="grid-slot class-slot" [title]="busy.lesson.name"
+              [style.top.%]="busy.slot.start / 14.4" [style.height.%]="(busy.slot.end - busy.slot.start) / 14.4">{{ busy.lesson.name }}</div>
+          </div>
+        </div>
+      </div>
+
+      <h3>ช่วงเวลาที่เลือก</h3>
+      <p *ngIf="!slots.length">ยังไม่ได้เลือกเวลา กด “เพิ่มช่วง” หรือเลือกบนตารางได้เลย</p>
+      <ul class="range-list" *ngIf="slots.length">
+        <li *ngFor="let slot of slots; let i = index">
+          <span>{{ dates[slot.day] | date:'EEE d MMM':'UTC':'th' }} · {{ time(slot.start) }}–{{ time(slot.end) }} น.</span>
+          <button type="button" [disabled]="saving || copying" (click)="removeSlot(i)"
+            [attr.aria-label]="'เอาช่วง ' + time(slot.start) + ' ถึง ' + time(slot.end) + ' ออกจากรายการ'">เอาออก</button>
+        </li>
+      </ul>
+      <p class="error" *ngIf="error" role="alert">{{ error }}</p>
+    </div>
+
+    <footer class="editor-actions">
+      <button type="button" [disabled]="saving || copying" (click)="close()">ไว้ก่อน</button>
+      <button type="button" class="primary" [disabled]="saving || copying" (click)="save()">บันทึกเวลาว่าง</button>
+    </footer>
+  </ng-container>
+</dialog>

@@ -166,6 +166,10 @@
   <!-- ═══════════════════════════════════════════════════════════
        WEEKLY VIEW — Google Calendar Style
   ═══════════════════════════════════════════════════════════ -->
+  <ng-container *ngIf="viewMode === 'weekly' && filterMode === 'teacher' && selectedTeacherId">
+    <app-availability-summary *ngIf="availabilityWeek as availability" [data]="availability" [weekStart]="weekStart" heading="เวลาว่างครูสัปดาห์นี้"></app-availability-summary>
+    <p *ngIf="availabilityError" role="alert">โหลดเวลาว่างครูไม่สำเร็จ <button type="button" class="btn btn-secondary" (click)="loadAvailability()">ลองอีกครั้ง</button></p>
+  </ng-container>
   <div *ngIf="!loading && viewMode === 'weekly'" class="gcal-wrapper">
 
     <!-- Day header row (sticky) -->
@@ -204,6 +208,11 @@
           [attr.data-mobile-day]="dayNames[day.date.getDay()] + ' ' + day.date.getDate()"
         >
           <!-- Hour-line backgrounds -->
+          <ng-container *ngFor="let slot of availabilityWeek?.freeSlots">
+            <div *ngIf="slot.day === di" class="kms-calendar-free" aria-hidden="true"
+              [style.top.px]="slot.start * HOUR_HEIGHT / 60" [style.height.px]="(slot.end - slot.start) * HOUR_HEIGHT / 60"
+              [attr.data-free-range]="availabilityTime(slot.start) + '–' + availabilityTime(slot.end)"></div>
+          </ng-container>
           <div
             class="gcal-hr-line"
             *ngFor="let h of hours"

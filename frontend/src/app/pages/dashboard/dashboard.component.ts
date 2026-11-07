@@ -6,14 +6,16 @@ import { takeUntil } from 'rxjs/operators';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { SidebarComponent } from '../../shared/components/sidebar/sidebar.component';
 import { TermsAgreementComponent } from '../../shared/components/terms-agreement/terms-agreement.component';
+import { AvailabilityEditorComponent } from '../../shared/components/availability-editor/availability-editor.component';
 import { AuthService } from '../../services/auth.service';
+import { TeacherAvailabilityService } from '../../services/teacher-availability.service';
 import { IUser } from '../../interfaces/user.interface';
 import { TermsDocument, getRequiredTermsForRole, TERMS_VERSION } from '../../shared/constants/terms';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, HeaderComponent, SidebarComponent, TermsAgreementComponent],
+  imports: [CommonModule, RouterOutlet, HeaderComponent, SidebarComponent, TermsAgreementComponent, AvailabilityEditorComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })
@@ -28,7 +30,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService, readonly availability: TeacherAvailabilityService) {}
 
   ngOnInit(): void {
     this.authService.currentUser$.pipe(

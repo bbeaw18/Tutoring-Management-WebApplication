@@ -32,9 +32,14 @@
       <span class="cal-title">{{ monthNames[currentMonth - 1] }} {{ currentYear + 543 }}</span>
       <button class="nav-btn" (click)="nextMonth()">›</button>
     </div>
+    <button type="button" class="btn btn-secondary" *ngIf="availabilityEnabled && viewMode === 'weekly'" (click)="editAvailability()">แจ้ง / แก้ไขเวลาว่าง</button>
   </div>
 
   <app-loading *ngIf="loading"></app-loading>
+  <ng-container *ngIf="viewMode === 'weekly'">
+    <app-availability-summary *ngIf="availabilityWeek as availability" [data]="availability" [weekStart]="weekStart"></app-availability-summary>
+    <p *ngIf="availabilityError" role="alert">โหลดเวลาว่างไม่สำเร็จ <button type="button" class="btn btn-secondary" (click)="loadAvailability()">ลองอีกครั้ง</button></p>
+  </ng-container>
 
   <!-- Drag-reschedule error toast -->
   <div *ngIf="dragError" class="tc-drag-error" role="alert">
@@ -213,6 +218,11 @@
              [class.today-col]="isToday(day.date)">
 
           <!-- Hour lines -->
+          <ng-container *ngFor="let slot of availabilityWeek?.freeSlots">
+            <div *ngIf="slot.day === di" class="kms-calendar-free" aria-hidden="true"
+              [style.top.px]="slot.start * HOUR_HEIGHT / 60" [style.height.px]="(slot.end - slot.start) * HOUR_HEIGHT / 60"
+              [attr.data-free-range]="availabilityTime(slot.start) + '–' + availabilityTime(slot.end)"></div>
+          </ng-container>
           <div class="gcal-hr-line"     *ngFor="let h of hours" [style.top.px]="(h - START_HOUR) * HOUR_HEIGHT"></div>
           <div class="gcal-halfhr-line" *ngFor="let h of hours" [style.top.px]="(h - START_HOUR) * HOUR_HEIGHT + HOUR_HEIGHT / 2"></div>
 

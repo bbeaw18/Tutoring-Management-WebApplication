@@ -12,6 +12,8 @@ import { AuthService } from '../../../services/auth.service';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
 import { ISchedule } from '../../../interfaces/schedule.interface';
+import { AvailabilityWeek, TeacherAvailabilityService, availabilityTime } from '../../../services/teacher-availability.service';
+import { AvailabilitySummaryComponent } from '../../../shared/components/availability-summary/availability-summary.component';
 import { resolveDisplayStatus, getDisplayStatusLabel, getDisplayStatusClass } from '../../../shared/constants/schedule-status';
 
 type CalendarViewMode = 'monthly' | 'weekly';
@@ -20,7 +22,7 @@ type FilterMode = 'all' | 'teacher' | 'student';
 @Component({
   selector: 'app-manager-calendar',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LoadingComponent, DisplayNamePipe],
+  imports: [CommonModule, FormsModule, RouterModule, LoadingComponent, DisplayNamePipe, AvailabilitySummaryComponent],
   templateUrl: './manager-calendar.component.html',
   styleUrls: ['./manager-calendar.component.css']
 })
@@ -41,6 +43,12 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
   // ─── Weekly ───────────────────────────────────────────────────────────────
   weekStart: Date = this.getMonday(new Date());
   weekDays: Array<{ date: Date; schedules: ISchedule[] }> = [];
+  availabilityWeek: AvailabilityWeek | null = null;
+  availabilityEnabled = false;
+  availabilityError = false;
+  private availabilityRequest = 0;
+  private calendarRequest = 0;
+  readonly availabilityTime = availabilityTime;
 
   // ─── Overlap layout (column split + "+N" overflow) ────────────────────────
   readonly MAX_LANES = 3;                 // คอลัมน์สูงสุดต่อกลุ่มที่ทับกัน
@@ -135,19 +143,31 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
     private courseService: CourseService,
     private authService: AuthService,
     private router: Router,
-    private aliasService: AliasService
+    private aliasService: AliasService,
+    private availability: TeacherAvailabilityService
   ) {}
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    document.removeEventListener('visibilitychange', this.onAvailabilityVisibility);
   }
 
   ngOnInit(): void {
     this.currentUser = this.authService.getCurrentUser();
     this.loadDropdowns();
     this.loadCalendar();
+    this.availability.enabled$.pipe(takeUntil(this.destroy$)).subscribe(enabled => {
+      this.availabilityEnabled = enabled;
+      if (enabled && this.viewMode === 'weekly') this.loadAvailability();
+    });
+    document.addEventListener('visibilitychange', this.onAvailabilityVisibility);
   }
+
+  private onAvailabilityVisibility = (): void => {
+    if (document.visibilityState === 'visible' && !this.loading && this.viewMode === 'weekly' &&
+        this.filterMode === 'teacher' && this.selectedTeacherId) this.loadWeekly();
+  };
 
   ngDoCheck(): void {
     this.maybeScrollToNow();
@@ -253,12 +273,17 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
   }
 
   loadMonthly(): void {
+    const request = ++this.calendarRequest;
     this.loading = true;
     this.scheduleService.getCalendarMonthly(this.currentYear, this.currentMonth, this.getFilterParams())
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (data) => { this.buildMonthlyGrid(data); this.loading = false; },
-        error: () => { this.loading = false; }
+        next: (data) => {
+          if (request !== this.calendarRequest) return;
+          this.buildMonthlyGrid(data);
+          this.loading = false;
+        },
+        error: () => { if (request === this.calendarRequest) this.loading = false; }
       });
   }
 
@@ -276,7 +301,9 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
   }
 
   loadWeekly(): void {
+    const request = ++this.calendarRequest;
     this.loading = true;
+    this.loadAvailability();
     const endDate = new Date(this.weekStart);
     endDate.setDate(endDate.getDate() + 6);
     const startStr = this.toLocalDateStr(this.weekStart);
@@ -285,6 +312,7 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (data) => {
+          if (request !== this.calendarRequest) return;
           this.weekDays = [];
           for (let i = 0; i < 7; i++) {
             const d = new Date(this.weekStart);
@@ -295,7 +323,19 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
           this.computeWeekLayout();
           this.loading = false;
         },
-        error: () => { this.loading = false; }
+        error: () => { if (request === this.calendarRequest) this.loading = false; }
+      });
+  }
+
+  loadAvailability(): void {
+    const request = ++this.availabilityRequest;
+    this.availabilityWeek = null;
+    this.availabilityError = false;
+    if (!this.availabilityEnabled || this.filterMode !== 'teacher' || !this.selectedTeacherId) return;
+    this.availability.get(this.toLocalDateStr(this.weekStart), this.selectedTeacherId)
+      .pipe(takeUntil(this.destroy$)).subscribe({
+        next: data => { if (request === this.availabilityRequest) this.availabilityWeek = data; },
+        error: () => { if (request === this.availabilityRequest) this.availabilityError = true; }
       });
   }
 

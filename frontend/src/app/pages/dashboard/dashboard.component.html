@@ -40,4 +40,5 @@
     (accepted)="onAcceptTerms()"
     (declined)="onDeclineTerms()">
   </app-terms-agreement>
+  <app-availability-editor *ngIf="currentUser?.role === 'teacher' && !termsDoc && (availability.enabled$ | async)"></app-availability-editor>
 </div>
