@@ -147,7 +147,8 @@ const UserSchema = new mongoose.Schema({
   addressNote:   { type: String, trim: true },   // หมายเหตุเพิ่มเติม
   // Google Authenticator TOTP
   totpSecret: {
-    type: String
+    type: String,
+    select: false
   },
   totpEnabled: {
     type: Boolean,
@@ -194,6 +195,15 @@ const UserSchema = new mongoose.Schema({
     select: false,
     default: null
   },
+  passwordResetOtp: {
+    type: new mongoose.Schema({
+      hash: String,
+      expiresAt: Date,
+      sentAt: Date,
+      attempts: Number
+    }, { _id: false }),
+    select: false
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -226,8 +236,10 @@ UserSchema.methods.toJSON = function () {
   // Mongoose 7 does NOT include virtuals by default in toObject()
   const user = this.toObject({ virtuals: true });
   delete user.password;
+  delete user.totpSecret;
   delete user.resetPasswordTokenHash;
   delete user.resetPasswordExpires;
+  delete user.passwordResetOtp;
   return user;
 };
 

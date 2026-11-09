@@ -810,3 +810,16 @@
   .board-mol .bond { stroke-dashoffset: 0; }
   .board-mol .orbit { opacity: 0.5; transform: rotate(0deg) scale(1); }
 }
+.register-totp-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.register-totp-choice input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--brand-navy, #1e3f80);
+}

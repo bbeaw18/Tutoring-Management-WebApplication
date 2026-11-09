@@ -146,6 +146,12 @@ export class AuthService {
     return this.http.post<IApiResponse<null>>(`${this.apiUrl}/forgot-password`, { email });
   }
 
+  verifyResetOtp(email: string, code: string): Observable<{ token: string }> {
+    return this.http.post<IApiResponse<{ token: string }>>(`${this.apiUrl}/verify-reset-otp`, { email, code }).pipe(
+      map(response => response.data)
+    );
+  }
+
   resetPassword(token: string, password: string): Observable<IApiResponse<null>> {
     return this.http.post<IApiResponse<null>>(`${this.apiUrl}/reset-password`, { token, password });
   }

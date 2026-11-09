@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { Subject } from 'rxjs';
+import { Subject, timer } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../../services/auth.service';
 
@@ -44,10 +44,11 @@ export class ResetPasswordComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.token = (this.route.snapshot.queryParamMap.get('token') || '').trim();
+    const stateToken = history.state?.resetToken;
+    this.token = (typeof stateToken === 'string' ? stateToken : this.route.snapshot.queryParamMap.get('token') || '').trim();
     if (!this.token) {
       this.tokenMissing = true;
-      this.errorMessage = 'ลิงก์ไม่ถูกต้อง — กรุณาขอลิงก์ตั้งรหัสผ่านใหม่อีกครั้ง';
+      this.errorMessage = 'กรุณายืนยันรหัส OTP ก่อนตั้งรหัสผ่านใหม่';
     }
   }
 
@@ -67,11 +68,12 @@ export class ResetPasswordComponent implements OnInit, OnDestroy {
           this.successMessage = res?.message || 'ตั้งรหัสผ่านใหม่สำเร็จ';
           this.loading = false;
           this.form.disable();
-          setTimeout(() => {
+          timer(1800).pipe(takeUntil(this.destroy$)).subscribe(() => {
             this.router.navigate(['/login'], {
+              replaceUrl: true,
               queryParams: { message: 'ตั้งรหัสผ่านใหม่สำเร็จ กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่' }
             });
-          }, 1800);
+          });
         },
         error: (err) => {
           this.errorMessage = err.error?.message || 'เกิดข้อผิดพลาด โปรดลองอีกครั้ง';

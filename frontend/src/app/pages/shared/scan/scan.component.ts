@@ -5,12 +5,15 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AttendanceService } from '../../../services/attendance.service';
 import { AuthService } from '../../../services/auth.service';
+import { ReviewPromptComponent } from '../../../shared/components/review-prompt/review-prompt.component';
 
 @Component({
   selector: 'app-scan',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, ReviewPromptComponent],
   template: `
+    <app-review-prompt *ngIf="reviewScheduleId && (status === 'success' || status === 'duplicate')"
+      [scheduleId]="reviewScheduleId"></app-review-prompt>
     <div class="scan-page" [attr.data-status]="status">
 
       <!-- Animated background orbs -->
@@ -504,6 +507,7 @@ export class ScanComponent implements OnInit, OnDestroy {
   scannedAt: Date | null = null;
   errorMessage = '';
   dashboardPath = '/dashboard';
+  reviewScheduleId?: string;
 
   private destroy$ = new Subject<void>();
 
@@ -548,8 +552,9 @@ export class ScanComponent implements OnInit, OnDestroy {
 
   submitScan(scheduleId: string, token: string): void {
     this.status = 'loading';
+    this.reviewScheduleId = this.authService.getCurrentUser()?.role === 'student' ? scheduleId : undefined;
 
-    this.attendanceService.scanQR(scheduleId, token).subscribe({
+    this.attendanceService.scanQR(scheduleId, token).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         this.status = 'success';
         this.studentName = (res.student as any)?.nickname || `${res.student?.firstName} ${res.student?.lastName}`;

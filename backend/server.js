@@ -89,6 +89,7 @@ app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/verify-totp', authLimiter);
 app.use('/api/auth/verify-totp-setup', authLimiter);
 app.use('/api/auth/forgot-password', authLimiter);
+app.use('/api/auth/verify-reset-otp', authLimiter);
 app.use('/api/auth/reset-password', authLimiter);
 
 app.use('/api/auth', authRoutes);
@@ -271,6 +272,7 @@ async function autoCompleteExpiredSchedules() {
       schedule.actualTeacherIncome = computeEffectiveTeacherIncome(schedule, attendanceCount);
 
       // รอ manager ยืนยัน — ยังไม่บันทึก hours
+      schedule.qrClosedAt ??= now;
       schedule.status = 'awaiting_confirmation';
       await schedule.save();
 

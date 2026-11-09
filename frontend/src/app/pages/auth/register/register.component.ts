@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, AfterViewInit, ElementRef, NgZone } from 
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import { Subject, takeUntil } from 'rxjs';
 import { gsap } from 'gsap';
 import { AuthService } from '../../../services/auth.service';
 import { IAuthResponse } from '../../../interfaces/user.interface';
@@ -25,6 +26,7 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
   totpSubmitted = false;
   totpForm!: FormGroup;
   showPassword = false;
+  private readonly destroy$ = new Subject<void>();
 
   /** ตัวเลือกช่องทางรับเงิน (จัดกลุ่ม) */
   readonly paymentGroups = getPaymentChannelGroups();
@@ -135,6 +137,8 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
     this.heroTl?.kill();
     this.interactionCleanup?.();
     gsap.killTweensOf(this.host.nativeElement.querySelectorAll('*'));
@@ -231,6 +235,7 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
       phone: ['', [Validators.required, Validators.pattern(/^[0-9]{9,10}$/)]],
       password: ['', [Validators.required, Validators.minLength(6)]],
       confirmPassword: ['', Validators.required],
+      enableTotp: [false],
       lineId: ['', Validators.required],
       age: ['', [Validators.required, Validators.min(1), Validators.max(120)]],
       gender: ['', Validators.required],
@@ -371,13 +376,26 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
       role: this.selectedRole
     };
 
-    this.authService.register(payload).subscribe({
+    this.authService.register(payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: (response: IAuthResponse) => {
         this.loading = false;
 
-        const userId = response.userId || (response as any).user?._id?.toString();
+        if (!payload.enableTotp) {
+          localStorage.removeItem('tempUserId');
+          this.router.navigate(['/login'], {
+            queryParams: {
+              message: this.selectedRole === 'teacher'
+                ? 'สมัครสมาชิกสำเร็จ กรุณารอผู้ดูแลอนุมัติบัญชีครูก่อนเข้าสู่ระบบ'
+                : 'สมัครสมาชิกสำเร็จ กรุณาเข้าสู่ระบบ'
+            }
+          });
+          return;
+        }
 
-        if (!userId) {
+        const userId = response.userId || (response as any).user?._id?.toString();
+        const qrCode = response.qrCode || (response as any).totp?.qrCode;
+
+        if (!userId || !qrCode) {
           // L2: explicit return — กันสับสนเมื่อมีคน extend logic ข้างล่าง
           this.errorMessage = 'สมัครสมาชิกสำเร็จแต่ไม่ได้รับ QR Code โปรดติดต่อผู้ดูแลระบบ';
           window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -385,7 +403,7 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
         }
         localStorage.setItem('tempUserId', userId);
         this.currentStep = 'totp';
-        this.totpQrCode = response.qrCode || (response as any).totp?.qrCode || '';
+        this.totpQrCode = qrCode;
       },
       error: (error: any) => {
         this.loading = false;
@@ -455,7 +473,7 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
 
-    this.authService.verifyTotpSetup(userId, token).subscribe({
+    this.authService.verifyTotpSetup(userId, token).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.loading = false;
         localStorage.removeItem('tempUserId');

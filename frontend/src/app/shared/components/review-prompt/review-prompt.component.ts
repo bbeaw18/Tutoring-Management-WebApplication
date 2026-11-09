@@ -1,7 +1,7 @@
-import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { EMPTY, Subject, catchError, exhaustMap, filter, takeUntil, timer } from 'rxjs';
+import { Subject, catchError, exhaustMap, filter, ignoreElements, takeUntil, timer } from 'rxjs';
 import { ReviewService, StudentReview } from '../../../services/review.service';
 import { DisplayNamePipe } from '../../pipes/display-name.pipe';
 
@@ -13,6 +13,7 @@ import { DisplayNamePipe } from '../../pipes/display-name.pipe';
   styleUrls: ['./review-prompt.component.css']
 })
 export class ReviewPromptComponent implements OnInit, OnDestroy {
+  @Input() scheduleId?: string;
   @ViewChild('dialog', { static: true }) private dialog!: ElementRef<HTMLDialogElement>;
   @ViewChild('doneButton') private doneButton?: ElementRef<HTMLButtonElement>;
   private readonly destroy$ = new Subject<void>();
@@ -34,9 +35,11 @@ export class ReviewPromptComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.reviews.reviewRequested$.pipe(takeUntil(this.destroy$)).subscribe(entry => this.open(entry, false));
-    timer(0, 30_000).pipe(
-      filter(() => !this.entry && !document.hidden),
-      exhaustMap(() => this.reviews.getPending().pipe(catchError(() => EMPTY))),
+    timer(0, 1000).pipe(
+      filter(() => !this.entry && !document.hidden && (!this.scheduleId || !this.handled.has(this.scheduleId))),
+      exhaustMap(() => this.reviews.getPending(this.scheduleId).pipe(
+        catchError(() => timer(5000).pipe(ignoreElements()))
+      )),
       takeUntil(this.destroy$)
     ).subscribe(entry => {
       if (entry && !this.handled.has(entry.lesson._id)) this.open(entry, true);

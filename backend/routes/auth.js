@@ -1,19 +1,28 @@
 const express = require('express');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const router = express.Router();
 const User = require('../models/User');
 const { generateToken, sendResponse } = require('../utils/helpers');
 const { authenticateToken } = require('../middleware/auth');
-const { sendPasswordResetEmail } = require('../services/emailService');
+const { sendPasswordResetOtpEmail } = require('../services/emailService');
 const { verifyEmailDomain, isDisposableDomain } = require('../utils/emailValidator');
 const { TERMS_VERSION, TERMS_BY_ROLE } = require('../constants/terms');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 
-const RESET_TOKEN_TTL_MINUTES = 60;
+const RESET_OTP_TTL_MINUTES = 10;
+const RESET_TOKEN_TTL_MINUTES = 10;
+const MAX_RESET_OTP_ATTEMPTS = 5;
+const RESET_OTP_COOLDOWN_MS = 60_000;
 
 function hashResetToken(rawToken) {
   return crypto.createHash('sha256').update(rawToken).digest('hex');
+}
+
+function hashResetOtp(userId, code) {
+  return crypto.createHmac('sha256', process.env.JWT_SECRET)
+    .update(`password-reset:${userId}:${code}`).digest('hex');
 }
 
 router.post('/register', async (req, res) => {
@@ -23,6 +32,7 @@ router.post('/register', async (req, res) => {
       lastName,
       email,
       password,
+      enableTotp = true,
       phone,
       role,
       lineId,
@@ -47,6 +57,10 @@ router.post('/register', async (req, res) => {
       province,
       postalCode
     } = req.body;
+
+    if (typeof enableTotp !== 'boolean') {
+      return sendResponse(res, 400, false, null, 'กรุณาเลือกว่าจะเปิดใช้ Google Authenticator หรือไม่');
+    }
 
     // Validate role
     if (!role || !['student', 'teacher'].includes(role)) {
@@ -141,10 +155,11 @@ router.post('/register', async (req, res) => {
     }
 
     // Generate TOTP secret
-    const secret = speakeasy.generateSecret({
+    const secret = enableTotp ? speakeasy.generateSecret({
       name: `KMS (${email})`,
       issuer: 'Knowledge Management System'
-    });
+    }) : null;
+    const qrCode = secret ? await QRCode.toDataURL(secret.otpauth_url) : undefined;
 
     const newUser = new User({
       firstName,
@@ -176,7 +191,7 @@ router.post('/register', async (req, res) => {
       district:      role === 'student' ? district : undefined,
       province:      role === 'student' ? province : undefined,
       postalCode:    role === 'student' ? postalCode : undefined,
-      totpSecret: secret.base32,
+      totpSecret: secret?.base32,
       totpEnabled: false,
       registrationStatus: role === 'teacher' ? 'unregistered' : 'registered'
     });
@@ -200,17 +215,11 @@ router.post('/register', async (req, res) => {
       }
     }
 
-    // Generate QR code
-    const otpauthUrl = secret.otpauth_url;
-    const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl);
-
-    // Return userId and qrCode at top level so frontend can directly access them
     sendResponse(res, 201, true, {
       userId: newUser._id.toString(),
-      qrCode: qrCodeDataUrl,
-      secret: secret.base32,
+      ...(secret && { qrCode, secret: secret.base32 }),
       user: newUser.toJSON()
-    }, 'สมัครสมาชิกสำเร็จ กรุณาสแกน QR Code ด้วยแอป Google Authenticator');
+    }, secret ? 'สมัครสมาชิกสำเร็จ กรุณาสแกน QR Code ด้วยแอป Google Authenticator' : 'สมัครสมาชิกสำเร็จ');
   } catch (error) {
     console.error('Register error:', error);
     sendResponse(res, 500, false, null, error.message);
@@ -345,7 +354,7 @@ router.post('/verify-totp-setup', async (req, res) => {
       return sendResponse(res, 400, false, null, 'userId and token required');
     }
 
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select('+totpSecret');
     if (!user) {
       return sendResponse(res, 404, false, null, 'User not found');
     }
@@ -387,7 +396,7 @@ router.post('/verify-totp', async (req, res) => {
       return sendResponse(res, 400, false, null, 'userId and token required');
     }
 
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select('+totpSecret');
     if (!user) {
       return sendResponse(res, 404, false, null, 'User not found');
     }
@@ -473,7 +482,7 @@ router.post('/verify-password-2fa', async (req, res) => {
   }
 });
 
-// ── ลืมรหัสผ่าน — สร้าง token + ส่งอีเมล ─────────────────────────
+// ── ลืมรหัสผ่าน — ส่ง OTP ทางอีเมล ──────────────────────────────
 // ไม่บอก client ว่าอีเมลมีในระบบหรือไม่ (กัน user enumeration)
 router.post('/forgot-password', async (req, res) => {
   try {
@@ -488,7 +497,7 @@ router.post('/forgot-password', async (req, res) => {
       return sendResponse(res, 400, false, null, 'รูปแบบอีเมลไม่ถูกต้อง');
     }
 
-    const genericMessage = 'หากอีเมลนี้มีในระบบ เราได้ส่งลิงก์ตั้งรหัสผ่านใหม่ไปยังอีเมลของคุณแล้ว';
+    const genericMessage = 'หากอีเมลนี้มีในระบบ คุณจะได้รับรหัส OTP 6 หลักทางอีเมล';
 
     // Reject disposable domains (sync — no DNS). Sync check keeps response timing
     // identical for non-disposable hits/misses, preserving the user-enumeration defense.
@@ -500,34 +509,74 @@ router.post('/forgot-password', async (req, res) => {
       return sendResponse(res, 200, true, null, genericMessage);
     }
 
-    const user = await User.findOne({ email: normalizedEmail });
-
-    if (user && user.isActive) {
-      const rawToken = crypto.randomBytes(32).toString('hex');
-      const tokenHash = hashResetToken(rawToken);
-      const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MINUTES * 60 * 1000);
-
-      user.resetPasswordTokenHash = tokenHash;
-      user.resetPasswordExpires = expiresAt;
-      await user.save();
-
-      const frontendBase = (process.env.FRONTEND_URL || 'http://localhost:4200').replace(/\/+$/, '');
-      const resetLink = `${frontendBase}/reset-password?token=${rawToken}`;
-
-      // อย่า await — ส่งอีเมลพื้นหลัง กัน timing-attack
-      // (ถึงไม่ส่งได้/ส่งช้า client ก็ได้ response เหมือนเดิม)
-      sendPasswordResetEmail({
-        email: user.email,
-        userName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
-        resetLink,
-        expiresInMinutes: RESET_TOKEN_TTL_MINUTES
-      }).catch(err => console.error('[ForgotPassword] email error:', err.message));
-    }
+    const user = await User.findOne({ email: normalizedEmail, isActive: true }).select('email').lean();
+    if (user) issueResetOtp(user).catch(error => console.error('[ForgotPassword] OTP request failed:', error.name));
 
     return sendResponse(res, 200, true, null, genericMessage);
   } catch (error) {
     console.error('Forgot password error:', error);
-    return sendResponse(res, 500, false, null, error.message);
+    return sendResponse(res, 500, false, null, 'ขอรหัส OTP ไม่สำเร็จ กรุณาลองอีกครั้ง');
+  }
+});
+
+async function issueResetOtp(user) {
+  const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
+  const now = Date.now();
+  const result = await User.updateOne({
+    _id: user._id,
+    isActive: true,
+    $or: [
+      { 'passwordResetOtp.sentAt': { $exists: false } },
+      { 'passwordResetOtp.sentAt': { $lte: new Date(now - RESET_OTP_COOLDOWN_MS) } }
+    ]
+  }, { $set: { passwordResetOtp: {
+    hash: hashResetOtp(user._id, code),
+    sentAt: new Date(now),
+    expiresAt: new Date(now + RESET_OTP_TTL_MINUTES * 60_000),
+    attempts: 0
+  } } });
+  if (result.modifiedCount) {
+    await sendPasswordResetOtpEmail({ email: user.email, code, expiresInMinutes: RESET_OTP_TTL_MINUTES });
+  }
+}
+
+router.post('/verify-reset-otp', async (req, res) => {
+  try {
+    const { email, code } = req.body || {};
+    if (typeof email !== 'string' || typeof code !== 'string' || !/^\d{6}$/.test(code)) {
+      return sendResponse(res, 400, false, null, 'กรุณากรอกอีเมลและรหัส OTP 6 หลัก');
+    }
+    const invalid = 'รหัส OTP ไม่ถูกต้อง หมดอายุ หรือกรอกผิดครบ 5 ครั้งแล้ว';
+    const user = await User.findOne({ email: email.trim().toLowerCase(), isActive: true }).select('_id').lean();
+    if (!user) return sendResponse(res, 400, false, null, invalid);
+
+    const now = Date.now();
+    const hash = hashResetOtp(user._id, code);
+    const eligible = {
+      _id: user._id,
+      isActive: true,
+      'passwordResetOtp.expiresAt': { $gt: new Date(now) },
+      'passwordResetOtp.attempts': { $lt: MAX_RESET_OTP_ATTEMPTS }
+    };
+    const token = crypto.randomBytes(32).toString('hex');
+    const result = await User.updateOne({ ...eligible, 'passwordResetOtp.hash': hash }, {
+      $set: {
+        resetPasswordTokenHash: hashResetToken(token),
+        resetPasswordExpires: new Date(now + RESET_TOKEN_TTL_MINUTES * 60_000)
+      },
+      $unset: { 'passwordResetOtp.hash': '', 'passwordResetOtp.expiresAt': '' }
+    });
+    if (!result.modifiedCount) {
+      await User.updateOne({ ...eligible, 'passwordResetOtp.hash': { $ne: hash } },
+        { $inc: { 'passwordResetOtp.attempts': 1 } });
+      return sendResponse(res, 400, false, null, invalid);
+    }
+
+    res.set('Cache-Control', 'no-store');
+    return sendResponse(res, 200, true, { token }, 'ยืนยันรหัส OTP สำเร็จ');
+  } catch (error) {
+    console.error('[ForgotPassword] OTP verification failed:', error.name);
+    return sendResponse(res, 500, false, null, 'ยืนยันรหัส OTP ไม่สำเร็จ กรุณาลองอีกครั้ง');
   }
 });
 
@@ -535,32 +584,40 @@ router.post('/forgot-password', async (req, res) => {
 router.post('/reset-password', async (req, res) => {
   try {
     const { token, password } = req.body || {};
-    if (!token || !password) {
+    if (typeof token !== 'string' || !/^[a-f\d]{64}$/i.test(token) || !password) {
       return sendResponse(res, 400, false, null, 'token และ password จำเป็นต้องระบุ');
     }
     if (typeof password !== 'string' || password.length < 6) {
       return sendResponse(res, 400, false, null, 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
     }
-
-    const tokenHash = hashResetToken(String(token));
-    const user = await User.findOne({
-      resetPasswordTokenHash: tokenHash,
-      resetPasswordExpires: { $gt: new Date() }
-    }).select('+password +resetPasswordTokenHash +resetPasswordExpires');
-
-    if (!user) {
-      return sendResponse(res, 400, false, null, 'ลิงก์ตั้งรหัสผ่านไม่ถูกต้องหรือหมดอายุแล้ว');
+    if (Buffer.byteLength(password, 'utf8') > 72) {
+      return sendResponse(res, 400, false, null, 'รหัสผ่านยาวเกิน 72 ไบต์');
     }
 
-    user.password = password;            // pre-save hook จะ hash อัตโนมัติ
-    user.resetPasswordTokenHash = null;
-    user.resetPasswordExpires = null;
-    await user.save();
+    const tokenFilter = {
+      isActive: true,
+      resetPasswordTokenHash: hashResetToken(token)
+    };
+    const invalid = 'คำขอตั้งรหัสผ่านใหม่ไม่ถูกต้องหรือหมดอายุแล้ว';
+    if (!await User.exists({ ...tokenFilter, resetPasswordExpires: { $gt: new Date() } })) {
+      return sendResponse(res, 400, false, null, invalid);
+    }
+    const passwordHash = await bcrypt.hash(password, 10);
+    const result = await User.updateOne({
+      ...tokenFilter, resetPasswordExpires: { $gt: new Date() }
+    }, {
+      $set: { password: passwordHash, updatedAt: new Date() },
+      $unset: { resetPasswordTokenHash: '', resetPasswordExpires: '', passwordResetOtp: '' }
+    });
+
+    if (!result.modifiedCount) {
+      return sendResponse(res, 400, false, null, invalid);
+    }
 
     return sendResponse(res, 200, true, null, 'ตั้งรหัสผ่านใหม่สำเร็จ กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่');
   } catch (error) {
     console.error('Reset password error:', error);
-    return sendResponse(res, 500, false, null, error.message);
+    return sendResponse(res, 500, false, null, 'ตั้งรหัสผ่านใหม่ไม่สำเร็จ กรุณาลองอีกครั้ง');
   }
 });
 

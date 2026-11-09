@@ -76,8 +76,11 @@ export class ReviewService {
     this.reviewRequest.next(entry);
   }
 
-  getPending(): Observable<StudentReview | null> {
-    return this.http.get<IApiResponse<StudentReview | null>>(`${this.url}/pending`).pipe(map(res => res.data));
+  getPending(scheduleId?: string): Observable<StudentReview | null> {
+    const params: Record<string, string> = { wait: '1' };
+    if (scheduleId) params['scheduleId'] = scheduleId;
+    return this.http.get<IApiResponse<StudentReview | null>>(`${this.url}/pending`, { params })
+      .pipe(map(res => res.data));
   }
 
   getMine(scheduleId: string): Observable<StudentReview | null> {

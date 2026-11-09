@@ -66,6 +66,7 @@ export interface IRegisterRequest {
   lastName: string;
   email: string;
   password: string;
+  enableTotp?: boolean;
   confirmPassword: string;
   phone: string;
   role: 'teacher' | 'student';

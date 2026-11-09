@@ -662,13 +662,18 @@
               </div>
             </div>
 
+            <label class="register-totp-choice">
+              <input type="checkbox" formControlName="enableTotp">
+              <span>เปิดใช้ Google Authenticator (เลือกได้)</span>
+            </label>
+
             <div class="actions actions-pair">
               <button type="button" class="cta cta-ghost" (click)="goPrevSubStep()" [disabled]="loading">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
                 ย้อนกลับ
               </button>
               <button type="submit" class="cta" [disabled]="loading">
-                <span class="cta-label" *ngIf="!loading">ถัดไป — ตั้งค่า 2FA</span>
+                <span class="cta-label" *ngIf="!loading">{{ f['enableTotp'].value ? 'ถัดไป ตั้งค่า 2FA' : 'สมัครสมาชิก' }}</span>
                 <span class="cta-label cta-loading" *ngIf="loading">
                   <span class="cta-skeleton"></span>
                   <span>กำลังดำเนินการ…</span>

@@ -1,4 +1,5 @@
 const express = require('express');
+const { setTimeout: wait } = require('node:timers/promises');
 const { isObjectIdOrHexString } = require('mongoose');
 const Attendance = require('../models/Attendance');
 const Payment = require('../models/Payment');
@@ -60,27 +61,52 @@ async function getReviewableAttendance(student, schedule) {
   return lesson?.teacher ? { lesson, attendance } : null;
 }
 
-router.get('/pending', roleCheck(['student']), async (req, res, next) => {
-  try {
-    const student = req.user.id;
-    const [attendances, reviewed] = await Promise.all([
-      Attendance.find({ student, reviewPromptDismissedAt: null, ...actualCheckIn })
-        .select('schedule scannedAt').lean(),
-      Review.distinct('schedule', { student })
-    ]);
-    const alreadyReviewed = new Set(reviewed.map(String));
-    const checkIns = new Map(attendances.filter(a => !alreadyReviewed.has(String(a.schedule)))
-      .map(a => [String(a.schedule), a]));
-    if (!checkIns.size) return sendStudentReview(res);
+async function findPendingReview(student, scheduleId) {
+  const scope = scheduleId ? { schedule: scheduleId } : {};
+  const [attendances, reviewed] = await Promise.all([
+    Attendance.find({ student, ...scope, reviewPromptDismissedAt: null, ...actualCheckIn })
+      .select('schedule scannedAt').lean(),
+    Review.distinct('schedule', { student, ...scope })
+  ]);
+  const alreadyReviewed = new Set(reviewed.map(String));
+  const checkIns = new Map(attendances.filter(a => !alreadyReviewed.has(String(a.schedule)))
+    .map(a => [String(a.schedule), a]));
+  if (!checkIns.size) return { entry: null, waiting: false };
 
-    const lessons = await withClassNames(Schedule.find({
-      _id: { $in: [...checkIns.keys()] }, students: student, ...reviewableClass,
-      qrClosedAt: { $type: 'date' }
-    }).select(classFields).sort({ qrClosedAt: -1 }));
-    const lesson = lessons.find(item => item.teacher);
-    sendStudentReview(res, lesson ? { lesson, scannedAt: checkIns.get(String(lesson._id)).scannedAt } : null);
+  const schedules = { _id: { $in: [...checkIns.keys()] }, students: student };
+  const lessons = await withClassNames(Schedule.find({
+    ...schedules, ...reviewableClass,
+    qrClosedAt: { $type: 'date' }
+  }).select(classFields).sort({ qrClosedAt: -1 }));
+  const lesson = lessons.find(item => item.teacher);
+  if (lesson) {
+    return { entry: { lesson, scannedAt: checkIns.get(String(lesson._id)).scannedAt }, waiting: false };
+  }
+  const waiting = await Schedule.exists({ ...schedules, status: { $in: ['pending', 'confirmed', 'scheduled'] } });
+  return { entry: null, waiting: !!waiting };
+}
+
+router.get('/pending', roleCheck(['student']), async (req, res, next) => {
+  const { scheduleId } = req.query;
+  if (scheduleId !== undefined && (typeof scheduleId !== 'string' || !isObjectIdOrHexString(scheduleId))) {
+    return sendResponse(res, 400, false, null, 'รหัสคลาสไม่ถูกต้อง');
+  }
+  const controller = new AbortController();
+  const cancel = () => controller.abort();
+  res.once('close', cancel);
+  const deadline = Date.now() + (req.query.wait === '1' ? 20_000 : 0);
+  try {
+    while (!controller.signal.aborted) {
+      const { entry, waiting } = await findPendingReview(req.user.id, scheduleId);
+      if (controller.signal.aborted) return;
+      const remaining = deadline - Date.now();
+      if (entry || remaining <= 0) return sendStudentReview(res, entry);
+      await wait(waiting ? Math.min(2000, remaining) : remaining, undefined, { signal: controller.signal });
+    }
   } catch (error) {
-    next(error);
+    if (!controller.signal.aborted) next(error);
+  } finally {
+    res.off('close', cancel);
   }
 });
 
