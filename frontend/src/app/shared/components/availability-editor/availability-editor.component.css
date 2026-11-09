@@ -14,6 +14,11 @@ dialog::backdrop { background: oklch(20% .05 260 / .65); }
 .editor-header, .editor-body, .conflict-section, .editor-state, .editor-actions { padding: 14px clamp(12px, 3vw, 24px); }
 .editor-header, .editor-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .editor-header { border-bottom: 1px solid oklch(91% .018 255); }
+.editor-header-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.help-button { display: grid; place-items: center; width: 44px; padding: 0; }
+.editor-help { padding: 12px clamp(12px, 3vw, 24px); background: oklch(96% .018 255); }
+.editor-help ul { margin: 0; padding-inline-start: 20px; }
+.editor-help li + li { margin-top: 4px; }
 .editor-actions { justify-content: flex-end; flex-wrap: wrap; border-top: 1px solid oklch(91% .018 255); }
 .conflict-section .editor-actions { padding-inline: 0; margin-top: 12px; }
 h2, h3, p { margin: 0; }
@@ -47,13 +52,12 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
   height: calc(24 * var(--hour-height));
   position: relative;
   touch-action: none;
+  cursor: crosshair;
   user-select: none;
   -webkit-touch-callout: none;
   border-left: 1px solid oklch(91% .018 255);
   background: repeating-linear-gradient(to bottom, oklch(91% .018 255) 0 1px, transparent 1px var(--hour-height));
 }
-.selection-column.holding { cursor: wait; }
-.selection-column.ready { cursor: ns-resize; }
 .grid-slot { position: absolute; inset-inline: 1px; border-radius: 4px; box-sizing: border-box; pointer-events: none; overflow: hidden; }
 .draft-slot { background: oklch(87% .10 150); }
 .preview-slot { background: oklch(78% .14 150); outline: 1px dashed oklch(44% .12 150); }

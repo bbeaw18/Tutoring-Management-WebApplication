@@ -4,8 +4,28 @@
       <h2 id="availability-title">แจ้งช่วงเวลาว่าง</h2>
       <p *ngIf="dates.length && !loading">{{ dates[0] | date:'d MMM':'UTC':'th' }} ถึง {{ dates[6] | date:'d MMM y':'UTC':'th' }}</p>
     </div>
-    <button type="button" aria-label="ปิดหน้าต่างเวลาว่าง" [disabled]="saving || loading || copying" (click)="close()">ปิด</button>
+    <div class="editor-header-actions">
+      <button type="button" class="help-button" aria-label="คู่มือการเลือกเวลาว่าง" title="คู่มือการเลือกเวลาว่าง"
+        aria-controls="availability-help" [attr.aria-expanded]="showHelp" (click)="showHelp = !showHelp">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4"></path>
+          <path d="M12 16h.01"></path>
+        </svg>
+      </button>
+      <button type="button" aria-label="ปิดหน้าต่างเวลาว่าง" [disabled]="saving || loading || copying" (click)="close()">ปิด</button>
+    </div>
   </header>
+
+  <section id="availability-help" class="editor-help" [hidden]="!showHelp" aria-labelledby="availability-help-title">
+    <h3 id="availability-help-title">วิธีเลือกเวลาว่าง</h3>
+    <ul>
+      <li>คลิกหรือแตะช่องเวลาเพื่อเลือก 1 ชั่วโมง แตะซ้ำเพื่อเอาชั่วโมงนั้นออก</li>
+      <li>กดที่เวลาเริ่มแล้วลากขึ้นหรือลงในวันเดียวกันได้ทันที</li>
+      <li>ถ้าต้องการระบุเวลาให้ละเอียด เลือกวันและเวลาเริ่ม–สิ้นสุด แล้วกด “เพิ่มช่วง”</li>
+      <li>กด “บันทึกเวลาว่าง” หากช่วงที่เลือกทับคลาส ระบบจะแสดงชื่อคลาสให้ตรวจและยืนยัน คลาสจะอยู่ตามเวลาเดิม</li>
+    </ul>
+  </section>
 
   <p class="editor-state" *ngIf="loading" role="status">กำลังโหลดตารางสอนและเวลาว่าง…</p>
   <div class="editor-state" *ngIf="loadFailed" role="alert">
@@ -55,7 +75,7 @@
       </div>
 
       <div class="grid-caption">
-        <p aria-live="polite">{{ holdingReady ? 'ลากเพื่อเลือกเวลาสิ้นสุดได้แล้ว' : 'กดค้าง 2 วินาที แล้วลากเลือกช่วงในวันเดียวกัน' }}</p>
+        <p>คลิกหรือแตะเพื่อเลือกทีละชั่วโมง หรือลากเพื่อเลือกช่วงเวลา</p>
         <span class="draft-key">ช่วงที่เลือก</span>
         <span class="class-key">มีคลาสแล้ว</span>
         <p class="touch-scroll-hint">ปัดที่คอลัมน์ตัวเลขเวลาเพื่อเลื่อนตาราง</p>
@@ -68,9 +88,9 @@
             <span *ngFor="let hour of hours">{{ time(hour * 60) }}</span>
           </div>
           <div class="selection-column" *ngFor="let date of dates; let i = index"
-            [attr.data-day]="i" [class.holding]="holdDay === i" [class.ready]="holdDay === i && holdingReady"
-            (pointerdown)="startHold($event, i)" (pointermove)="moveHold($event)" (pointerup)="finishHold($event)"
-            (pointercancel)="clearHold()" (lostpointercapture)="clearHold()" (contextmenu)="$event.preventDefault()">
+            [attr.data-day]="i"
+            (pointerdown)="startSelection($event, i)" (pointermove)="moveSelection($event)" (pointerup)="finishSelection($event)"
+            (pointercancel)="clearSelection($event)" (lostpointercapture)="clearSelection($event)" (contextmenu)="$event.preventDefault()">
             <ng-container *ngFor="let slot of slots">
               <div *ngIf="slot.day === i" class="grid-slot draft-slot"
                 [style.top.%]="slot.start / 14.4" [style.height.%]="(slot.end - slot.start) / 14.4"></div>

@@ -41,5 +41,7 @@
     (declined)="onDeclineTerms()">
   </app-terms-agreement>
   <app-review-prompt *ngIf="currentUser?.role === 'student' && !termsDoc"></app-review-prompt>
-  <app-availability-editor *ngIf="currentUser?.role === 'teacher' && !termsDoc && (availability.enabled$ | async)"></app-availability-editor>
+  <app-availability-editor
+    *ngIf="(currentUser?.role === 'teacher' || currentUser?.role === 'manager') && !termsDoc && (availability.enabled$ | async)">
+  </app-availability-editor>
 </div>

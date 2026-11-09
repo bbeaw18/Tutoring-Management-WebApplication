@@ -10,10 +10,7 @@ interface Selection {
   pointerId: number;
   day: number;
   anchor: number;
-  x: number;
   y: number;
-  armed: boolean;
-  moved: boolean;
 }
 
 @Component({
@@ -29,7 +26,6 @@ export class AvailabilityEditorComponent implements OnInit, OnDestroy {
   @ViewChild('conflictTitle') private conflictTitle?: ElementRef<HTMLElement>;
   private readonly destroy$ = new Subject<void>();
   private readonly load$ = new Subject<{ week: string; automatic: boolean }>();
-  private holdTimer?: ReturnType<typeof setTimeout>;
   private selection: Selection | null = null;
 
   readonly hours = Array.from({ length: 24 }, (_, hour) => hour);
@@ -45,8 +41,7 @@ export class AvailabilityEditorComponent implements OnInit, OnDestroy {
   busyByDay: { lesson: AvailabilityClass; slot: AvailabilitySlot }[][] = [];
   conflicts: AvailabilityClass[] = [];
   dragPreview: AvailabilitySlot | null = null;
-  holdDay: number | null = null;
-  holdingReady = false;
+  showHelp = false;
   loading = false;
   loadFailed = false;
   saving = false;
@@ -93,6 +88,7 @@ export class AvailabilityEditorComponent implements OnInit, OnDestroy {
     this.error = '';
     this.rangeError = '';
     this.conflicts = [];
+    this.showHelp = false;
     this.showDialog();
     this.load$.next({ week, automatic: false });
   }
@@ -160,48 +156,54 @@ export class AvailabilityEditorComponent implements OnInit, OnDestroy {
     this.slots = this.dates.map((_, day) => ({ day, start: 17 * 60, end: 20 * 60 }));
   }
 
-  startHold(event: PointerEvent, day: number): void {
+  startSelection(event: PointerEvent, day: number): void {
     if (!event.isPrimary || event.button !== 0 || this.selection || this.saving || this.copying) return;
     const column = event.currentTarget as HTMLElement;
     const anchor = this.pointerMinute(event, column);
     column.setPointerCapture(event.pointerId);
-    this.selection = { pointerId: event.pointerId, day, anchor, x: event.clientX, y: event.clientY, armed: false, moved: false };
-    this.holdDay = day;
-    this.holdTimer = setTimeout(() => {
-      if (!this.selection) return;
-      this.selection.armed = true;
-      this.holdingReady = true;
-      this.dragPreview = { day, start: anchor, end: anchor + 30 };
-    }, 2000);
+    this.selection = { pointerId: event.pointerId, day, anchor, y: event.clientY };
   }
 
-  moveHold(event: PointerEvent): void {
+  moveSelection(event: PointerEvent): void {
     const selection = this.selection;
     if (!selection || selection.pointerId !== event.pointerId) return;
-    const moved = Math.hypot(event.clientX - selection.x, event.clientY - selection.y) > 7;
-    if (!selection.armed) {
-      if (moved) this.clearHold();
-      return;
-    }
-    if (!moved && !selection.moved) return;
-    selection.moved = true;
+    if (!this.dragPreview && Math.abs(event.clientY - selection.y) < 5) return;
     const minute = this.pointerMinute(event, event.currentTarget as HTMLElement);
     this.dragPreview = { day: selection.day, start: Math.min(selection.anchor, minute), end: Math.max(selection.anchor, minute) + 30 };
   }
 
-  finishHold(event: PointerEvent): void {
-    if (this.selection?.pointerId !== event.pointerId) return;
-    this.moveHold(event);
-    if (this.selection?.moved && this.dragPreview) this.addSlot(this.dragPreview);
-    this.clearHold();
+  finishSelection(event: PointerEvent): void {
+    const selection = this.selection;
+    if (!selection || selection.pointerId !== event.pointerId) return;
+    this.moveSelection(event);
+    if (this.dragPreview) {
+      this.addSlot(this.dragPreview);
+    } else {
+      this.toggleHour(selection.day, Math.floor(selection.anchor / 60) * 60);
+    }
+    this.clearSelection();
   }
 
-  clearHold(): void {
-    clearTimeout(this.holdTimer);
+  clearSelection(event?: PointerEvent): void {
+    if (event && this.selection?.pointerId !== event.pointerId) return;
     this.selection = null;
-    this.holdDay = null;
-    this.holdingReady = false;
     this.dragPreview = null;
+  }
+
+  private toggleHour(day: number, start: number): void {
+    const end = start + 60;
+    const selected = this.slots.find(slot => slot.day === day && slot.start <= start && slot.end >= end);
+    if (!selected) {
+      this.addSlot({ day, start, end });
+      return;
+    }
+    this.slots = this.slots.flatMap(slot => {
+      if (slot !== selected) return [slot];
+      const remaining: AvailabilitySlot[] = [];
+      if (slot.start < start) remaining.push({ day, start: slot.start, end: start });
+      if (slot.end > end) remaining.push({ day, start: end, end: slot.end });
+      return remaining;
+    });
   }
 
   private pointerMinute(event: PointerEvent, column: HTMLElement): number {
@@ -212,7 +214,7 @@ export class AvailabilityEditorComponent implements OnInit, OnDestroy {
 
   save(confirmed = false): void {
     if (this.saving || this.copying || this.loading || this.loadFailed) return;
-    this.clearHold();
+    this.clearSelection();
     this.saving = true;
     this.error = '';
     const keys = confirmed ? this.conflicts.map(lesson => lesson.key) : [];
@@ -246,14 +248,15 @@ export class AvailabilityEditorComponent implements OnInit, OnDestroy {
   close(event?: Event): void {
     event?.preventDefault();
     if (this.saving || this.loading || this.copying) return;
-    this.clearHold();
+    this.clearSelection();
+    this.showHelp = false;
     this.conflicts = [];
     this.error = '';
     this.dialog.nativeElement.close();
   }
 
   ngOnDestroy(): void {
-    this.clearHold();
+    this.clearSelection();
     this.destroy$.next();
     this.destroy$.complete();
   }

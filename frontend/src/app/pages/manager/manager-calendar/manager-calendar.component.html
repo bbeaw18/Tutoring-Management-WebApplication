@@ -35,6 +35,7 @@
               (ngModelChange)="selectedTeacherId = $event; onTeacherFilterChange()"
               class="filter-select">
         <option value="">— เลือกครู —</option>
+        <option *ngIf="availabilityOwnerId" [value]="availabilityOwnerId">ตารางสอนของฉัน</option>
         <option *ngFor="let t of teachers" [value]="t._id">{{ t | displayName:'teacher' }} [{{ t._displayRole }}]</option>
       </select>
     </div>
@@ -74,6 +75,8 @@
       <span class="cal-title">{{ monthNames[currentMonth - 1] }} {{ currentYear + 543 }}</span>
       <button class="nav-btn" (click)="nextMonth()">›</button>
     </div>
+    <button *ngIf="availabilityEnabled && availabilityOwnerId && viewMode === 'weekly'" type="button"
+      class="btn btn-secondary" (click)="editOwnAvailability()">แจ้ง / แก้ไขเวลาว่างของฉัน</button>
   </div>
 
   <!-- Skeleton placeholder while loading calendar -->
@@ -167,7 +170,8 @@
        WEEKLY VIEW — Google Calendar Style
   ═══════════════════════════════════════════════════════════ -->
   <ng-container *ngIf="viewMode === 'weekly' && filterMode === 'teacher' && selectedTeacherId">
-    <app-availability-summary *ngIf="availabilityWeek as availability" [data]="availability" [weekStart]="weekStart" heading="เวลาว่างครูสัปดาห์นี้"></app-availability-summary>
+    <app-availability-summary *ngIf="availabilityWeek as availability" [data]="availability" [weekStart]="weekStart"
+      [heading]="selectedTeacherId === availabilityOwnerId ? 'เวลาว่างของฉันสัปดาห์นี้' : 'เวลาว่างครูสัปดาห์นี้'"></app-availability-summary>
     <p *ngIf="availabilityError" role="alert">โหลดเวลาว่างครูไม่สำเร็จ <button type="button" class="btn btn-secondary" (click)="loadAvailability()">ลองอีกครั้ง</button></p>
   </ng-container>
   <div *ngIf="!loading && viewMode === 'weekly'" class="gcal-wrapper">

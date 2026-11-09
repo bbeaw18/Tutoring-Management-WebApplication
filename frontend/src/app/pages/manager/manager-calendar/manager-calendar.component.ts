@@ -128,6 +128,11 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
     return this.currentUser?.role === 'admin';
   }
 
+  get availabilityOwnerId(): string | undefined {
+    if (this.currentUser?.role !== 'manager') return undefined;
+    return this.currentUser._id || this.currentUser.id;
+  }
+
   /** สถานะสุดท้าย — จบ/ยกเลิก/นักเรียนขาด → ไม่มี action ต่อได้ */
   isFinalStatus(s: any): boolean {
     return ['completed', 'cancelled', 'absent'].includes(s?.status);
@@ -160,6 +165,14 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
     this.availability.enabled$.pipe(takeUntil(this.destroy$)).subscribe(enabled => {
       this.availabilityEnabled = enabled;
       if (enabled && this.viewMode === 'weekly') this.loadAvailability();
+    });
+    this.availability.saved$.pipe(takeUntil(this.destroy$)).subscribe(({ week, data }) => {
+      if (this.viewMode === 'weekly' && this.filterMode === 'teacher' &&
+          this.selectedTeacherId === this.availabilityOwnerId && week === this.toLocalDateStr(this.weekStart)) {
+        this.availabilityRequest++;
+        this.availabilityError = false;
+        this.availabilityWeek = data;
+      }
     });
     document.addEventListener('visibilitychange', this.onAvailabilityVisibility);
   }
@@ -194,7 +207,7 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
       loaded++;
       if (loaded === 2) {
         this.teachers = [
-          ...managerList.map(u => ({ ...u, _displayRole: 'ผู้จัดการ' })),
+          ...managerList.filter(u => u._id !== this.availabilityOwnerId).map(u => ({ ...u, _displayRole: 'ผู้จัดการ' })),
           ...teacherList.map(u => ({ ...u, _displayRole: 'ครู' }))
         ];
       }
@@ -241,6 +254,7 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
 
   getFilterLabel(): string {
     if (this.filterMode === 'teacher' && this.selectedTeacherId) {
+      if (this.selectedTeacherId === this.availabilityOwnerId) return 'ตารางสอนของฉัน';
       const t = this.teachers.find(x => x._id === this.selectedTeacherId);
       if (t) {
         const nick = this.aliasService.getAlias(t._id) || t.nickname || `${t.firstName} ${t.lastName}`;
@@ -337,6 +351,10 @@ export class ManagerCalendarComponent implements OnInit, OnDestroy, DoCheck {
         next: data => { if (request === this.availabilityRequest) this.availabilityWeek = data; },
         error: () => { if (request === this.availabilityRequest) this.availabilityError = true; }
       });
+  }
+
+  editOwnAvailability(): void {
+    this.availability.edit(this.toLocalDateStr(this.weekStart));
   }
 
   // ─── Overlap layout: column split, collapse extras into "+N" ──────────────

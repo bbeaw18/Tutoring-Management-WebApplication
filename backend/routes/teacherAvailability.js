@@ -2,6 +2,7 @@ const express = require('express');
 const { isObjectIdOrHexString } = require('mongoose');
 const Schedule = require('../models/Schedule');
 const TeacherAvailability = require('../models/TeacherAvailability');
+const User = require('../models/User');
 const { authenticateToken } = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
 const { sendResponse } = require('../utils/helpers');
@@ -111,7 +112,9 @@ function weekData(record, classes) {
 
 router.get('/:weekStart', roleCheck(['teacher', 'manager', 'admin']), async (req, res, next) => {
   try {
-    const teacher = req.user.role === 'teacher' ? req.user.id : req.query.teacherId;
+    const { id, role } = req.user;
+    const teacher = role === 'teacher' || (role === 'manager' && req.query.teacherId === undefined)
+      ? id : req.query.teacherId;
     if (!isObjectIdOrHexString(teacher)) return sendResponse(res, 400, false, null, 'กรุณาเลือกครูผู้สอน');
     const [record, classes] = await Promise.all([
       TeacherAvailability.findOne({ teacher, weekStart: req.params.weekStart }).lean(),
@@ -123,11 +126,14 @@ router.get('/:weekStart', roleCheck(['teacher', 'manager', 'admin']), async (req
   }
 });
 
-router.put('/:weekStart', roleCheck(['teacher']), async (req, res, next) => {
+router.put('/:weekStart', roleCheck(['teacher', 'manager']), async (req, res, next) => {
   try {
     const slots = normalizeSlots(req.body?.slots);
     if (!slots) return sendResponse(res, 400, false, null, 'กรุณาตรวจสอบวันและช่วงเวลา');
     const teacher = req.user.id;
+    if (!isObjectIdOrHexString(teacher) || !await User.exists({ _id: teacher, role: req.user.role, isActive: true })) {
+      return sendResponse(res, 401, false, null, 'บัญชีหรือสิทธิ์มีการเปลี่ยนแปลง กรุณาเข้าสู่ระบบใหม่');
+    }
     const classes = await getClasses(teacher, req.availabilityWeek);
     const conflicts = classes.filter(lesson => lesson.blocks.some(busy =>
       slots.some(slot => slot.day === busy.day && slot.start < busy.end && busy.start < slot.end)));
