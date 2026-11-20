@@ -1,4 +1,5 @@
 dialog {
+  margin: auto;
   width: min(860px, calc(100% - 20px));
   max-height: calc(100dvh - 20px);
   box-sizing: border-box;
@@ -29,8 +30,8 @@ button, select, input { font: inherit; color: inherit; min-height: 44px; padding
 button { cursor: pointer; }
 button:hover:not(:disabled) { background: oklch(95% .025 255); }
 button:disabled { opacity: .55; cursor: default; }
-button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--brand-navy); outline-offset: 2px; }
-.primary, .primary:hover:not(:disabled) { background: var(--brand-navy); color: oklch(99% .005 255); border-color: var(--brand-navy); font-weight: 600; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.primary, .primary:hover:not(:disabled) { background: var(--primary); color: oklch(99% .005 255); border-color: var(--primary); font-weight: 600; }
 .editor-tools { margin-bottom: 14px; }
 .range-form { display: grid; grid-template-columns: max-content max-content max-content auto; align-items: start; justify-content: start; gap: 4px 8px; }
 .range-form label { font-weight: 600; font-size: var(--text-sm, .875rem); }
@@ -44,9 +45,11 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
 .draft-key::before { background: oklch(87% .10 150); }
 .class-key::before { background: oklch(88% .07 250); }
 .grid-scroll { max-height: min(42dvh, 380px); overflow: auto; border: 1px solid oklch(90% .02 255); border-radius: 9px; margin-bottom: 12px; }
-.grid-scroll:focus-visible { outline: 2px solid var(--brand-navy); outline-offset: 2px; }
-.availability-grid { --hour-height: 27px; display: grid; grid-template-columns: minmax(38px, 50px) repeat(7, minmax(0, 1fr)); }
+.grid-scroll:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.availability-grid { --hour-height: 27px; min-width: 498px; display: grid; grid-template-columns: 50px repeat(7, minmax(64px, 1fr)); }
 .grid-head { position: sticky; z-index: 3; top: 0; padding: 5px 1px; text-align: center; font-weight: 600; font-size: .75rem; background: oklch(96% .018 255); }
+.grid-head:first-child { left: 0; z-index: 4; }
+.time-column { position: sticky; left: 0; z-index: 2; background: oklch(96% .018 255); }
 .time-column span { display: block; height: var(--hour-height); text-align: right; padding: 0 4px; font-size: .68rem; color: #475569; }
 .selection-column {
   height: calc(24 * var(--hour-height));
@@ -67,12 +70,16 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
 .range-list li div span { display: block; }
 .error { color: #a02132; margin-top: 6px; }
 @media (max-width: 530px) {
-  .range-form { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .range-form input, .range-form select { padding-inline: 4px; font-size: .85rem; }
-  .range-form button { grid-row: 3; grid-column: 1 / -1; justify-self: start; }
-  .availability-grid { --hour-height: 24px; }
-  .grid-head { font-size: .67rem; }
+  .range-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .range-form label:first-child { grid-column: 1 / -1; }
+  .range-form select { grid-row: 2; grid-column: 1 / -1; }
+  .range-form label:nth-child(2), .range-form label:nth-child(3) { grid-row: 3; }
+  .range-form input { grid-row: 4; }
+  .range-form input, .range-form select { padding-inline: 4px; font-size: 1rem; }
+  .range-form button { grid-row: 5; grid-column: 1 / -1; justify-self: start; }
 }
-@media (pointer: coarse) {
+@media (max-width: 530px), (pointer: coarse) {
+  .availability-grid { --hour-height: 44px; }
+  .grid-head { min-height: 44px; display: grid; place-items: center; }
   .touch-scroll-hint { display: block; flex-basis: 100%; }
 }
