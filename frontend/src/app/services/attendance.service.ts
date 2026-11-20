@@ -5,6 +5,17 @@ import { map } from 'rxjs/operators';
 import { environment } from '@environments/environment';
 import { IApiResponse } from '../interfaces/api-response.interface';
 import { IAttendanceRecord } from '../interfaces/schedule.interface';
+import { StudentReview } from './review.service';
+
+export interface QrReviewPreview extends StudentReview {
+  checkedIn: boolean;
+}
+
+export interface QrAttendanceResult {
+  scannedAt: string;
+  courseName: string;
+  reviewSubmitted: boolean;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -15,8 +26,14 @@ export class AttendanceService {
   constructor(private http: HttpClient) {}
 
   // นักเรียนสแกน QR
-  scanQR(scheduleId: string, token: string): Observable<any> {
-    return this.http.post<IApiResponse<any>>(`${this.apiUrl}/scan`, { scheduleId, token }).pipe(
+  previewQR(scheduleId: string, token: string): Observable<QrReviewPreview> {
+    return this.http.post<IApiResponse<QrReviewPreview>>(`${this.apiUrl}/scan/preview`, { scheduleId, token }).pipe(
+      map(res => res.data)
+    );
+  }
+
+  scanQR(scheduleId: string, token: string, rating: number, comment: string): Observable<QrAttendanceResult> {
+    return this.http.post<IApiResponse<QrAttendanceResult>>(`${this.apiUrl}/scan`, { scheduleId, token, rating, comment }).pipe(
       map(res => res.data)
     );
   }

@@ -1,19 +1,20 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { Subject } from 'rxjs';
+import { Subject, switchMap, map, of, catchError } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { AttendanceService } from '../../../services/attendance.service';
+import { AttendanceService, QrAttendanceResult } from '../../../services/attendance.service';
 import { AuthService } from '../../../services/auth.service';
 import { ReviewPromptComponent } from '../../../shared/components/review-prompt/review-prompt.component';
+import { StudentReview } from '../../../services/review.service';
 
 @Component({
   selector: 'app-scan',
   standalone: true,
   imports: [CommonModule, RouterModule, ReviewPromptComponent],
   template: `
-    <app-review-prompt *ngIf="reviewScheduleId && (status === 'success' || status === 'duplicate')"
-      [scheduleId]="reviewScheduleId"></app-review-prompt>
+    <app-review-prompt *ngIf="pendingCheckIn" [checkIn]="pendingCheckIn"
+      (checkedIn)="onCheckedIn($event)" (closed)="closeReview()"></app-review-prompt>
     <div class="scan-page" [attr.data-status]="status">
 
       <!-- Animated background orbs -->
@@ -38,7 +39,7 @@ import { ReviewPromptComponent } from '../../../shared/components/review-prompt/
           </div>
           <div class="scan-status-pill" [attr.data-status]="status">
             <span class="pill-dot"></span>
-            <span *ngIf="status === 'loading'">กำลังตรวจสอบ</span>
+            <span *ngIf="status === 'loading' || status === 'review'">กำลังตรวจสอบ</span>
             <span *ngIf="status === 'success'">สำเร็จ</span>
             <span *ngIf="status === 'duplicate'">ซ้ำ</span>
             <span *ngIf="status === 'error'">ผิดพลาด</span>
@@ -65,6 +66,10 @@ import { ReviewPromptComponent } from '../../../shared/components/review-prompt/
         </div>
 
         <!-- Success state -->
+        <div *ngIf="status === 'review'" class="status-box">
+          <h2>รีวิวและยืนยันเข้าเรียน</h2>
+          <p>ให้คะแนนครูแล้วกดส่งรีวิวและยืนยันเข้าเรียน</p>
+        </div>
         <div *ngIf="status === 'success'" class="status-box success">
           <div class="scan-success-burst">
             <div class="burst-circle"></div>
@@ -501,13 +506,13 @@ import { ReviewPromptComponent } from '../../../shared/components/review-prompt/
   `]
 })
 export class ScanComponent implements OnInit, OnDestroy {
-  status: 'loading' | 'success' | 'duplicate' | 'error' | 'invalid' = 'loading';
+  status: 'loading' | 'review' | 'success' | 'duplicate' | 'error' | 'invalid' = 'loading';
   studentName = '';
   courseName = '';
   scannedAt: Date | null = null;
   errorMessage = '';
   dashboardPath = '/dashboard';
-  reviewScheduleId?: string;
+  pendingCheckIn: { entry: StudentReview; token: string } | null = null;
 
   private destroy$ = new Subject<void>();
 
@@ -530,18 +535,37 @@ export class ScanComponent implements OnInit, OnDestroy {
       this.dashboardPath = roleMap[user.role] || '/dashboard';
     }
 
+
     this.route.queryParams.pipe(
+      switchMap(params => {
+        const scheduleId = params['scheduleId'];
+        const token = params['token'];
+        this.pendingCheckIn = null;
+        this.status = 'loading';
+        if (!scheduleId || !token) return of({ kind: 'invalid' as const });
+        return this.attendanceService.previewQR(scheduleId, token).pipe(
+          map(preview => ({ kind: 'preview' as const, preview, token })),
+          catchError(error => of({ kind: 'error' as const, error }))
+        );
+      }),
       takeUntil(this.destroy$)
-    ).subscribe(params => {
-      const scheduleId = params['scheduleId'];
-      const token = params['token'];
-
-      if (!scheduleId || !token) {
+    ).subscribe(result => {
+      if (result.kind === 'invalid') {
         this.status = 'invalid';
-        return;
+      } else if (result.kind === 'error') {
+        this.status = 'error';
+        this.errorMessage = result.error.error?.message || 'ตรวจสอบ QR ไม่สำเร็จ กรุณาลองอีกครั้ง';
+      } else {
+        const { preview, token } = result;
+        this.courseName = preview.lesson.course?.name || '';
+        this.studentName = user?.nickname || `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
+        if (preview.checkedIn && preview.submitted) {
+          this.status = 'duplicate';
+        } else {
+          this.status = 'review';
+          this.pendingCheckIn = { entry: { ...preview, submitted: false }, token };
+        }
       }
-
-      this.submitScan(scheduleId, token);
     });
   }
 
@@ -550,28 +574,15 @@ export class ScanComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  submitScan(scheduleId: string, token: string): void {
-    this.status = 'loading';
-    this.reviewScheduleId = this.authService.getCurrentUser()?.role === 'student' ? scheduleId : undefined;
 
-    this.attendanceService.scanQR(scheduleId, token).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        this.status = 'success';
-        this.studentName = (res.student as any)?.nickname || `${res.student?.firstName} ${res.student?.lastName}`;
-        this.courseName = res.courseName || '';
-        this.scannedAt = new Date();
-      },
-      error: (err) => {
-        const statusCode = err.status;
-        const msg = err.error?.message || '';
+  onCheckedIn(result: QrAttendanceResult): void {
+    this.status = 'success';
+    this.courseName = result.courseName || '';
+    this.scannedAt = new Date(result.scannedAt);
+  }
 
-        if (statusCode === 409 || msg.toLowerCase().includes('already')) {
-          this.status = 'duplicate';
-        } else {
-          this.status = 'error';
-          this.errorMessage = msg || 'เกิดข้อผิดพลาดในการเช็คชื่อ';
-        }
-      }
-    });
+  closeReview(): void {
+    this.pendingCheckIn = null;
+    if (this.status !== 'success') this.router.navigateByUrl(this.dashboardPath);
   }
 }

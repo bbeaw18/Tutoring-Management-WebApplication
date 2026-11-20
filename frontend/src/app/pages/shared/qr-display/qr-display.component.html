@@ -74,6 +74,8 @@
           <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20v1"/></svg>
         </div>
         <p>กด "เปิด QR เช็คชื่อ" เพื่อเริ่มต้น</p>
+        <p>เปิดและสแกน QR ได้ตั้งแต่ 30 นาทีก่อนจบ ถึง 30 นาทีหลังจบคาบ</p>
+        <p *ngIf="schedule">{{ qrWindowLabel }}</p>
       </div>
 
       <div class="qr-error" *ngIf="error">{{ error }}</div>

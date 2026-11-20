@@ -25,7 +25,7 @@ interface ReviewLesson {
 
 export interface StudentReview {
   lesson: ReviewLesson;
-  scannedAt: string;
+  scannedAt: string | null;
   submitted?: boolean;
 }
 

@@ -3,7 +3,7 @@
     <section class="review-done" *ngIf="done; else formView">
       <span class="done-icon" aria-hidden="true">✓</span>
       <h2 id="review-title">ขอบคุณสำหรับรีวิว</h2>
-      <p>แอดมินได้รับรีวิวของน้องแล้วค่ะ</p>
+      <p>{{ checkIn ? 'ส่งรีวิวและยืนยันเข้าเรียนเรียบร้อยแล้วค่ะ' : 'แอดมินได้รับรีวิวของน้องแล้วค่ะ' }}</p>
       <button #doneButton type="button" class="review-primary" (click)="dismiss()">ปิดหน้าต่าง</button>
     </section>
 
@@ -11,8 +11,8 @@
       <form [formGroup]="form" (ngSubmit)="submit()">
         <header>
           <div class="review-badges">
-            <span>✓ คลาสจบแล้ว</span>
-            <span>เช็กชื่อเมื่อ {{ review.scannedAt | date:'HH:mm':'+0700' }} น.</span>
+            <span>{{ checkIn ? 'รีวิวและยืนยันเข้าเรียน' : '✓ คลาสจบแล้ว' }}</span>
+            <span *ngIf="review.scannedAt">เช็กชื่อเมื่อ {{ review.scannedAt | date:'HH:mm':'+0700' }} น.</span>
           </div>
           <h2 id="review-title">ให้คะแนนครูผู้สอน</h2>
           <p>คลาสวันนี้เป็นอย่างไรบ้าง?</p>
@@ -51,10 +51,10 @@
 
         <p *ngIf="error" class="review-error" role="alert">{{ error }}</p>
         <footer>
-          <small>กลับมาให้คะแนนภายหลังได้จากหน้า “ประวัติการเรียน”</small>
+          <small>{{ checkIn ? 'การเข้าเรียนจะถูกบันทึกเมื่อกดส่งรีวิวและยืนยันเข้าเรียน' : 'กลับมาให้คะแนนภายหลังได้จากหน้า “ประวัติการเรียน”' }}</small>
           <div class="review-actions">
-            <button type="button" class="review-secondary" [disabled]="busy" (click)="dismiss()">ไว้ทีหลัง</button>
-            <button type="submit" class="review-primary" [disabled]="busy || form.invalid">ส่งรีวิว</button>
+            <button type="button" class="review-secondary" [disabled]="busy" (click)="dismiss()">{{ checkIn ? 'ยกเลิก' : 'ไว้ทีหลัง' }}</button>
+            <button type="submit" class="review-primary" [disabled]="busy || form.invalid">{{ checkIn ? 'ส่งรีวิวและยืนยันเข้าเรียน' : 'ส่งรีวิว' }}</button>
           </div>
         </footer>
       </form>

@@ -6,6 +6,7 @@ const Enrollment = require('../models/Enrollment');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 const Attendance = require('../models/Attendance');
+const { qrWindow } = require('../utils/qrWindow');
 const Payment = require('../models/Payment');
 const { authenticateToken } = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
@@ -561,7 +562,7 @@ router.post('/:id/generate-qr', authenticateToken, async (req, res) => {
     }
 
     // ── ตรวจ status: เปิด QR ได้เฉพาะคลาสที่ยังไม่จบ ──
-    if (schedule.status === 'completed') {
+    if (['completed', 'absent'].includes(schedule.status)) {
       return sendResponse(res, 400, false, null, 'คลาสนี้เสร็จสิ้นแล้ว ไม่สามารถเปิด QR ได้');
     }
     if (schedule.status === 'cancelled') {
@@ -575,23 +576,13 @@ router.post('/:id/generate-qr', authenticateToken, async (req, res) => {
       return sendResponse(res, 400, false, null, 'กรุณายืนยันรับสอนคลาสนี้ก่อนเปิด QR');
     }
 
-    // ── ตรวจสอบหน้าต่างเวลา (Bangkok UTC+7): เปิด QR ได้เฉพาะในช่วงเวลาคลาส + 30 นาที ──
     const now = new Date();
-    const classStart  = bangkokClassTime(schedule.date, schedule.startTime);
-    let   classEnd    = bangkokClassTime(schedule.date, schedule.endTime);
-    // คลาสข้ามเที่ยงคืน (เช่น 23:00–00:00) → endTime ตกไปวันถัดไป
-    if (classEnd <= classStart) {
-      classEnd = new Date(classEnd.getTime() + 24 * 60 * 60 * 1000);
-    }
-    const scanDeadline = new Date(classEnd.getTime() + 30 * 60 * 1000);
-
-    if (now < classStart) {
-      return sendResponse(res, 400, false, null,
-        `ยังไม่ถึงเวลาเรียน เปิด QR ได้ตั้งแต่ ${schedule.startTime} น.`);
+    const { opensAt, closesAt: scanDeadline } = qrWindow(schedule);
+    if (now < opensAt) {
+      return sendResponse(res, 400, false, null, 'เปิด QR ได้ตั้งแต่ 30 นาทีก่อนจบคาบเรียน');
     }
     if (now > scanDeadline) {
-      return sendResponse(res, 400, false, null,
-        `หมดเวลาเปิด QR แล้ว (เปิดได้ถึง ${schedule.endTime} น. + 30 นาที)`);
+      return sendResponse(res, 400, false, null, 'หมดเวลาเปิด QR แล้ว เปิดได้ถึง 30 นาทีหลังจบคาบเรียน');
     }
 
     // สร้าง token ใหม่ + กำหนด expire ตรงกับสิ้นสุดหน้าต่างเวลา (endTime + 30 นาที)

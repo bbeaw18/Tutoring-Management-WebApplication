@@ -1,9 +1,10 @@
-import { ChangeDetectorRef, Component, ElementRef, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Subject, catchError, exhaustMap, filter, ignoreElements, takeUntil, timer } from 'rxjs';
+import { Observable, Subject, catchError, exhaustMap, filter, ignoreElements, map, takeUntil, timer } from 'rxjs';
 import { ReviewService, StudentReview } from '../../../services/review.service';
 import { DisplayNamePipe } from '../../pipes/display-name.pipe';
+import { AttendanceService, QrAttendanceResult } from '../../../services/attendance.service';
 
 @Component({
   selector: 'app-review-prompt',
@@ -14,6 +15,9 @@ import { DisplayNamePipe } from '../../pipes/display-name.pipe';
 })
 export class ReviewPromptComponent implements OnInit, OnDestroy {
   @Input() scheduleId?: string;
+  @Input() checkIn?: { entry: StudentReview; token: string };
+  @Output() checkedIn = new EventEmitter<QrAttendanceResult>();
+  @Output() closed = new EventEmitter<void>();
   @ViewChild('dialog', { static: true }) private dialog!: ElementRef<HTMLDialogElement>;
   @ViewChild('doneButton') private doneButton?: ElementRef<HTMLButtonElement>;
   private readonly destroy$ = new Subject<void>();
@@ -31,9 +35,14 @@ export class ReviewPromptComponent implements OnInit, OnDestroy {
   done = false;
   error = '';
 
-  constructor(private reviews: ReviewService, private changeDetector: ChangeDetectorRef) {}
+  constructor(private reviews: ReviewService, private changeDetector: ChangeDetectorRef,
+    private attendance: AttendanceService) {}
 
   ngOnInit(): void {
+    if (this.checkIn) {
+      this.open(this.checkIn.entry, false);
+      return;
+    }
     this.reviews.reviewRequested$.pipe(takeUntil(this.destroy$)).subscribe(entry => this.open(entry, false));
     timer(0, 1000).pipe(
       filter(() => !this.entry && !document.hidden && (!this.scheduleId || !this.handled.has(this.scheduleId))),
@@ -63,14 +72,22 @@ export class ReviewPromptComponent implements OnInit, OnDestroy {
     const { rating, comment } = this.form.getRawValue();
     this.busy = true;
     this.error = '';
-    this.reviews.submit(id, rating, comment).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => this.showThanks(id),
+    const request: Observable<QrAttendanceResult | undefined> = this.checkIn
+      ? this.attendance.scanQR(id, this.checkIn.token, rating, comment)
+      : this.reviews.submit(id, rating, comment).pipe(map(() => undefined));
+    request.pipe(takeUntil(this.destroy$)).subscribe({
+      next: result => {
+        if (result && this.checkIn) this.checkedIn.emit(result);
+        this.showThanks(id);
+      },
       error: err => {
-        if (err.status === 409) {
+        if (err.status === 409 && !this.checkIn) {
           this.showThanks(id);
         } else {
           this.busy = false;
-          this.error = err.status === 403
+          this.error = this.checkIn
+            ? err.error?.message || 'ส่งรีวิวและยืนยันเข้าเรียนไม่สำเร็จ กรุณาลองอีกครั้ง'
+            : err.status === 403
             ? 'คลาสนี้ไม่เปิดให้ส่งรีวิวแล้ว'
             : 'ส่งรีวิวไม่สำเร็จ กรุณาลองอีกครั้ง';
         }
@@ -112,6 +129,7 @@ export class ReviewPromptComponent implements OnInit, OnDestroy {
   private close(): void {
     this.dialog.nativeElement.close();
     this.entry = null;
+    this.closed.emit();
   }
 
   ngOnDestroy(): void {

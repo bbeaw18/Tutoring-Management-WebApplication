@@ -342,26 +342,26 @@
                 <span class="cb2-hint">คิดต่อชั่วโมง × ระยะเวลาคลาส</span>
               </div>
               <div class="cb2-grp cb2-price">
-                <label class="cb2-label">ค่าเรียน (นักเรียนจ่าย)</label>
+                <label class="cb2-label">ค่าเรียนต่อคน</label>
                 <div class="cb2-money-wrap">
                   <span class="cb2-cur">฿</span>
                   <input type="number" inputmode="numeric" formControlName="coursePrice" class="cb2-input" min="0" placeholder="0" (wheel)="$event.preventDefault()"/>
-                  <span class="cb2-suf">/ ชม.</span>
+                  <span class="cb2-suf">/ คน / ชม.</span>
                 </div>
-                <span class="cb2-hint">ค่าเรียนจริง = อัตรา × ชั่วโมงคลาส</span>
+                <span class="cb2-hint">ค่าเรียนต่อคน = อัตราต่อคน × ชั่วโมงคลาส</span>
               </div>
             </div>
 
             <!-- ค่าเรียน (สำหรับโหมดกลุ่ม — full width) -->
             <div class="cb2-row" *ngIf="bookingForm.get('type')?.value === 'group'" style="margin-top:var(--sp-4)">
               <div class="cb2-grp cb2-price">
-                <label class="cb2-label">ค่าเรียน (นักเรียนจ่าย)</label>
+                <label class="cb2-label">ค่าเรียนต่อคน</label>
                 <div class="cb2-money-wrap">
                   <span class="cb2-cur">฿</span>
                   <input type="number" inputmode="numeric" formControlName="coursePrice" class="cb2-input" min="0" placeholder="0" (wheel)="$event.preventDefault()"/>
-                  <span class="cb2-suf">/ ชม.</span>
+                  <span class="cb2-suf">/ คน / ชม.</span>
                 </div>
-                <span class="cb2-hint">ค่าเรียนจริง = อัตรา × ชั่วโมงคลาส</span>
+                <span class="cb2-hint">ค่าเรียนต่อคน = อัตราต่อคน × ชั่วโมงคลาส</span>
               </div>
             </div>
 
@@ -379,8 +379,9 @@
                 </div>
                 <div class="cb2-mp-div"></div>
                 <div class="cb2-mp-stat cb2-mp-student">
-                  <span class="cb2-mp-label">นักเรียนจะจ่าย</span>
+                  <span class="cb2-mp-label">นักเรียนจ่ายต่อคน</span>
                   <span class="cb2-mp-value">฿{{ coursePriceTotal | number }}</span>
+                  <span class="cb2-mp-formula">รวม {{ selectedStudentIds.length }} คน ฿{{ coursePriceTotal * selectedStudentIds.length | number }}</span>
                   <span class="cb2-mp-formula">฿{{ coursePriceRate | number }} × {{ classDurationHours | number:'1.0-2' }} ชม.</span>
                 </div>
               </div>
@@ -448,7 +449,7 @@
                 <span class="cb2-rm-val">฿{{ teacherIncomeTotal | number }}</span>
               </div>
               <div class="cb2-rm-row student">
-                <span class="cb2-rm-lb">นักเรียนจะจ่าย</span>
+                <span class="cb2-rm-lb">นักเรียนจ่ายต่อคน</span>
                 <span class="cb2-rm-val">฿{{ coursePriceTotal | number }}</span>
               </div>
             </div>

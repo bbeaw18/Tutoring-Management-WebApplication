@@ -47,6 +47,18 @@ export class QrDisplayComponent implements OnInit, OnDestroy {
 
   private pollInterval: any = null;
 
+  get qrWindowLabel(): string {
+    if (!this.schedule) return '';
+    const date = new Date(new Date(this.schedule.date).getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const start = new Date(`${date}T${this.schedule.startTime}:00+07:00`);
+    let end = new Date(`${date}T${this.schedule.endTime}:00+07:00`);
+    if (end <= start) end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
+    const format = (time: number) => new Date(time).toLocaleString('th-TH', {
+      timeZone: 'Asia/Bangkok', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+    });
+    return `${format(end.getTime() - 30 * 60_000)} ถึง ${format(end.getTime() + 30 * 60_000)} น.`;
+  }
+
   constructor(
     private route: ActivatedRoute,
     private scheduleService: ScheduleService,

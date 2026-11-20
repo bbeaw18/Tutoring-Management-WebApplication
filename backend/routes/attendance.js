@@ -4,6 +4,8 @@ const Attendance = require('../models/Attendance');
 const Schedule = require('../models/Schedule');
 const User = require('../models/User');
 const Payment = require('../models/Payment');
+const Review = require('../models/Review');
+const { validateQr, confirmQrCheckIn } = require('../services/qrCheckInService');
 const { authenticateToken } = require('../middleware/auth');
 const { roleCheck } = require('../middleware/roleCheck');
 const { sendResponse } = require('../utils/helpers');
@@ -15,96 +17,38 @@ const {
   SCHEDULE_STUDENT_FIELDS
 } = require('../utils/scheduleAggregation');
 
-// Bangkok UTC+7 helper
-function bangkokClassTime(scheduleDate, timeStr) {
-  const d = new Date(scheduleDate);
-  const dateStr = new Date(d.getTime() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
-  return new Date(`${dateStr}T${timeStr}:00+07:00`);
-}
 
-// ────────────────────────────────────────────────────────────────────────────
-// POST /scan — นักเรียนสแกน QR เพื่อเช็คชื่อ
-// Body: { scheduleId, token }
-// ────────────────────────────────────────────────────────────────────────────
-router.post('/scan', authenticateToken, roleCheck(['student']), async (req, res) => {
+router.post('/scan/preview', authenticateToken, roleCheck(['student']), async (req, res, next) => {
   try {
-    const { scheduleId, token } = req.body;
-
-    if (!scheduleId || !token) {
-      return sendResponse(res, 400, false, null, 'scheduleId and token required');
-    }
-
-    const schedule = await Schedule.findById(scheduleId)
-      .populate('course', 'name')
-      .populate('teacher', 'firstName lastName nickname');
-
-    if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
-
-    // ตรวจสอบว่า QR active
-    if (!schedule.qrActive) {
-      return sendResponse(res, 400, false, null, 'QR code is not active');
-    }
-
-    // ตรวจสอบ token
-    if (schedule.qrToken !== token) {
-      return sendResponse(res, 400, false, null, 'Invalid QR token');
-    }
-
-    // ── ตรวจสอบหน้าต่างเวลา (Bangkok UTC+7): สแกนได้ช่วงเวลาคลาส + 30 นาที ──
-    const now = new Date();
-    const classStart  = bangkokClassTime(schedule.date, schedule.startTime);
-    let   classEnd    = bangkokClassTime(schedule.date, schedule.endTime);
-    // คลาสข้ามเที่ยงคืน (เช่น 23:00–00:00) → endTime ตกไปวันถัดไป
-    if (classEnd <= classStart) {
-      classEnd = new Date(classEnd.getTime() + 24 * 60 * 60 * 1000);
-    }
-    const scanDeadline = new Date(classEnd.getTime() + 30 * 60 * 1000);
-
-    if (now < classStart) {
-      return sendResponse(res, 400, false, null, `ยังไม่ถึงเวลาเรียน สามารถเช็คชื่อได้ตั้งแต่ ${schedule.startTime} น.`);
-    }
-    if (now > scanDeadline) {
-      return sendResponse(res, 400, false, null, `หมดเวลาเช็คชื่อแล้ว (รับได้ถึง ${schedule.endTime} น. + 30 นาที)`);
-    }
-
-    // ตรวจสอบ expire (QR token level)
-    if (schedule.qrExpiresAt && now > schedule.qrExpiresAt) {
-      return sendResponse(res, 400, false, null, 'QR code has expired');
-    }
-
-    // ตรวจสอบว่านักเรียนอยู่ใน schedule
-    const isStudent = schedule.students.some(s => s.toString() === req.user.id);
-    if (!isStudent) {
-      return sendResponse(res, 403, false, null, 'You are not enrolled in this class');
-    }
-
-    // บันทึก attendance (unique index จะป้องกันสแกนซ้ำ)
-    const attendance = new Attendance({
-      schedule: scheduleId,
-      student: req.user.id,
-      deviceInfo: req.headers['user-agent'] || null
-    });
-
-    await attendance.save();
-
-    const student = await User.findById(req.user.id).select('firstName lastName profileImage');
-
-    sendResponse(res, 201, true, {
-      student: {
-        _id: student._id,
-        firstName: student.firstName,
-        lastName: student.lastName,
-        profileImage: student.profileImage
+    const schedule = await validateQr(req.body?.scheduleId, req.body?.token, req.user.id);
+    const [attendance, review] = await Promise.all([
+      Attendance.findOne({ schedule: schedule._id, student: req.user.id }).select('scannedAt').lean(),
+      Review.exists({ schedule: schedule._id, student: req.user.id })
+    ]);
+    sendResponse(res, 200, true, {
+      lesson: {
+        _id: schedule._id, course: schedule.course, teacher: schedule.teacher, date: schedule.date,
+        startTime: schedule.startTime, endTime: schedule.endTime, room: schedule.room, status: schedule.status
       },
-      scannedAt: attendance.scannedAt,
-      courseName: schedule.course?.name
-    }, 'Attendance recorded');
+      scannedAt: attendance?.scannedAt || null,
+      submitted: !!review,
+      checkedIn: !!attendance
+    });
   } catch (error) {
-    if (error.code === 11000) {
-      return sendResponse(res, 409, false, null, 'Already checked in for this class');
-    }
-    console.error('Scan attendance error:', error);
-    sendResponse(res, 500, false, null, error.message);
+    if (error.status) return sendResponse(res, error.status, false, null, error.message);
+    next(error);
+  }
+});
+
+router.post('/scan', authenticateToken, roleCheck(['student']), async (req, res, next) => {
+  try {
+    const result = await confirmQrCheckIn({
+      ...req.body, studentId: req.user.id, deviceInfo: req.headers['user-agent'] || null
+    });
+    sendResponse(res, 200, true, result, 'ส่งรีวิวและยืนยันเข้าเรียนแล้ว');
+  } catch (error) {
+    if (error.status) return sendResponse(res, error.status, false, null, error.message);
+    next(error);
   }
 });
 

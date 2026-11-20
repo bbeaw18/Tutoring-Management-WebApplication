@@ -1,12 +1,11 @@
 import { Component, OnInit, OnDestroy, DoCheck, HostListener, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { ScheduleService } from '../../../services/schedule.service';
 import { AuthService } from '../../../services/auth.service';
-import { AttendanceService } from '../../../services/attendance.service';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { ISchedule } from '../../../interfaces/schedule.interface';
 import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
@@ -67,7 +66,7 @@ export class StudentCalendarComponent implements OnInit, OnDestroy, DoCheck {
   constructor(
     private scheduleService: ScheduleService,
     private authService: AuthService,
-    private attendanceService: AttendanceService
+    private router: Router
   ) {}
 
   ngOnDestroy(): void {
@@ -338,20 +337,7 @@ export class StudentCalendarComponent implements OnInit, OnDestroy, DoCheck {
   }
 
   processQRScan(scheduleId: string, token: string): void {
-    this.scanLoading = true;
-    this.attendanceService.scanQR(scheduleId, token)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-      next: (res) => {
-        this.scanSuccess = `เช็คชื่อสำเร็จ! ${res.student?.firstName} ${res.student?.lastName}`;
-        this.scanLoading = false;
-        this.scanError = '';
-      },
-      error: (err) => {
-        this.scanError = err.error?.message || 'เกิดข้อผิดพลาดในการสแกน';
-        this.scanLoading = false;
-      }
-    });
+    this.router.navigate(['/scan'], { queryParams: { scheduleId, token } });
   }
 
   // ─── Helpers ──────────────────────────────────────────────

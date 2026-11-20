@@ -330,7 +330,7 @@ export class CourseManagementComponent implements OnInit, OnDestroy {
     return Number(this.bookingForm?.get('coursePrice')?.value) || 0;
   }
 
-  /** ค่าเรียนทั้งหมดที่นักเรียนต้องจ่าย = อัตรา/ชม. × duration (ชั่วโมง) — ปัดเป็นจำนวนเต็ม */
+  /** ค่าเรียนต่อคน = อัตราต่อคน/ชม. × ระยะเวลาคลาส */
   get coursePriceTotal(): number {
     return Math.round(this.coursePriceRate * this.classDurationHours);
   }
