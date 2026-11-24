@@ -1,14 +1,16 @@
-<dialog #dialog aria-labelledby="review-title" (cancel)="dismiss($event)">
+<dialog #dialog [class.check-in-dialog]="!!checkIn" aria-labelledby="review-title" (cancel)="dismiss($event)">
   <ng-container *ngIf="entry as review">
     <section class="review-done" *ngIf="done; else formView">
       <span class="done-icon" aria-hidden="true">✓</span>
-      <h2 id="review-title">ขอบคุณสำหรับรีวิว</h2>
+      <h2 id="review-title">{{ checkIn ? 'เช็กชื่อและส่งรีวิวสำเร็จแล้ว' : 'ขอบคุณสำหรับรีวิว' }}</h2>
       <p>{{ checkIn ? 'ส่งรีวิวและยืนยันเข้าเรียนเรียบร้อยแล้วค่ะ' : 'แอดมินได้รับรีวิวของน้องแล้วค่ะ' }}</p>
       <button #doneButton type="button" class="review-primary" (click)="dismiss()">ปิดหน้าต่าง</button>
     </section>
 
     <ng-template #formView>
-      <form [formGroup]="form" (ngSubmit)="submit()">
+      <form [formGroup]="form" [attr.aria-busy]="busy" (ngSubmit)="submit()">
+        <div class="review-content">
+        <p *ngIf="checkIn && !review.scannedAt" class="check-in-status" role="status">ยังไม่ได้เช็กชื่อ กรุณารีวิวและกดยืนยัน</p>
         <header>
           <div class="review-badges">
             <span>{{ checkIn ? 'รีวิวและยืนยันเข้าเรียน' : '✓ คลาสจบแล้ว' }}</span>
@@ -49,12 +51,13 @@
           <p>💗 ทุกความคิดเห็นจะช่วยให้ทางสถาบันนำไปพัฒนาและปรับปรุงคุณภาพการเรียนการสอนให้ดียิ่งขึ้นค่ะ</p>
         </aside>
 
-        <p *ngIf="error" class="review-error" role="alert">{{ error }}</p>
+        </div>
         <footer>
-          <small>{{ checkIn ? 'การเข้าเรียนจะถูกบันทึกเมื่อกดส่งรีวิวและยืนยันเข้าเรียน' : 'กลับมาให้คะแนนภายหลังได้จากหน้า “ประวัติการเรียน”' }}</small>
+          <p *ngIf="error" class="review-error" role="alert">{{ error }}</p>
+          <small>{{ checkIn ? (busy ? 'กำลังส่งข้อมูล กรุณารอการยืนยัน' : (form.controls.rating.value === 0 ? 'เลือกคะแนน 1–5 ดาว แล้วกดส่งเพื่อยืนยันเข้าเรียน' : 'กดส่งรีวิวและยืนยันเข้าเรียนเพื่อบันทึกการเข้าเรียน')) : 'กลับมาให้คะแนนภายหลังได้จากหน้า “ประวัติการเรียน”' }}</small>
           <div class="review-actions">
             <button type="button" class="review-secondary" [disabled]="busy" (click)="dismiss()">{{ checkIn ? 'ยกเลิก' : 'ไว้ทีหลัง' }}</button>
-            <button type="submit" class="review-primary" [disabled]="busy || form.invalid">{{ checkIn ? 'ส่งรีวิวและยืนยันเข้าเรียน' : 'ส่งรีวิว' }}</button>
+            <button type="submit" class="review-primary" [disabled]="busy || form.invalid">{{ busy ? 'กำลังส่ง…' : (checkIn ? (error ? 'ลองส่งรีวิวและยืนยันอีกครั้ง' : 'ส่งรีวิวและยืนยันเข้าเรียน') : 'ส่งรีวิว') }}</button>
           </div>
         </footer>
       </form>

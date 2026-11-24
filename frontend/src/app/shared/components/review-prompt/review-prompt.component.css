@@ -11,6 +11,12 @@ dialog {
 }
 
 dialog::backdrop { background: oklch(20% .05 260 / .66); }
+.check-in-dialog { overflow: hidden; }
+.check-in-dialog form { display: flex; flex-direction: column; max-height: calc(100dvh - 26px); padding: 0; }
+.check-in-dialog .review-content { min-height: 0; overflow: auto; padding: clamp(16px, 4vw, 28px); }
+.check-in-dialog footer { flex-shrink: 0; margin-top: 0; padding: 12px clamp(16px, 4vw, 28px); border-top: 1px solid #d7e0ef; background: #fdfdff; }
+.check-in-status { padding: 10px 12px; margin-bottom: 14px; border: 1px solid oklch(84% .09 80); border-radius: 9px; color: oklch(35% .07 65); background: oklch(97% .035 85); font-weight: 600; }
+.check-in-dialog .review-error { flex-basis: 100%; margin-top: 0; }
 form, .review-done { padding: clamp(16px, 4vw, 28px); }
 h2 { margin: 8px 0 4px; font-size: var(--text-xl, 1.375rem); }
 p { margin: 0; }
@@ -37,7 +43,7 @@ textarea { display: block; width: 100%; box-sizing: border-box; resize: vertical
 footer { margin-top: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .review-actions { margin-left: auto; }
 button { font: inherit; font-weight: 600; min-height: 44px; padding: 8px 14px; border-radius: 9px; cursor: pointer; }
-.review-primary { color: #fdfdff; background: var(--primary); border: 1px solid var(--primary); }
+.review-primary { color: #fdfdff; background: var(--primary); border: 1px solid var(--primary); white-space: normal; overflow-wrap: anywhere; }
 .review-secondary { background: transparent; color: var(--brand-700); border: 1px solid #b4c3dc; }
 button:disabled { opacity: .55; cursor: default; }
 .review-error { margin-top: 12px; color: #a02132; }
