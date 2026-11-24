@@ -55,6 +55,10 @@ test('QR review/check-in API commits both records together and enforces time and
     }, body: JSON.stringify(body) });
     return { status: res.status, body: await res.json() };
   }
+  async function get(path, who = 1) {
+    const res = await fetch(base + path, { headers: { Authorization: `Bearer ${tokens[who]}` } });
+    return { status: res.status, body: await res.json() };
+  }
   const at = time => t.mock.timers.setTime(new Date(`2026-11-20T${time}+07:00`).getTime());
   t.mock.timers.enable({ apis: ['Date'], now: new Date('2026-11-20T11:29:59.999+07:00').getTime() });
   const s = await lesson();
@@ -81,6 +85,15 @@ test('QR review/check-in API commits both records together and enforces time and
   assert.equal(await Review.countDocuments(), 1);
   assert.equal((await Review.findOne()).comment, 'เข้าใจง่าย');
   assert.equal((await Schedule.findById(s._id)).status, 'confirmed');
+  const studentHistory = await get('/attendance/my');
+  assert.equal(studentHistory.status, 200);
+  assert.ok(studentHistory.body.data.some(row => row.schedule._id === String(s._id)));
+  const teacherList = await get(`/attendance/schedule/${s._id}`, 0);
+  assert.equal(teacherList.status, 200);
+  assert.equal(teacherList.body.data.length, 1);
+  const afterSubmit = await post('/attendance/scan/preview', payload);
+  assert.equal(afterSubmit.body.data.checkedIn, true);
+  assert.equal(afterSubmit.body.data.submitted, true);
   assert.equal((await post('/attendance/scan', { ...payload, rating: 1 })).status, 200);
   assert.equal((await Review.findOne()).rating, 5);
   assert.equal((await post('/attendance/scan', payload, 2)).status, 200);
@@ -88,6 +101,19 @@ test('QR review/check-in API commits both records together and enforces time and
   const summary = (await buildPaymentSummariesByScheduleId([s])).get(String(s._id));
   assert.equal(summary.effectivePrice, 600);
   assert.equal(summary.total, 1200);
+  const concurrentClass = await lesson();
+  const concurrentResults = await Promise.all([1, 2].map(who => post('/attendance/scan', {
+    ...payload, scheduleId: String(concurrentClass._id), token: 'test-qr'
+  }, who)));
+  assert.deepEqual(concurrentResults.map(r => r.status), [200, 200]);
+  assert.equal((await get(`/attendance/schedule/${concurrentClass._id}`, 0)).body.data.length, 2);
+  const closingClass = await lesson();
+  const closingPayload = { ...payload, scheduleId: String(closingClass._id), token: 'test-qr' };
+  assert.equal((await post('/attendance/scan/preview', closingPayload)).status, 200);
+  await Schedule.updateOne({ _id: closingClass._id }, { qrActive: false, status: 'awaiting_confirmation' });
+  assert.equal((await post('/attendance/scan', closingPayload)).status, 400);
+  assert.equal(await Attendance.countDocuments({ schedule: closingClass._id }), 0);
+  assert.equal(await Review.countDocuments({ schedule: closingClass._id }), 0);
   const legacy = await lesson();
   const originalCheckIn = await Attendance.create({ schedule: legacy._id, student: student._id });
   assert.equal((await post('/attendance/scan', { ...payload, scheduleId: String(legacy._id), token: 'test-qr' })).status, 200);

@@ -100,11 +100,11 @@
                 <label class="cb2-label">เวลา <span class="cb2-req">*</span></label>
                 <div class="cb2-timewrap">
                   <div class="cb2-timebox">
-                    <kms-time-picker formControlName="startTime" placeholder="เริ่ม" [minuteStep]="30"></kms-time-picker>
+                    <kms-time-picker formControlName="startTime" placeholder="เริ่ม" [minuteStep]="15"></kms-time-picker>
                     <span class="cb2-time-sep" aria-hidden="true">
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
                     </span>
-                    <kms-time-picker formControlName="endTime" placeholder="สิ้นสุด" [minuteStep]="30"></kms-time-picker>
+                    <kms-time-picker formControlName="endTime" placeholder="สิ้นสุด" [minuteStep]="15"></kms-time-picker>
                   </div>
                   <span class="cb2-dur-badge" [class.is-muted]="classDurationHours <= 0">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -830,11 +830,11 @@
             </div>
             <div class="edit-group">
               <label class="edit-label">เวลาเริ่ม</label>
-              <kms-time-picker [(ngModel)]="editStartTime" placeholder="เริ่ม" [minuteStep]="30"></kms-time-picker>
+              <kms-time-picker [(ngModel)]="editStartTime" placeholder="เริ่ม" [minuteStep]="15"></kms-time-picker>
             </div>
             <div class="edit-group">
               <label class="edit-label">เวลาสิ้นสุด</label>
-              <kms-time-picker [(ngModel)]="editEndTime" placeholder="สิ้นสุด" [minuteStep]="30"></kms-time-picker>
+              <kms-time-picker [(ngModel)]="editEndTime" placeholder="สิ้นสุด" [minuteStep]="15"></kms-time-picker>
             </div>
           </div>
 
