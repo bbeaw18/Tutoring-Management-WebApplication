@@ -432,6 +432,29 @@ test('LINE tuition HTTP flow, MongoDB transactions and reminder worker', {
     testContext.diagnostic('KBank 600 THB over two 300 THB classes: 0 email calls and 0 LINE requests; unpaid control: 1 each, email 300 THB');
   });
 
+  await t.test('only the owner can read a KBank payment session', async () => {
+    const reference = 'KMS-status-owner-test';
+    const paidAt = new Date();
+    const expiresAt = new Date(paidAt.getTime() + 15 * 60_000);
+    await PaymentSession.create({
+      reference, student: student._id, course: course._id,
+      scheduleIds: [await lesson()], status: 'paid', amount: 600, paidAt, expiresAt
+    });
+    const path = `/payments/kbank/status/${reference}`;
+    const owner = await request(path);
+    assert.equal(owner.status, 200);
+    assert.deepEqual(owner.data, {
+      reference, status: 'paid', amount: 600, paidAt: paidAt.toISOString(), expiresAt: expiresAt.toISOString()
+    });
+
+    const otherAccount = await request(path, { who: 1 });
+    const missingReference = await request('/payments/kbank/status/KMS-unknown-test', { who: 1 });
+    assert.equal(otherAccount.status, 404);
+    assert.equal(otherAccount.data, undefined);
+    assert.deepEqual(otherAccount, missingReference);
+    assert.equal((await request(path, { token: '' })).status, 401);
+  });
+
   const unmatchedReference = 'KMS-late-session-removed-test';
   await t.test('late signed KBank success settles an expired QR once or preserves an unmatched callback', async testContext => {
     const charge = async (reference, status = 'pending') => PaymentSession.create({

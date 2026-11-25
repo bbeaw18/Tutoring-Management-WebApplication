@@ -1124,7 +1124,7 @@ router.post('/kbank/create-charge', authenticateToken, roleCheck(['student']), a
 // ────────────────────────────────────────────────────────────────────────────
 router.get('/kbank/status/:reference', authenticateToken, async (req, res) => {
   try {
-    const session = await PaymentSession.findOne({ reference: req.params.reference });
+    const session = await PaymentSession.findOne({ reference: req.params.reference, student: req.user.id });
     if (!session) return sendResponse(res, 404, false, null, 'Payment session not found');
 
     // QR expiry is a display state. Polling must not overwrite a bank settlement.
