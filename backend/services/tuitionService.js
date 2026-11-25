@@ -9,6 +9,7 @@ const { computeEffectivePrice } = require('../utils/helpers');
 const thaiMonth = date => new Date(new Date(date).getTime() + 7 * 3600000).toISOString().slice(0, 7);
 const total = items => items.reduce((sum, row) => sum + row.amount, 0);
 const validMonth = value => typeof value === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
+const paymentCoverageFields = 'student schedule scheduleIds paymentType paymentMonth amount method status transactionRef';
 
 const targetFilter = ({ scheduleId, month }) => {
   if (scheduleId && !month && mongoose.isObjectIdOrHexString(scheduleId)) return { schedule: scheduleId };
@@ -45,18 +46,41 @@ async function resolvePaymentCoverage(payments, session = null) {
 
 async function getPaymentCoverage(student, session = null) {
   const payments = await Payment.find({ student, status: { $in: ['pending', 'confirmed'] } })
-    .select('student schedule scheduleIds paymentType paymentMonth amount method status transactionRef')
+    .select(paymentCoverageFields)
     .session(session).lean();
   const resolved = await resolvePaymentCoverage(payments, session);
   return {
     blocked: new Set(resolved.flatMap(entry => entry.scheduleIds.map(String))),
-    review: resolved.filter(entry => entry.review).map(({ payment }) => ({
-      paymentId: payment._id,
-      month: validMonth(payment.paymentMonth) ? payment.paymentMonth : null,
-      amount: payment.amount,
-      reference: payment.transactionRef || null
-    }))
+    review: resolved.filter(entry => entry.review).map(({ payment }) => reviewPayment(payment))
   };
+}
+
+const reviewPayment = payment => ({
+  paymentId: payment._id,
+  month: validMonth(payment.paymentMonth) ? payment.paymentMonth : null,
+  amount: payment.amount,
+  reference: payment.transactionRef || null
+});
+
+async function listTuitionReviewHolds() {
+  const payments = await Payment.find({
+    paymentType: 'monthly',
+    status: { $in: ['pending', 'confirmed'] },
+    'scheduleIds.0': { $exists: false },
+    $or: [{ method: 'gateway' }, { schedule: null }]
+  }).select(paymentCoverageFields).sort({ createdAt: -1 }).lean();
+  const holds = (await resolvePaymentCoverage(payments)).filter(entry => entry.review);
+  const students = await User.find({ _id: { $in: holds.map(({ payment }) => payment.student) } })
+    .select('firstName lastName nickname').lean();
+  const byId = new Map(students.map(student => [String(student._id), student]));
+  return holds.map(({ payment }) => {
+    const student = byId.get(String(payment.student));
+    return {
+      ...reviewPayment(payment),
+      studentId: payment.student,
+      name: student ? (student.nickname || `${student.firstName} ${student.lastName}`) : String(payment.student)
+    };
+  });
 }
 
 const onHold = (coverage, month) => coverage.review.some(entry => !entry.month || !month || entry.month === month);
@@ -104,6 +128,10 @@ async function getTuitionDetails(student, target = {}, session = null) {
 
 async function getTuition(student, target = {}, session = null) {
   return (await getTuitionDetails(student, target, session)).unpaid;
+}
+
+async function getOverdueTuition(student, round) {
+  return (await getTuition(student)).filter(row => row.month < round);
 }
 
 function quoteMayBeClaimed(quote, coverage, schedules) {
@@ -181,5 +209,5 @@ async function claimTuition(student, body) {
 
 module.exports = {
   getTuition, getTuitionDetails, getPaymentCoverage, resolvePaymentCoverage, quoteMayBeClaimed, onHold,
-  thaiMonth, total, targetFilter, quoteItems, quoteMatches, claimTuition
+  getOverdueTuition, listTuitionReviewHolds, thaiMonth, total, targetFilter, quoteItems, quoteMatches, claimTuition
 };

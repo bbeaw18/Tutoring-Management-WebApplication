@@ -1,5 +1,6 @@
 <nav aria-label="ตรวจรายการโอนและแจ้งเตือน">
   <button type="button" class="btn btn-secondary" (click)="load('transfers')" [disabled]="busy">ตรวจรายการแจ้งโอนค่าเรียน</button>
+  <button type="button" class="btn btn-secondary" (click)="load('reconciliation')" [disabled]="busy">กระทบยอดค่าเรียน</button>
   <button type="button" class="btn btn-secondary" (click)="load('reminders')" [disabled]="busy">ดูตัวอย่างผู้รับแจ้งเตือน LINE</button>
 </nav>
 <p *ngIf="busy" role="status">กำลังโหลด…</p>
@@ -35,15 +36,6 @@
       {{ recipient.name }} · เดือน {{ recipient.months.join(', ') }} · {{ status[recipient.status] }}
     </li>
   </ul>
-  <div *ngIf="preview.reviewHolds.length">
-    <h3>พักเตือนเพื่อรอตรวจสอบยอดที่ชำระไว้</h3>
-    <ul>
-      <li *ngFor="let hold of preview.reviewHolds">
-        {{ hold.name }} · {{ hold.month || 'ไม่ทราบเดือน' }} · ฿{{ hold.amount | number:'1.2-2' }}
-        · {{ hold.reference || hold.paymentId }}
-      </li>
-    </ul>
-  </div>
   <details *ngIf="preview.deliveries.length">
     <summary>ผลการส่งรอบนี้ ({{ preview.deliveries.length }} รายการ)</summary>
     <ul>
@@ -52,4 +44,26 @@
       </li>
     </ul>
   </details>
+</section>
+
+<section *ngIf="mode === 'reconciliation' && !error && reconciliation as items" aria-label="รายการกระทบยอดค่าเรียน">
+  <p *ngIf="!items.legacyHolds.length && !items.bankCallbacks.length && !busy">ไม่มีรายการรอกระทบยอด</p>
+  <ng-container *ngIf="items.legacyHolds.length">
+    <h3>หลักฐานเดิมที่ยังระบุคลาสไม่ได้</h3>
+    <ul>
+      <li *ngFor="let hold of items.legacyHolds">
+        {{ hold.name }} · {{ hold.month || 'ไม่ทราบเดือน' }} · ฿{{ hold.amount | number:'1.2-2' }}
+        · {{ hold.reference || hold.paymentId }}
+      </li>
+    </ul>
+  </ng-container>
+  <ng-container *ngIf="items.bankCallbacks.length">
+    <h3>KBank แจ้งสำเร็จและรอจับคู่ใบรับเงิน</h3>
+    <ul>
+      <li *ngFor="let entry of items.bankCallbacks">
+        อ้างอิง {{ entry._id }}<span *ngIf="entry.kbankTransactionId"> · รายการธนาคาร {{ entry.kbankTransactionId }}</span>
+        · ฿{{ entry.amount | number:'1.2-2' }} · {{ (entry.paidAt || entry.receivedAt) | date:'d MMM y, HH:mm':'+0700':'th' }}
+      </li>
+    </ul>
+  </ng-container>
 </section>

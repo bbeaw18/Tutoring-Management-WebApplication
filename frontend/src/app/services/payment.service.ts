@@ -31,6 +31,11 @@ export interface RecoverableTuitionQuote {
   createdAt: string;
 }
 
+export interface PaymentReconciliation {
+  legacyHolds: { paymentId: string; name: string; month: string | null; amount: number; reference: string | null }[];
+  bankCallbacks: { _id: string; kbankTransactionId?: string; amount: number; paidAt?: string; receivedAt: string }[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -220,6 +225,11 @@ export class PaymentService {
     return this.http.get<IApiResponse<IPayment[]>>(`${this.apiUrl}/pending-verification`).pipe(
       map(res => res.data)
     );
+  }
+
+  getReconciliation(): Observable<PaymentReconciliation> {
+    return this.http.get<IApiResponse<PaymentReconciliation>>(`${this.apiUrl}/reconciliation`)
+      .pipe(map(res => res.data));
   }
 
   /** นักเรียนดูสถานะการชำระทั้งหมดของตัวเอง */

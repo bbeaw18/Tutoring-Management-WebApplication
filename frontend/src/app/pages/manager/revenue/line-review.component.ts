@@ -4,7 +4,9 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { IPayment } from '../../../interfaces/payment.interface';
 import { LineTuitionService, ReminderPreview } from '../../../services/line-tuition.service';
-import { PaymentService } from '../../../services/payment.service';
+import { PaymentReconciliation, PaymentService } from '../../../services/payment.service';
+
+type ReviewMode = 'transfers' | 'reminders' | 'reconciliation';
 
 @Component({
   selector: 'app-line-review',
@@ -23,9 +25,10 @@ import { PaymentService } from '../../../services/payment.service';
 export class LineReviewComponent implements OnDestroy {
   @Output() reviewed = new EventEmitter<void>();
   private readonly destroy$ = new Subject<void>();
-  mode?: 'transfers' | 'reminders';
+  mode?: ReviewMode;
   payments: IPayment[] = [];
   preview?: ReminderPreview;
+  reconciliation?: PaymentReconciliation;
   busy = false;
   error = '';
   readonly status: Record<string, string> = {
@@ -35,7 +38,7 @@ export class LineReviewComponent implements OnDestroy {
 
   constructor(private line: LineTuitionService, private paymentService: PaymentService) {}
 
-  load(mode: 'transfers' | 'reminders'): void {
+  load(mode: ReviewMode): void {
     if (this.busy) return;
     this.mode = mode;
     this.busy = true;
@@ -43,6 +46,11 @@ export class LineReviewComponent implements OnDestroy {
     if (mode === 'transfers') {
       this.paymentService.getPendingVerifications().pipe(takeUntil(this.destroy$)).subscribe({
         next: payments => { this.payments = payments.filter(payment => payment.tuitionQuote); this.busy = false; },
+        error: err => this.fail(err)
+      });
+    } else if (mode === 'reconciliation') {
+      this.paymentService.getReconciliation().pipe(takeUntil(this.destroy$)).subscribe({
+        next: reconciliation => { this.reconciliation = reconciliation; this.busy = false; },
         error: err => this.fail(err)
       });
     } else {

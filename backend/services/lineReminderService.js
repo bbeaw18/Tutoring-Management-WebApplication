@@ -3,7 +3,7 @@ const { randomUUID } = require('crypto');
 const LineConnection = require('../models/LineConnection');
 const User = require('../models/User');
 const { LineReminderRun, LineReminderDelivery } = require('../models/LineReminder');
-const { getTuitionDetails, thaiMonth } = require('./tuitionService');
+const { getOverdueTuition, thaiMonth } = require('./tuitionService');
 
 const leaseMs = 2 * 60_000;
 const retryDelayMs = 5 * 60_000;
@@ -16,12 +16,9 @@ function reminderWindow(now) {
   return local.getUTCDate() > 3 || (local.getUTCDate() === 3 && local.getUTCHours() >= 9);
 }
 
-async function reminderBill(student, round) {
-  const { unpaid, coverage } = await getTuitionDetails(student);
-  return {
-    months: [...new Set(unpaid.map(row => row.month).filter(month => month < round))].sort(),
-    review: coverage.review.filter(entry => !entry.month || entry.month < round)
-  };
+async function reminderMonths(student, round) {
+  const overdue = await getOverdueTuition(student, round);
+  return [...new Set(overdue.map(row => row.month))].sort();
 }
 
 async function previewReminders(now = new Date()) {
@@ -33,12 +30,10 @@ async function previewReminders(now = new Date()) {
   ]);
   const deliveries = new Map(sent.map(entry => [String(entry.student), entry]));
   const recipients = [];
-  const reviewHolds = [];
   for (const { student } of links) {
     if (student?.role !== 'student' || !student.isActive) continue;
     const name = student.nickname || `${student.firstName} ${student.lastName}`;
-    const { months, review } = await reminderBill(student._id, round);
-    reviewHolds.push(...review.map(entry => ({ ...entry, studentId: student._id, name })));
+    const months = await reminderMonths(student._id, round);
     if (months.length) {
       recipients.push({
         studentId: student._id,
@@ -50,7 +45,7 @@ async function previewReminders(now = new Date()) {
   }
   return {
     round, due: reminderWindow(now), enabled: process.env.LINE_REMINDERS_ENABLED === 'true',
-    quotaExceededAt: run?.quotaExceededAt || null, recipients, reviewHolds, deliveries: sent
+    quotaExceededAt: run?.quotaExceededAt || null, recipients, deliveries: sent
   };
 }
 
@@ -106,10 +101,10 @@ async function runLineReminders(now = new Date()) {
       const id = `${round}:${student}`;
       const entry = await LineReminderDelivery.findById(id).lean();
       if (entry && (entry.status !== 'retry' || entry.nextAttemptAt > new Date())) continue;
-      const [current, active, { months }] = await Promise.all([
+      const [current, active, months] = await Promise.all([
         LineConnection.findOne({ ...eligible, student }).select('_id').lean(),
         User.exists({ _id: student, role: 'student', isActive: true }),
-        reminderBill(student, round)
+        reminderMonths(student, round)
       ]);
       const renewed = await LineReminderRun.updateOne({ ...lease, lockedUntil: { $gt: new Date() } },
         { $set: { lockedUntil: new Date(Date.now() + leaseMs) } });

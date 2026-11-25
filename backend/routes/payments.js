@@ -9,8 +9,9 @@ const mongoose = require('mongoose');
 const Payment = require('../models/Payment');
 const PaymentSession = require('../models/PaymentSession');
 const TuitionQuote = require('../models/TuitionQuote');
+const KBankReconciliation = require('../models/KBankReconciliation');
 const { getTuition, getTuitionDetails, getPaymentCoverage, resolvePaymentCoverage, quoteMayBeClaimed, onHold,
-  thaiMonth, total, targetFilter, quoteItems, quoteMatches, claimTuition } = require('../services/tuitionService');
+  listTuitionReviewHolds, thaiMonth, total, targetFilter, quoteItems, quoteMatches, claimTuition } = require('../services/tuitionService');
 const Schedule = require('../models/Schedule');
 const Attendance = require('../models/Attendance');
 const User = require('../models/User');
@@ -579,6 +580,24 @@ router.get('/bank-info', authenticateToken, async (req, res) => {
   }, 'Bank info retrieved');
 });
 
+router.get('/reconciliation', authenticateToken, roleCheck(['admin', 'manager']), async (req, res) => {
+  try {
+    const [legacyHolds, callbacks] = await Promise.all([
+      listTuitionReviewHolds(),
+      KBankReconciliation.find().sort({ receivedAt: -1 }).lean()
+    ]);
+    const recorded = await Payment.distinct('transactionRef', {
+      method: 'gateway', status: 'confirmed', transactionRef: { $in: callbacks.map(callback => callback._id) }
+    });
+    const references = new Set(recorded);
+    const bankCallbacks = callbacks.filter(callback => !references.has(callback._id));
+    return sendResponse(res, 200, true, { legacyHolds, bankCallbacks }, 'Payment reconciliation');
+  } catch (error) {
+    console.error('Payment reconciliation error:', error);
+    return sendResponse(res, 500, false, null, 'โหลดรายการกระทบยอดไม่สำเร็จ');
+  }
+});
+
 // GET /pending-verification — Manager ดูรายการที่รอตรวจสอบ
 router.get('/pending-verification', authenticateToken, roleCheck(['admin', 'manager']), async (req, res) => {
   try {
@@ -1108,15 +1127,12 @@ router.get('/kbank/status/:reference', authenticateToken, async (req, res) => {
     const session = await PaymentSession.findOne({ reference: req.params.reference });
     if (!session) return sendResponse(res, 404, false, null, 'Payment session not found');
 
-    // ตรวจว่า expired หรือยัง
-    if (session.status === 'pending' && new Date() > session.expiresAt) {
-      session.status = 'expired';
-      await session.save();
-    }
+    // QR expiry is a display state. Polling must not overwrite a bank settlement.
+    const status = session.status === 'pending' && new Date() >= session.expiresAt ? 'expired' : session.status;
 
     sendResponse(res, 200, true, {
       reference: session.reference,
-      status: session.status,  // pending | paid | failed | expired
+      status,
       amount: session.amount,
       paidAt: session.paidAt,
       expiresAt: session.expiresAt
@@ -1143,45 +1159,60 @@ router.post('/kbank/webhook', express.raw({ type: 'application/json' }), async (
     } catch {
       return sendResponse(res, 400, false, null, 'Invalid KBank payload');
     }
-    const { partnerTxnRef: reference, kbankTxnId, paymentStatus, amount, currency } = payload || {};
+    const { partnerTxnRef: reference, kbankTxnId, paymentStatus, amount, currency, paidDt } = payload || {};
     if (typeof reference !== 'string' || !reference || !['success', 'failed'].includes(paymentStatus)) {
       return sendResponse(res, 400, false, null, 'Invalid KBank payment reference or status');
     }
 
-    const charge = await PaymentSession.findOne({ reference, status: 'pending' }).lean();
-    if (!charge) return sendResponse(res, 200, true, null, 'KBank event acknowledged');
     if (paymentStatus === 'failed') {
-      await PaymentSession.updateOne({ _id: charge._id, status: 'pending' }, { $set: { status: 'failed' } });
+      await PaymentSession.updateOne({ reference, status: 'pending' }, { $set: { status: 'failed' } });
       return sendResponse(res, 200, true, null, 'KBank failure recorded');
     }
-    if (!['string', 'number'].includes(typeof amount) || Number(amount) !== Number(charge.amount.toFixed(2)) || currency !== 'THB'
-      || !charge.scheduleIds.length || !charge.course
-      || (charge.kbankTransactionId && charge.kbankTransactionId !== kbankTxnId)) {
+    const bankAmount = Number(amount);
+    if (!['string', 'number'].includes(typeof amount) || !Number.isFinite(bankAmount) || bankAmount <= 0 || currency !== 'THB') {
+      return sendResponse(res, 400, false, null, 'Invalid KBank payment amount or currency');
+    }
+
+    const charge = await PaymentSession.findOne({ reference }).lean();
+    if (charge && (bankAmount !== Number(charge.amount.toFixed(2)) ||
+      (charge.kbankTransactionId && charge.kbankTransactionId !== kbankTxnId))) {
       return sendResponse(res, 400, false, null, 'KBank payment does not match charge');
     }
 
+    const bankDate = typeof paidDt === 'string' ? new Date(paidDt) : null;
+    const paidAt = bankDate && Number.isFinite(bankDate.getTime()) ? bankDate : undefined;
+    const settlingStates = ['pending', 'expired'];
     let payment;
-    await mongoose.connection.transaction(async session => {
-      payment = undefined;
-      // Keep the durable receipt and the gateway session together on duplicate callbacks or a failed write.
-      const updated = await PaymentSession.updateOne({ _id: charge._id, status: 'pending' }, {
-        $set: { status: 'paid', paidAt: new Date(), kbankTransactionId: kbankTxnId }
-      }, { session });
-      if (!updated.modifiedCount) return;
-      [payment] = await Payment.create([{
-        student: charge.student,
-        course: charge.course,
-        schedule: charge.scheduleIds[0],
-        scheduleIds: charge.scheduleIds,
-        paymentType: charge.paymentType,
-        paymentMonth: charge.paymentMonth,
-        amount: charge.amount,
-        method: 'gateway',
-        transactionRef: reference,
-        status: 'confirmed',
-        note: `KBank auto-verified. TxnId: ${kbankTxnId || ''}`
-      }], { session });
-    });
+    if (charge?.course && charge.scheduleIds.length && settlingStates.includes(charge.status)) {
+      await mongoose.connection.transaction(async session => {
+        payment = undefined;
+        // The original charge and a matching signed success are valid after QR display expiry.
+        const updated = await PaymentSession.updateOne({ _id: charge._id, status: { $in: settlingStates } }, {
+          $set: { status: 'paid', paidAt: paidAt || new Date(), kbankTransactionId: kbankTxnId }
+        }, { session });
+        if (!updated.modifiedCount) return;
+        [payment] = await Payment.create([{
+          student: charge.student,
+          course: charge.course,
+          schedule: charge.scheduleIds[0],
+          scheduleIds: charge.scheduleIds,
+          paymentType: charge.paymentType,
+          paymentMonth: charge.paymentMonth,
+          amount: charge.amount,
+          method: 'gateway',
+          transactionRef: reference,
+          status: 'confirmed',
+          note: `KBank auto-verified. TxnId: ${kbankTxnId || ''}`
+        }], { session });
+      });
+    }
+    if (!payment && !await Payment.exists({ method: 'gateway', status: 'confirmed', transactionRef: reference })) {
+      // The session TTL can remove the charge before a success arrives. Keep one review item per bank reference.
+      await KBankReconciliation.updateOne({ _id: reference }, {
+        $setOnInsert: { kbankTransactionId: kbankTxnId, amount: bankAmount, paidAt, student: charge?.student }
+      }, { upsert: true });
+      return sendResponse(res, 200, true, null, 'KBank success queued for reconciliation');
+    }
     if (payment) {
       try {
         await Notification.create({

@@ -58,6 +58,8 @@ test('LINE tuition HTTP flow, MongoDB transactions and reminder worker', {
   const { LineReminderDelivery } = require('../models/LineReminder');
   const line = require('../routes/line');
   const { runLineReminders, previewReminders } = require('../services/lineReminderService');
+  const { runPaymentReminderJob } = require('../services/paymentReminderService');
+  const emailService = require('../services/emailService');
 
   await mongoose.connect(process.env.TEST_MONGODB_URI, { dbName: `lineqa_${randomUUID().replaceAll('-', '')}` });
   t.after(async () => {
@@ -88,13 +90,13 @@ test('LINE tuition HTTP flow, MongoDB transactions and reminder worker', {
   const base = `http://127.0.0.1:${server.address().port}`;
 
   const password = 'test-password-only';
-  const users = await User.create(['student', 'student', 'manager', 'teacher', 'student', 'student'].map((role, i) => ({
+  const users = await User.create(['student', 'student', 'manager', 'teacher', 'student', 'student', 'student'].map((role, i) => ({
     role, firstName: `Test ${i}`, lastName: 'Tuition', email: `line-${i}@example.test`, password,
     acceptedTerms: role === 'manager' ? {
       student: { version: TERMS_VERSION, at: new Date() }, teacher: { version: TERMS_VERSION, at: new Date() }
     } : undefined
   })));
-  const [student, other, , teacher, workerStudent, workerOther] = users;
+  const [student, other, , teacher, workerStudent, workerOther, webOnlyStudent] = users;
   const tokens = users.map(user => jwt.sign({ id: String(user._id), role: user.role }, process.env.JWT_SECRET));
   const course = await Course.create({ name: 'Math test', subject: 'Math', teacher: teacher._id, createdBy: teacher._id });
 
@@ -398,6 +400,105 @@ test('LINE tuition HTTP flow, MongoDB transactions and reminder worker', {
     t.diagnostic('two workers → 1 request; timeout retry → 2 HTTP requests, same key, 1 acceptance; quota → 1 request; switched off/blocked/opted out/unlinked → 0 additional requests');
   });
 
+  await t.test('both reminder channels skip two classes covered by one KBank receipt', async testContext => {
+    assert.equal((await link(4, 4)).status, 200);
+    await webhook('follow', 4, Date.now() + 10_000);
+    const scheduleIds = [];
+    const date = '2025-01-10T00:00:00+07:00';
+    for (let index = 0; index < 2; index++) {
+      scheduleIds.push(await lesson({ date, students: [workerStudent._id], coursePrice: 300 }));
+    }
+    await Payment.create({ student: workerStudent._id, course: course._id, schedule: scheduleIds[0], scheduleIds,
+      paymentType: 'monthly', paymentMonth: '2025-01', amount: 600, method: 'gateway', status: 'confirmed' });
+    await lesson({ date: '2025-02-01T00:00:00+07:00', students: [workerStudent._id] });
+
+    const emails = testContext.mock.method(emailService, 'sendPaymentReminderEmail', async () => {});
+    const round = new Date('2025-02-03T09:00:00+07:00');
+    const initialPushes = pushes.length;
+    process.env.LINE_REMINDERS_ENABLED = 'true';
+    await runPaymentReminderJob(round);
+    await runLineReminders(round);
+    assert.equal(emails.mock.callCount(), 0);
+    assert.equal(pushes.length - initialPushes, 0);
+
+    // Positive control shows both sender paths were active and the current month stays excluded.
+    await lesson({ date, students: [workerStudent._id], coursePrice: 300 });
+    await runPaymentReminderJob(round);
+    await runLineReminders(round);
+    assert.equal(emails.mock.callCount(), 1);
+    assert.equal(emails.mock.calls[0].arguments[0].totalAmount, 300);
+    assert.equal(pushes.length - initialPushes, 1);
+    assert.equal(pushes.at(-1).to, ids[4]);
+    testContext.diagnostic('KBank 600 THB over two 300 THB classes: 0 email calls and 0 LINE requests; unpaid control: 1 each, email 300 THB');
+  });
+
+  const unmatchedReference = 'KMS-late-session-removed-test';
+  await t.test('late signed KBank success settles an expired QR once or preserves an unmatched callback', async testContext => {
+    const charge = async (reference, status = 'pending') => PaymentSession.create({
+      reference, status, student: workerOther._id, course: course._id,
+      scheduleIds: [await lesson({ students: [workerOther._id] })],
+      amount: 600, expiresAt: new Date(Date.now() - 1000)
+    });
+    const paidDt = new Date(Date.now() - 30_000).toISOString();
+    const success = async reference => {
+      const body = JSON.stringify({ partnerTxnRef: reference, paymentStatus: 'success',
+        kbankTxnId: 'KBank-late-test', amount: '600.00', currency: 'THB', paidDt });
+      const signature = createHmac('sha256', process.env.KBANK_WEBHOOK_SECRET).update(body).digest('hex');
+      return fetch(base + '/payments/kbank/webhook', { method: 'POST', body, headers: {
+        'Content-Type': 'application/json', 'X-KBank-Signature': signature
+      } });
+    };
+    for (const previousStatus of ['pending', 'expired']) {
+      const reference = `KMS-late-${previousStatus}-test`;
+      await charge(reference, previousStatus);
+      const poll = () => request(`/payments/kbank/status/${reference}`, { who: 5 });
+      assert.equal((await poll()).data.status, 'expired');
+      const deliveries = await Promise.all([success(reference), success(reference), poll()]);
+      assert.equal(deliveries[0].status, 200);
+      assert.equal(deliveries[1].status, 200);
+      assert.equal((await poll()).data.status, 'paid');
+      assert.equal((await poll()).data.paidAt, paidDt);
+      const receipts = await Payment.find({ transactionRef: reference }).lean();
+      assert.equal(receipts.length, 1);
+      assert.equal(receipts[0].amount, 600);
+      assert.equal(receipts[0].status, 'confirmed');
+    }
+
+    // Simulate a TTL deletion without waiting for the background TTL monitor.
+    await charge(unmatchedReference);
+    await PaymentSession.deleteOne({ reference: unmatchedReference });
+    const unmatched = await Promise.all([success(unmatchedReference), success(unmatchedReference)]);
+    assert.deepEqual(unmatched.map(response => response.status), [200, 200]);
+    assert.equal(await Payment.countDocuments({ transactionRef: unmatchedReference }), 0);
+    const review = (await request('/payments/reconciliation', { who: 2 })).data;
+    assert.equal(review.bankCallbacks.length, 1);
+    assert.equal(review.bankCallbacks[0]._id, unmatchedReference);
+    assert.equal(review.bankCallbacks[0].amount, 600);
+    assert.equal(review.bankCallbacks[0].paidAt, paidDt);
+    testContext.diagnostic('Expired display and stored expired state: duplicate signed callbacks each yield exactly 1 receipt; missing session yields 1 review item and 0 receipts');
+  });
+
+  const webOnlyReference = 'KMS-web-only-legacy-test';
+  await t.test('manager reconciliation includes a web-only student independently of LINE preview', async () => {
+    assert.equal(await LineConnection.countDocuments({ student: webOnlyStudent._id }), 0);
+    const date = '2026-10-11T00:00:00+07:00';
+    const schedule = await lesson({ date, students: [webOnlyStudent._id], endTime: '11:00' });
+    await lesson({ date, students: [webOnlyStudent._id], endTime: '11:00' });
+    const payment = await Payment.create({ student: webOnlyStudent._id, course: course._id, schedule,
+      paymentType: 'monthly', paymentMonth: '2026-10', amount: 600, method: 'gateway',
+      status: 'confirmed', transactionRef: webOnlyReference });
+    const details = (await bill(6)).data;
+    assert.deepEqual(details.reviewMonths, ['2026-10']);
+    assert.equal(details.unpaid.length, 0);
+    assert.equal((await request('/payments/reconciliation', { who: 6 })).status, 403);
+    const review = await request('/payments/reconciliation', { who: 2 });
+    assert.equal(review.status, 200);
+    assert.ok(review.data.legacyHolds.some(hold => hold.paymentId === String(payment._id)
+      && hold.studentId === String(webOnlyStudent._id) && hold.reference === webOnlyReference));
+    const preview = await previewReminders(new Date('2026-11-03T09:00:00+07:00'));
+    assert.ok(!preview.recipients.some(item => String(item.studentId) === String(webOnlyStudent._id)));
+  });
+
   await t.test('Chromium 390px: login, bind, download QR, resume, manager review and desktop web', {
     skip: !process.env.LINE_TEST_CHROME
   }, async () => {
@@ -515,6 +616,10 @@ test('LINE tuition HTTP flow, MongoDB transactions and reminder worker', {
       await review.waitFor({ state: 'detached' });
       await managerPage.getByRole('button', { name: 'ดูตัวอย่างผู้รับแจ้งเตือน LINE' }).click();
       await managerPage.getByText(/ปิดส่ง LINE/).waitFor();
+      assert.equal(await managerPage.getByText(webOnlyReference, { exact: false }).count(), 0);
+      await managerPage.getByRole('button', { name: 'กระทบยอดค่าเรียน' }).click();
+      await managerPage.getByText(webOnlyReference, { exact: false }).waitFor();
+      await managerPage.getByText(unmatchedReference, { exact: false }).waitFor();
       await page.reload();
       await page.getByText('ชำระแล้ว', { exact: true }).last().waitFor();
       for (const [change, time, minutes, amount] of [
@@ -583,9 +688,9 @@ test('LINE tuition HTTP flow, MongoDB transactions and reminder worker', {
       who: 2, method: 'POST', body: { studentId: String(workerStudent._id), scheduleId: second }
     })).status, 409);
     await PaymentSession.deleteOne({ reference });
-    const hold = await previewReminders(round);
-    assert.equal(hold.reviewHolds.some(item => String(item.paymentId) === String(old._id)), true);
-    assert.equal(hold.recipients.some(item => item.months.includes('2026-10')), false);
+    const reconciliation = await request('/payments/reconciliation', { who: 2 });
+    assert.equal(reconciliation.data.legacyHolds.some(item => String(item.paymentId) === String(old._id)), true);
+    assert.equal((await previewReminders(round)).recipients.some(item => item.months.includes('2026-10')), false);
     assert.equal((await quote({ month: '2026-10' }, 4)).status, 409);
     assert.equal((await request('/payments/bulk-confirm-month', {
       who: 2, method: 'POST', body: { studentId: String(workerStudent._id), month: '2026-10' }

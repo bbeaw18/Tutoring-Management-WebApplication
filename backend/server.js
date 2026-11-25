@@ -21,6 +21,7 @@ const teacherAvailabilityRoutes = require('./routes/teacherAvailability');
 const reviewsRoutes = require('./routes/reviews');
 const lineRoutes = require('./routes/line');
 const { runLineReminders } = require('./services/lineReminderService');
+const { runPaymentReminderJob } = require('./services/paymentReminderService');
 
 const app = express();
 
@@ -133,69 +134,6 @@ app.use((err, req, res, next) => {
 // ────────────────────────────────────────────────────────────────────────────
 // Cron Job: ทุกวันที่ 3 ของเดือน — แจ้งเตือนชำระเงินค้าง
 // ────────────────────────────────────────────────────────────────────────────
-async function runPaymentReminderJob() {
-  console.log('[Cron] เริ่ม payment reminder job...');
-  try {
-    const Payment = require('./models/Payment');
-    const Attendance = require('./models/Attendance');
-    const User = require('./models/User');
-    const Schedule = require('./models/Schedule');
-    const { sendPaymentReminderEmail } = require('./services/emailService');
-    const { computeEffectivePrice } = require('./utils/helpers');
-
-    // หานักเรียนทั้งหมดที่มีการเช็คชื่อ
-    const students = await User.find({ role: 'student', isActive: true });
-
-    // กติกาบิล: ค่าเรียนเดือน M ครบกำหนดชำระวันที่ 3 ของเดือน M+1
-    // ดังนั้นตอน job รัน (วันที่ 3) ให้เตือนเฉพาะคลาสของ "เดือนก่อนหน้าลงไป" เท่านั้น
-    // คลาสของเดือนปัจจุบันยังไม่ครบกำหนด (จะครบเดือนถัดไป) — ห้ามเตือน
-    const runBkk = new Date(Date.now() + 7 * 60 * 60 * 1000);   // Bangkok wall-clock
-    const runYM  = runBkk.getUTCFullYear() * 12 + runBkk.getUTCMonth();
-
-    for (const student of students) {
-      const attendances = await Attendance.find({ student: student._id })
-        .populate({
-          path: 'schedule',
-          populate: { path: 'course', select: 'name subject' }
-        });
-
-      const unpaid = [];
-      for (const att of attendances) {
-        if (!att.schedule) continue;
-        // ข้ามคลาสของเดือนปัจจุบัน/อนาคต (ยังไม่ถึงกำหนดชำระ)
-        const schBkk = new Date(new Date(att.schedule.date).getTime() + 7 * 60 * 60 * 1000);
-        const schYM  = schBkk.getUTCFullYear() * 12 + schBkk.getUTCMonth();
-        if (schYM >= runYM) continue;
-        const existingPayment = await Payment.findOne({
-          student: student._id,
-          schedule: att.schedule._id,
-          status: { $in: ['pending', 'confirmed'] }
-        });
-        if (!existingPayment && att.schedule.coursePrice > 0) {
-          unpaid.push({
-            courseName: att.schedule.course?.name || '-',
-            dateText: new Date(att.schedule.date).toLocaleDateString('th-TH'),
-            amount: computeEffectivePrice(att.schedule)
-          });
-        }
-      }
-
-      if (unpaid.length > 0) {
-        const totalAmount = unpaid.reduce((sum, item) => sum + item.amount, 0);
-        await sendPaymentReminderEmail({
-          studentEmail: student.email,
-          studentName: `${student.firstName} ${student.lastName}`,
-          unpaidItems: unpaid,
-          totalAmount
-        });
-        console.log(`[Cron] ส่งแจ้งเตือนชำระเงินไปยัง ${student.email} (${unpaid.length} รายการ)`);
-      }
-    }
-  } catch (error) {
-    console.error('[Cron] Payment reminder error:', error);
-  }
-}
-
 // M3: ตรวจสอบทุก 1 ชม. ว่าถึงวันที่ 3 หรือยัง (ใช้ Bangkok UTC+7 ไม่ใช่ server local time)
 // ป้องกันกรณี deploy บน server ที่ timezone เป็น UTC — cron จะรันเวลาผิด
 let lastPaymentReminderRun = null;   // 'YYYY-MM' — กันรันซ้ำในเดือนเดียวกัน
@@ -210,7 +148,7 @@ setInterval(() => {
   if (bkkDate === 3 && bkkHours === 9 && lastPaymentReminderRun !== bkkYM) {
     lastPaymentReminderRun = bkkYM;
     console.log(`[Cron] Running payment reminder for ${bkkYM} (Bangkok time)`);
-    runPaymentReminderJob();
+    runPaymentReminderJob(nowUTC);
   }
 }, 60 * 60 * 1000);
 
