@@ -1,4 +1,4 @@
-<div class="payment-container">
+<div class="payment-container" [class.line-payment]="lineMode">
 
   <!-- ─── Header ──────────────────────────────────────────── -->
   <div class="page-header">
@@ -17,6 +17,15 @@
     </div>
   </div>
 
+  <p *ngIf="loadError" role="alert">{{ loadError }}
+    <button type="button" class="btn btn-secondary" (click)="loadHistory()">โหลดใหม่</button>
+  </p>
+  <div *ngIf="lineMode && dueMonths.length" class="tuition-months" aria-label="เดือนที่มียอดค้าง">
+    <button type="button" *ngFor="let item of dueMonths" class="btn btn-secondary"
+      [attr.aria-pressed]="selectedMonth === item.month" (click)="selectedMonth = item.month">
+      {{ formatMonth(item.month) }} · ฿{{ item.amount | number }}
+    </button>
+  </div>
   <app-loading *ngIf="loading"></app-loading>
 
   <ng-container *ngIf="!loading">
@@ -130,8 +139,8 @@
             <tr *ngFor="let a of filteredHistory; let i = index"
                 [class.row-paid]="a.paymentStatus === 'paid'"
                 [class.row-pending]="a.paymentStatus === 'pending'">
-              <td>{{ i + 1 }}</td>
-              <td>{{ a.schedule?.date | date:'d MMM y' }}</td>
+              <td class="row-number">{{ i + 1 }}</td>
+              <td>{{ a.schedule?.date | date:'d MMM y':'+0700':'th' }}</td>
               <td>
                 <div class="cell-primary">
                   {{ getCourseName(a) }}
@@ -139,12 +148,12 @@
                 </div>
                 <div class="cell-secondary">{{ a.schedule?.course?.subject }}</div>
               </td>
-              <td>{{ getTeacherName(a) }}</td>
-              <td>{{ a.schedule?.startTime }} – {{ a.schedule?.endTime }}</td>
+              <td class="row-teacher">{{ getTeacherName(a) }}</td>
+              <td class="row-time">{{ a.schedule?.startTime }} – {{ a.schedule?.endTime }}</td>
               <td>{{ formatDuration(a.schedule?.totalDurationMinutes || 0) }}</td>
               <td>
                 <ng-container *ngIf="a.schedule?.coursePrice > 0; else freeCell">
-                  <span class="price-tag">฿{{ effectivePrice(a.schedule) | number }}</span>
+                  <span class="price-tag">฿{{ (payable(a)?.amount ?? effectivePrice(a.schedule)) | number }}</span>
                   <span *ngIf="isPriceHourly(a.schedule) && classHours(a.schedule) > 0" class="price-rate-sub">
                     ฿{{ a.schedule?.coursePrice | number }}/ชม. × {{ classHours(a.schedule) | number:'1.0-2' }} ชม.
                   </span>
@@ -154,17 +163,17 @@
               <td>
                 <span *ngIf="a.paymentStatus === 'paid'" class="badge badge-paid">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  ชำระเงินสำเร็จ
+                  ชำระแล้ว
                 </span>
                 <span *ngIf="a.paymentStatus === 'pending'" class="badge badge-pending">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  รอ Manager ยืนยัน
+                  รอตรวจสอบ
                 </span>
                 <span *ngIf="a.paymentStatus === 'rejected'" class="badge badge-rejected">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                   ปฏิเสธ — ติดต่อ Manager
                 </span>
-                <button *ngIf="!a.paymentStatus || a.paymentStatus === 'unpaid'"
+                <button *ngIf="payable(a)"
                         class="btn-qr-pay"
                         (click)="openPaymentQR(a)">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
@@ -183,7 +192,8 @@
 
 <!-- ─── Bank Transfer Modal ──────────────────────────────── -->
 <div class="modal-overlay" *ngIf="showPaymentModal" (click)="!transferClaimed && closePaymentModal()">
-  <div class="modal-card bank-modal" (click)="$event.stopPropagation()">
+  <div class="modal-card bank-modal" role="dialog" aria-modal="true" aria-label="ชำระค่าเรียน"
+       (click)="$event.stopPropagation()" (keydown.escape)="closePaymentModal()">
     <button class="modal-close" (click)="closePaymentModal()" aria-label="ปิด">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
@@ -205,7 +215,7 @@
       <div class="pay-step-line"></div>
       <div class="pay-step">
         <div class="pay-step-dot"><span>3</span></div>
-        <span class="pay-step-label">รอ Manager ยืนยัน</span>
+        <span class="pay-step-label">รอตรวจสอบ</span>
       </div>
     </div>
 
@@ -216,10 +226,25 @@
         โอนเงินเข้าบัญชี
       </h3>
       <p class="payment-desc">{{ paymentDescription }}</p>
-      <div class="payment-amount">฿{{ paymentAmount | number:'1.2-2' }}</div>
+      <div class="payment-amount" *ngIf="quote">฿{{ paymentAmount | number:'1.2-2' }}</div>
+
+      <p *ngIf="quoteLoading" role="status">กำลังตรวจยอดล่าสุด…</p>
+      <div *ngIf="quote?.stale && !quoteLoading" class="bank-instructions">
+        <p>ยอดเดิม ฿{{ paymentAmount | number }} · ยอดปัจจุบัน ฿{{ quote?.currentAmount | number }}</p>
+        <p>ถ้าโอนตามยอดเดิมแล้ว ให้กดแจ้งว่าโอนแล้วเพื่อให้ผู้จัดการตรวจสอบ</p>
+      </div>
+      <div *ngIf="quote?.qrDataURL && !quoteLoading" class="tuition-qr">
+        <img [src]="quote?.qrDataURL" width="220" height="220" alt="PromptPay QR สำหรับยอดที่แสดง">
+        <a [href]="quote?.qrDataURL" download="kms-promptpay.png">บันทึก QR</a>
+        <small>แตะค้างที่รูปเพื่อบันทึก หาก LINE ไม่เปิดไฟล์ดาวน์โหลด</small>
+      </div>
+      <button type="button" class="btn btn-secondary" *ngIf="quote && !quoteLoading"
+        (click)="loadQuote(false)" [disabled]="paymentLoading">
+        {{ quote.stale ? 'ใช้ยอดปัจจุบันและออก QR ใหม่' : 'ตรวจยอดล่าสุด' }}
+      </button>
 
       <!-- Bank info card -->
-      <div class="bank-card" *ngIf="bankInfo">
+      <div class="bank-card" *ngIf="bankInfo && quote && !quote.stale && !quoteLoading">
         <div class="bank-row">
           <span class="bank-label">ธนาคาร</span>
           <span class="bank-value bank-name">{{ bankInfo.bankName }}</span>
@@ -241,23 +266,24 @@
       </div>
 
       <!-- Instructions -->
-      <div class="bank-instructions">
+      <div class="bank-instructions" *ngIf="quote && !quote.stale && !quoteLoading">
         <div class="bank-instruction-item">
           <span class="bank-step-num">1</span>
-          เปิดแอปธนาคารของคุณ → เลือก <strong>"โอนเงิน"</strong>
+          เปิดแอปธนาคาร เลือก <strong>โอนเงิน</strong>
+          <span *ngIf="quote.qrDataURL"> หรือเลือกรูป QR ที่บันทึกไว้</span>
         </div>
         <div class="bank-instruction-item">
           <span class="bank-step-num">2</span>
-          โอนตามจำนวน <strong>฿{{ paymentAmount | number:'1.2-2' }}</strong> ไปยังบัญชีด้านบน
+          ตรวจชื่อผู้รับและยอด <strong>฿{{ paymentAmount | number:'1.2-2' }}</strong> ก่อนโอน
         </div>
         <div class="bank-instruction-item">
           <span class="bank-step-num">3</span>
-          กลับมากดปุ่ม <strong>"ยืนยันว่าโอนแล้ว"</strong> ด้านล่าง
+          กลับมากดปุ่ม <strong>"แจ้งว่าโอนแล้ว"</strong> ด้านล่าง
         </div>
       </div>
 
       <!-- Optional ref slip -->
-      <div class="form-group bank-ref-input">
+      <div class="form-group bank-ref-input" *ngIf="quote">
         <label>เลขที่อ้างอิงสลิป (ไม่บังคับ)</label>
         <input
           type="text"
@@ -278,10 +304,10 @@
       <!-- Action buttons -->
       <div class="bank-actions">
         <button class="btn-cancel" (click)="closePaymentModal()" [disabled]="paymentLoading">ยกเลิก</button>
-        <button class="btn-confirm-transfer" (click)="confirmTransfer()" [disabled]="paymentLoading">
+        <button class="btn-confirm-transfer" (click)="confirmTransfer()" [disabled]="!quote || paymentLoading || quoteLoading">
           <span *ngIf="!paymentLoading">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><polyline points="20 6 9 17 4 12"/></svg>
-            ยืนยันว่าโอนแล้ว
+            แจ้งว่าโอนแล้ว
           </span>
           <span *ngIf="paymentLoading">
             <span class="spinner-sm"></span>
@@ -291,13 +317,13 @@
       </div>
     </ng-container>
 
-    <!-- ── Step 3: บันทึกแล้ว รอ Manager ยืนยัน ── -->
+    <!-- ── Step 3: บันทึกแล้ว รอตรวจสอบ ── -->
     <div *ngIf="transferClaimed" class="result-state success">
       <div class="result-icon">
         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
       <h3>บันทึกการแจ้งโอนแล้ว!</h3>
-      <p>สถานะปัจจุบัน: <strong style="color:#b45309">รอ Manager ยืนยันการชำระเงิน</strong></p>
+      <p>สถานะปัจจุบัน: <strong style="color:#b45309">รอตรวจสอบการชำระเงิน</strong></p>
       <p style="font-size:12px;color:#6b7280;margin-top:8px">
         Manager จะตรวจสอบและอัปเดตสถานะให้เร็วที่สุด ระหว่างรอคุณสามารถปิดหน้าต่างนี้ได้
       </p>

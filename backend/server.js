@@ -19,6 +19,8 @@ const attendanceRoutes = require('./routes/attendance');
 const expensesRoutes = require('./routes/expenses');
 const teacherAvailabilityRoutes = require('./routes/teacherAvailability');
 const reviewsRoutes = require('./routes/reviews');
+const lineRoutes = require('./routes/line');
+const { runLineReminders } = require('./services/lineReminderService');
 
 const app = express();
 
@@ -75,6 +77,7 @@ const generalLimiter = rateLimit({
   skip: () => isDev               // ปิดใน dev
 });
 
+app.post('/api/line/webhook', generalLimiter, lineRoutes.rawWebhook, lineRoutes.webhook);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
@@ -104,6 +107,7 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/expenses', expensesRoutes);
 app.use('/api/teacher-availability', teacherAvailabilityRoutes);
 app.use('/api/reviews', reviewsRoutes);
+app.use('/api/line', lineRoutes.router);
 
 app.get('/health', (req, res) => {
   res.json({ success: true, message: 'Server is running' });
@@ -208,6 +212,13 @@ setInterval(() => {
     runPaymentReminderJob();
   }
 }, 60 * 60 * 1000);
+
+if (process.env.LINE_REMINDERS_ENABLED === 'true') {
+  const tick = () => runLineReminders().catch(error =>
+    console.error('[LINE] Reminder job failed:', error.code || error.name));
+  mongoose.connection.once('open', tick);
+  setInterval(tick, 60_000);
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 // Cron Job: ทุก 5 นาที — Auto-complete คลาสที่หมดเวลา QR (+30 นาที)

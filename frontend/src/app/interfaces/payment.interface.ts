@@ -7,6 +7,8 @@ export interface IPayment {
   paymentType?: 'per_class' | 'monthly';
   paymentMonth?: string;
   amount: number;
+  tuitionQuote?: string;
+  currentAmount?: number | null;
   method: 'transfer' | 'promptpay' | 'credit_card' | 'gateway';
   slipImage?: string;
   transactionRef?: string;
@@ -50,6 +52,7 @@ export interface IRevenueSchedule {
     paymentId?: string | null;
     paymentStatus?: 'unpaid' | 'pending' | 'confirmed' | 'rejected';
     paymentAmount?: number;
+    quotedAmount?: number | null;
   }[];
   attendanceCount: number;
   coursePrice: number;            // effective total (rate × hours for hourly, else flat)

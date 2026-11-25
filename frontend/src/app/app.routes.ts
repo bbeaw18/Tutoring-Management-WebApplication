@@ -39,6 +39,11 @@ export const appRoutes: Routes = [
   // ─── QR Scan: นักเรียนสแกนแล้วเปิด URL นี้ → เช็คชื่ออัตโนมัติ ───────────
   { path: 'scan', component: ScanComponent, canActivate: [authGuard] },
   {
+    path: 'line/tuition',
+    loadComponent: () => import('./pages/student/line-tuition/line-tuition.component')
+      .then(module => module.LineTuitionComponent)
+  },
+  {
     path: 'dashboard',
     component: DashboardComponent,
     canActivate: [authGuard],

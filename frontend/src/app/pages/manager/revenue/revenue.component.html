@@ -3,6 +3,7 @@
     <h1>รายรับ/รายจ่าย</h1>
     <p>สรุปรายรับ-รายจ่ายของสถาบันต่อเดือน</p>
   </div>
+  <app-line-review (reviewed)="loadReport()"></app-line-review>
 
   <!-- ── Skeleton placeholder (replaces app-loading) ── -->
   <div *ngIf="loading" class="rev-skel" aria-busy="true" aria-label="กำลังโหลดรายรับ">
@@ -834,6 +835,9 @@
             </div>
             <div class="sm-item-finance">
               <span class="sm-item-amount">฿{{ getStudentEntry(s, studentMonthlyTarget.id).amount | number: '1.0-0' }}</span>
+              <span *ngIf="getStudentEntry(s, studentMonthlyTarget.id).quotedAmount != null">
+                ยอดที่แจ้งโอน ฿{{ getStudentEntry(s, studentMonthlyTarget.id).quotedAmount | number:'1.2-2' }}
+              </span>
               <span class="sm-item-pay-badge"
                     [class.sm-pay-confirmed]="getStudentEntry(s, studentMonthlyTarget.id).status === 'confirmed'"
                     [class.sm-pay-pending]="getStudentEntry(s, studentMonthlyTarget.id).status === 'pending'"

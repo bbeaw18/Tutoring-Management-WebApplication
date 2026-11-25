@@ -1,0 +1,55 @@
+<p *ngIf="error" role="alert">{{ error }}</p>
+<p *ngIf="(!ready || busy) && !error" role="status">กำลังตรวจสอบบัญชี…</p>
+
+<ng-container *ngIf="ready">
+  <section *ngIf="!lineLoggedIn">
+    <h1>ค่าเรียนของฉัน</h1>
+    <button type="button" class="btn btn-primary" (click)="loginLine()">เข้าสู่ระบบ LINE</button>
+  </section>
+  <section *ngIf="lineLoggedIn && !auth.isLoggedIn()">
+    <h1>ค่าเรียนของฉัน</h1>
+    <a class="btn btn-primary" routerLink="/login" [queryParams]="{ returnUrl }">เข้าสู่บัญชี KMS</a>
+  </section>
+  <section *ngIf="lineLoggedIn && auth.isLoggedIn() && auth.getUserRole() !== 'student'">
+    <p>กรุณาใช้บัญชีนักเรียนเพื่อเปิดค่าเรียน</p>
+    <button type="button" class="btn btn-secondary" (click)="auth.logout()">ออกจากบัญชี KMS</button>
+  </section>
+
+  <app-terms-agreement *ngIf="lineLoggedIn && termsDoc as doc"
+    [doc]="doc" [submitting]="submittingTerms" (accepted)="acceptTerms()"
+    (declined)="auth.logout()">
+  </app-terms-agreement>
+
+  <ng-container *ngIf="!termsDoc && auth.getCurrentUser() && connection as link">
+    <section *ngIf="!link.linked">
+      <h1>ผูกบัญชีเพื่อดูค่าเรียน</h1>
+      <p>บัญชี KMS ของ <strong>{{ studentName }}</strong></p>
+      <label><input type="checkbox" [(ngModel)]="optedIn"> รับแจ้งเตือนค่าเรียนทาง LINE</label>
+      <div class="actions">
+        <button type="button" class="btn btn-primary" (click)="save()" [disabled]="busy">ยืนยันการผูกบัญชี</button>
+        <button type="button" class="btn btn-secondary" (click)="auth.logout()" [disabled]="busy">เปลี่ยนบัญชี KMS</button>
+      </div>
+    </section>
+
+    <section *ngIf="link.linked && !link.matches">
+      <p>บัญชี KMS นี้ผูกกับ LINE อีกบัญชีอยู่</p>
+      <button type="button" class="btn btn-secondary" (click)="unlink()" [disabled]="busy">ยกเลิกการผูกเดิม</button>
+    </section>
+
+    <ng-container *ngIf="link.matches">
+      <section>
+        <details>
+          <summary>การเชื่อมต่อ LINE ของ {{ studentName }}</summary>
+          <p *ngIf="!link.friend">เพิ่มเพื่อนหรือปลดบล็อก LINE OA ของสถาบันเพื่อรับแจ้งเตือน</p>
+          <label><input type="checkbox" [(ngModel)]="optedIn"> รับแจ้งเตือนค่าเรียนทาง LINE</label>
+          <div class="actions">
+            <button type="button" class="btn btn-primary" (click)="save()"
+              [disabled]="busy || optedIn === link.optedIn">บันทึกการแจ้งเตือน</button>
+            <button type="button" class="btn btn-secondary" (click)="unlink()" [disabled]="busy">ยกเลิกการผูก</button>
+          </div>
+        </details>
+      </section>
+      <app-payment [lineMode]="true"></app-payment>
+    </ng-container>
+  </ng-container>
+</ng-container>

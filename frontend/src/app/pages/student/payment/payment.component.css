@@ -692,3 +692,73 @@
   from { opacity: 0; transform: translateY(-6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+.tuition-qr {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  padding-block: 0.75rem;
+  text-align: center;
+}
+.modal-card.bank-modal {
+  max-height: calc(100vh - 2 * var(--sp-5));
+  max-height: calc(100dvh - 2 * var(--sp-5));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.tuition-qr img {
+  max-width: 100%;
+  height: auto;
+}
+.tuition-qr a, .tuition-months button {
+  min-height: 44px;
+}
+.tuition-qr a {
+  display: inline-flex;
+  align-items: center;
+}
+.tuition-months {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-block: 0.75rem;
+}
+.tuition-months [aria-pressed="true"] {
+  font-weight: 700;
+  text-decoration: underline;
+}
+@media (max-width: 600px) {
+  .line-payment .pay-table,
+  .line-payment .pay-table tbody {
+    display: block;
+  }
+  .line-payment .pay-table thead {
+    position: absolute;
+    clip-path: inset(50%);
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+  .line-payment .pay-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.25rem 0.75rem;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .line-payment .pay-table td {
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+  .line-payment .pay-table .row-number,
+  .line-payment .pay-table .row-teacher,
+  .line-payment .pay-table .row-time {
+    display: none;
+  }
+  .line-payment .pay-table td:last-child {
+    grid-column: 1 / -1;
+  }
+  .line-payment .btn-qr-pay {
+    min-height: 44px;
+  }
+}

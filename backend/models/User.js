@@ -208,6 +208,7 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+  tuitionRevision: { type: Number, select: false },
   updatedAt: {
     type: Date,
     default: Date.now

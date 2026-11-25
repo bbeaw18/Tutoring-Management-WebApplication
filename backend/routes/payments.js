@@ -7,6 +7,8 @@ const crypto = require('crypto');
 const axios = require('axios');
 const Payment = require('../models/Payment');
 const PaymentSession = require('../models/PaymentSession');
+const TuitionQuote = require('../models/TuitionQuote');
+const { getTuition, total, targetFilter, quoteItems, quoteMatches, claimTuition } = require('../services/tuitionService');
 const Schedule = require('../models/Schedule');
 const Attendance = require('../models/Attendance');
 const User = require('../models/User');
@@ -230,39 +232,8 @@ router.get('/', authenticateToken, async (req, res) => {
 // ────────────────────────────────────────────────────────────────────────────
 router.get('/unpaid', authenticateToken, roleCheck(['student']), async (req, res) => {
   try {
-    const Schedule = require('../models/Schedule');
-    const Attendance = require('../models/Attendance');
-
-    // หา schedules ที่นักเรียนเช็คชื่อแล้วแต่ยังไม่มี payment
-    const attendances = await Attendance.find({ student: req.user.id })
-      .populate({
-        path: 'schedule',
-        populate: { path: 'course', select: 'name subject' }
-      });
-
-    const unpaid = [];
-    for (const att of attendances) {
-      if (!att.schedule) continue;
-      const existingPayment = await Payment.findOne({
-        student: req.user.id,
-        schedule: att.schedule._id,
-        status: { $in: ['pending', 'confirmed'] }
-      });
-      if (!existingPayment) {
-        unpaid.push({
-          scheduleId: att.schedule._id,
-          courseName: att.schedule.course?.name || '-',
-          date: att.schedule.date,
-          startTime: att.schedule.startTime,
-          endTime: att.schedule.endTime,
-          amount: computeEffectivePrice(att.schedule),
-          attendedAt: att.scannedAt
-        });
-      }
-    }
-
-    const totalAmount = unpaid.reduce((sum, item) => sum + item.amount, 0);
-    sendResponse(res, 200, true, { unpaid, totalAmount }, 'Unpaid items retrieved');
+    const unpaid = await getTuition(req.user.id);
+    sendResponse(res, 200, true, { unpaid, totalAmount: total(unpaid) }, 'Unpaid items retrieved');
   } catch (error) {
     console.error('Get unpaid error:', error);
     sendResponse(res, 500, false, null, error.message);
@@ -365,7 +336,7 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
     const allPayments = await Payment.find({
       schedule: { $in: scheduleIds },
       status: { $in: ['pending', 'confirmed'] }
-    }).select('_id student schedule amount status');
+    }).select('_id student schedule amount status tuitionQuote');
 
     // สร้าง map: key = "studentId:scheduleId" → sum ของ amount (เฉพาะ confirmed)
     const paidAmountByKey = new Map();
@@ -379,7 +350,7 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
       // เก็บ payment ล่าสุด (ใช้ confirmed > pending)
       const existing = paymentByKey.get(key);
       if (!existing || (existing.status === 'pending' && p.status === 'confirmed')) {
-        paymentByKey.set(key, { _id: p._id, status: p.status, amount: p.amount });
+        paymentByKey.set(key, p);
       }
     }
 
@@ -492,6 +463,7 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
               paymentId:    payment?._id || null,
               // แสดงราคาปัจจุบันของคลาส ไม่ใช่ payment.amount เก่า — เพื่อให้ตรงกับหน้าอื่น
               paymentAmount: effectivePrice,
+              quotedAmount: payment?.tuitionQuote ? payment.amount : null,
               isAbsent:      false
             };
           });
@@ -587,12 +559,15 @@ router.get('/pending-verification', authenticateToken, roleCheck(['admin', 'mana
       .populate('course', 'name subject')
       .populate({
         path: 'schedule',
-        select: 'date startTime endTime',
+        select: 'date startTime endTime coursePrice totalDurationMinutes',
         populate: { path: 'course', select: 'name subject' }
       })
       .sort({ createdAt: -1 });
 
-    sendResponse(res, 200, true, payments, 'Pending payments retrieved');
+    sendResponse(res, 200, true, payments.map(payment => ({
+      ...payment.toObject(),
+      currentAmount: payment.schedule ? computeEffectivePrice(payment.schedule) : null
+    })), 'Pending payments retrieved');
   } catch (error) {
     console.error('Pending verification error:', error);
     sendResponse(res, 500, false, null, error.message);
@@ -763,130 +738,29 @@ router.post('/teacher-payout', authenticateToken, roleCheck(['admin', 'manager']
 // ────────────────────────────────────────────────────────────────────────────
 router.post('/claim-transfer', authenticateToken, roleCheck(['student']), async (req, res) => {
   try {
-    const Schedule = require('../models/Schedule');
-    const { scheduleId, month, transactionRef, note } = req.body;
-
-    let amount = 0;
-    let description = '';
-    let paymentType = '';
-    let relatedSchedules = [];
-    let courseId = null;
-
-    if (scheduleId) {
-      // ── ชำระรายคลาส ──
-      const schedule = await Schedule.findById(scheduleId).populate('course', 'name subject _id');
-      if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
-
-      const isStudent = schedule.students.some(s => s.toString() === req.user.id);
-      if (!isStudent) return sendResponse(res, 403, false, null, 'คุณไม่ได้ลงทะเบียนในคลาสนี้');
-
-      if (!['completed', 'awaiting_confirmation'].includes(schedule.status)) {
-        return sendResponse(res, 400, false, null,
-          `ยังไม่สามารถชำระเงินได้: ต้องรอครูยืนยันเสร็จสิ้นการสอนก่อน`);
+    const { created, ...claim } = await claimTuition(req.user.id, req.body);
+    if (created) {
+      try {
+        const managers = await User.find({ role: { $in: ['manager', 'admin'] }, isActive: true });
+        await Notification.insertMany(managers.map(manager => ({
+          recipient: manager._id,
+          sender: req.user.id,
+          type: 'payment',
+          title: 'มีการแจ้งชำระค่าเรียน',
+          message: `ยอดที่แจ้งโอน ฿${claim.totalAmount.toLocaleString('th-TH')} กรุณาตรวจสอบ`,
+          relatedId: claim.paymentIds[0]
+        })));
+      } catch (error) {
+        console.error('Transfer claim notification failed:', error.message);
       }
-
-      const attended = await Attendance.findOne({ schedule: scheduleId, student: req.user.id });
-      if (!attended) return sendResponse(res, 400, false, null, 'ยังไม่ได้เช็คชื่อในคลาสนี้');
-
-      // ตรวจว่ามี payment pending/confirmed อยู่แล้วหรือไม่
-      const existing = await Payment.findOne({
-        student: req.user.id, schedule: scheduleId,
-        status: { $in: ['pending', 'confirmed'] }
-      });
-      if (existing) {
-        const msg = existing.status === 'confirmed'
-          ? 'ชำระเงินสำหรับคลาสนี้เรียบร้อยแล้ว'
-          : 'คลาสนี้มีคำขอยืนยันการชำระอยู่แล้ว — รอ Manager ตรวจสอบ';
-        return sendResponse(res, 400, false, null, msg);
-      }
-
-      amount = computeEffectivePrice(schedule);
-      const subjectLabel = schedule.course?.subject || schedule.course?.name || 'คลาส';
-      description = `ค่าเรียน ${subjectLabel} ${new Date(schedule.date).toLocaleDateString('th-TH')}`;
-      paymentType = 'per_class';
-      relatedSchedules = [scheduleId];
-      courseId = schedule.course?._id;
-
-    } else if (month) {
-      // ── ชำระรายเดือน ──
-      const [y, m] = month.split('-').map(Number);
-      const startDate = new Date(y, m - 1, 1);
-      const endDate   = new Date(y, m, 0, 23, 59, 59);
-
-      const schedules = await Schedule.find({
-        students: req.user.id,
-        date: { $gte: startDate, $lte: endDate },
-        status: { $in: ['completed', 'awaiting_confirmation'] },
-        coursePrice: { $gt: 0 }
-      }).populate('course', 'name subject _id');
-
-      for (const s of schedules) {
-        const attended = await Attendance.findOne({ schedule: s._id, student: req.user.id });
-        if (!attended) continue;
-        const paid = await Payment.findOne({
-          student: req.user.id, schedule: s._id,
-          status: { $in: ['pending', 'confirmed'] }
-        });
-        if (!paid) {
-          amount += computeEffectivePrice(s);
-          relatedSchedules.push(s._id.toString());
-          if (!courseId && s.course?._id) courseId = s.course._id;
-        }
-      }
-
-      if (amount === 0) return sendResponse(res, 400, false, null, 'ไม่มียอดค้างชำระในเดือนนี้');
-      description = `ค่าเรียนรวมเดือน ${month} (${relatedSchedules.length} คลาส)`;
-      paymentType = 'monthly';
-
-    } else {
-      return sendResponse(res, 400, false, null, 'ต้องระบุ scheduleId หรือ month');
     }
-
-    if (!courseId) return sendResponse(res, 400, false, null, 'ไม่พบคอร์สที่เชื่อมโยง');
-
-    // ── สร้าง Payment record ทุก schedule (ถ้าหลาย schedules) ──
-    const createdPayments = [];
-    for (const sid of relatedSchedules) {
-      const sched = await Schedule.findById(sid);
-      const p = new Payment({
-        student: req.user.id,
-        course: sched.course,
-        schedule: sid,
-        paymentMonth: paymentType === 'monthly' ? month : null,
-        paymentType,
-        amount: computeEffectivePrice(sched),
-        method: 'transfer',
-        transactionRef: transactionRef || null,
-        note: note || null,
-        status: 'pending' // รอ Manager ยืนยัน
-      });
-      await p.save();
-      createdPayments.push(p);
-    }
-
-    // ── แจ้ง Manager ──
-    const managers = await User.find({ role: { $in: ['manager', 'admin'] }, isActive: true });
-    for (const mgr of managers) {
-      await Notification.create({
-        recipient: mgr._id,
-        sender: req.user.id,
-        type: 'payment',
-        title: '💰 มีการแจ้งยืนยันการชำระเงิน',
-        message: `${description} — รวม ฿${amount.toLocaleString('th-TH')} | กรุณาตรวจสอบ`,
-        relatedId: createdPayments[0]?._id
-      });
-    }
-
-    sendResponse(res, 201, true, {
-      paymentIds: createdPayments.map(p => p._id),
-      totalAmount: amount,
-      description,
-      status: 'pending',
-      message: 'แจ้งการชำระเงินสำเร็จ — รอ Manager ตรวจสอบและยืนยัน'
-    }, 'Transfer claimed — awaiting verification');
+    sendResponse(res, created ? 201 : 200, true,
+      { ...claim, status: 'pending', message: 'แจ้งว่าโอนแล้ว รอผู้จัดการตรวจสอบ' },
+      'Transfer claimed');
   } catch (error) {
-    console.error('Claim transfer error:', error);
-    sendResponse(res, 500, false, null, error.message);
+    if (!error.status) console.error('Claim transfer error:', error);
+    sendResponse(res, error.status || 500, false, null, error.status
+      ? error.message : 'ไม่สามารถบันทึกรายการแจ้งโอนได้');
   }
 });
 
@@ -1089,97 +963,34 @@ router.post('/bulk-confirm-month', authenticateToken, roleCheck(['admin', 'manag
 // ────────────────────────────────────────────────────────────────────────────
 router.post('/generate-promptpay-qr', authenticateToken, roleCheck(['student']), async (req, res) => {
   try {
-    const { scheduleId, month } = req.body;
-    const promptpayId = process.env.PROMPTPAY_ID; // เบอร์โทรหรือเลขบัตรของระบบ
-
-    if (!promptpayId) {
-      return sendResponse(res, 500, false, null, 'PROMPTPAY_ID ยังไม่ได้ตั้งค่าใน .env');
+    const student = req.user.id;
+    const target = targetFilter(req.body);
+    const rows = await getTuition(student, target);
+    if (!rows.length) return sendResponse(res, 409, false, null, 'ไม่มียอดที่ชำระได้');
+    const promptpayId = process.env.PROMPTPAY_ID;
+    if (!promptpayId && !req.body.allowBankTransfer) {
+      return sendResponse(res, 503, false, null, 'ระบบยังไม่พร้อมออก PromptPay QR');
     }
-
-    let amount = 0;
-    let description = '';
-    let paymentType = '';
-    let relatedSchedules = [];
-
-    if (scheduleId) {
-      // ── ชำระรายคลาส ──
-      const schedule = await Schedule.findById(scheduleId)
-        .populate('course', 'name subject');
-      if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
-
-      // ตรวจว่านักเรียนอยู่ใน schedule
-      const isStudent = schedule.students.some(s => s.toString() === req.user.id);
-      if (!isStudent) return sendResponse(res, 403, false, null, 'คุณไม่ได้ลงทะเบียนในคลาสนี้');
-
-      // ตรวจ status: ชำระได้เฉพาะคลาสที่เสร็จสิ้น (รอ Manager ยืนยัน หรือเสร็จสิ้นแล้ว)
-      if (!['completed', 'awaiting_confirmation'].includes(schedule.status)) {
-        return sendResponse(res, 400, false, null,
-          `ยังไม่สามารถชำระเงินได้: คลาสนี้สถานะ "${schedule.status}" ต้องรอครูยืนยันเสร็จสิ้นการสอนก่อน`);
-      }
-
-      // ตรวจว่าเช็คชื่อแล้ว
-      const attended = await Attendance.findOne({ schedule: scheduleId, student: req.user.id });
-      if (!attended) return sendResponse(res, 400, false, null, 'ยังไม่ได้เช็คชื่อในคลาสนี้');
-
-      amount = computeEffectivePrice(schedule);
-      // ✅ ดึง subject จาก course (Schedule schema ไม่มี field subject)
-      const subjectLabel = schedule.course?.subject || schedule.course?.name || 'คลาส';
-      description = `ค่าเรียน ${subjectLabel} ${new Date(schedule.date).toLocaleDateString('th-TH')}`;
-      paymentType = 'per_class';
-      relatedSchedules = [scheduleId];
-
-    } else if (month) {
-      // ── ชำระรายเดือน ──
-      const [y, m] = month.split('-').map(Number);
-      const startDate = new Date(y, m - 1, 1);
-      const endDate   = new Date(y, m, 0, 23, 59, 59);
-
-      // หา schedules ของนักเรียนในเดือนนั้นที่ completed/awaiting_confirmation
-      const schedules = await Schedule.find({
-        students: req.user.id,
-        date: { $gte: startDate, $lte: endDate },
-        status: { $in: ['completed', 'awaiting_confirmation'] },
-        coursePrice: { $gt: 0 }
-      });
-
-      // กรองเฉพาะที่เช็คชื่อแล้วและยังไม่ได้จ่าย
-      for (const s of schedules) {
-        const attended = await Attendance.findOne({ schedule: s._id, student: req.user.id });
-        if (!attended) continue;
-        const paid = await Payment.findOne({
-          student: req.user.id, schedule: s._id,
-          status: { $in: ['pending', 'confirmed'] }
-        });
-        if (!paid) {
-          amount += computeEffectivePrice(s);
-          relatedSchedules.push(s._id.toString());
-        }
-      }
-
-      if (amount === 0) return sendResponse(res, 400, false, null, 'ไม่มียอดค้างชำระในเดือนนี้');
-      description = `ค่าเรียนรวมเดือน ${month} (${relatedSchedules.length} คลาส)`;
-      paymentType = 'monthly';
-    } else {
-      return sendResponse(res, 400, false, null, 'ต้องระบุ scheduleId หรือ month');
-    }
-
-    if (amount <= 0) return sendResponse(res, 400, false, null, 'ยอดชำระต้องมากกว่า 0');
-
-    // สร้าง PromptPay payload
-    const payload = generatePayload(promptpayId, { amount });
-    const qrDataURL = await QRCode.toDataURL(payload);
-
+    let quote = req.body.resume && await TuitionQuote.findOne({
+      student, ...target, 'paymentIds.0': { $exists: false }
+    }).sort({ createdAt: -1 });
+    if (!quote) quote = await TuitionQuote.create({
+      student, ...target, items: quoteItems(rows), promptpayId
+    });
+    const stale = !quoteMatches(quote, rows) || (quote.promptpayId || '') !== (promptpayId || '');
+    const amount = total(quote.items);
+    const qrDataURL = promptpayId && !stale
+      ? await QRCode.toDataURL(generatePayload(promptpayId, { amount }), { width: 320, errorCorrectionLevel: 'M' })
+      : null;
+    const relatedSchedules = quote.items.map(item => item.schedule);
     sendResponse(res, 200, true, {
-      qrDataURL,
-      amount,
-      description,
-      paymentType,
-      relatedSchedules,
-      promptpayId
-    }, 'สร้าง PromptPay QR สำเร็จ');
+      quoteId: quote._id, qrDataURL, amount, currentAmount: total(rows), stale, relatedSchedules,
+      paymentType: target.month ? 'monthly' : 'per_class',
+      description: target.month ? `ค่าเรียนเดือน ${target.month}` : `ค่าเรียน ${rows[0].subject || rows[0].courseName}`
+    }, 'เรียกดูข้อมูลการโอนสำเร็จ');
   } catch (error) {
-    console.error('Generate PromptPay QR error:', error);
-    sendResponse(res, 500, false, null, error.message);
+    if (!error.status) console.error('Generate PromptPay QR error:', error);
+    sendResponse(res, error.status || 500, false, null, error.status ? error.message : 'ไม่สามารถออก QR ได้');
   }
 });
 

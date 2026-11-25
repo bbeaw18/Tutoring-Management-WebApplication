@@ -1,0 +1,46 @@
+<nav aria-label="ตรวจรายการโอนและแจ้งเตือน">
+  <button type="button" class="btn btn-secondary" (click)="load('transfers')" [disabled]="busy">ตรวจรายการแจ้งโอนค่าเรียน</button>
+  <button type="button" class="btn btn-secondary" (click)="load('reminders')" [disabled]="busy">ดูตัวอย่างผู้รับแจ้งเตือน LINE</button>
+</nav>
+<p *ngIf="busy" role="status">กำลังโหลด…</p>
+<p *ngIf="error" role="alert">{{ error }}</p>
+
+<section *ngIf="mode === 'transfers' && !error" aria-label="รายการโอนที่รอตรวจสอบ">
+  <p *ngIf="!payments.length && !busy">ไม่มีรายการโอนที่รอตรวจสอบ</p>
+  <article *ngFor="let payment of payments">
+    <strong>{{ payment.student?.nickname || payment.student?.firstName }} · {{ payment.course?.name }}</strong>
+    <p *ngIf="payment.schedule?.date">วันที่เรียน {{ payment.schedule.date | date:'d MMM y':'+0700' }}</p>
+    <p>ยอดที่แจ้งโอน ฿{{ payment.amount | number:'1.2-2' }}</p>
+    <p *ngIf="payment.currentAmount != null">ยอดปัจจุบัน ฿{{ payment.currentAmount | number:'1.2-2' }}
+      <span *ngIf="payment.amount !== payment.currentAmount">
+        · ส่วนต่าง ฿{{ payment.amount - payment.currentAmount | number:'1.2-2' }}
+      </span>
+    </p>
+    <p *ngIf="payment.currentAmount == null">ไม่พบคลาสเพื่อเทียบยอดปัจจุบัน</p>
+    <p *ngIf="payment.transactionRef">อ้างอิงสลิป {{ payment.transactionRef }}</p>
+    <nav>
+      <button type="button" class="btn btn-primary" (click)="review(payment, true)" [disabled]="busy">ยืนยันรับเงิน</button>
+      <button type="button" class="btn btn-secondary" (click)="review(payment, false)" [disabled]="busy">ปฏิเสธ</button>
+    </nav>
+  </article>
+</section>
+
+<section *ngIf="mode === 'reminders' && preview && !error" aria-label="ตัวอย่างผู้รับ LINE">
+  <p>รอบ {{ preview.round }} · {{ preview.enabled ? 'เปิดส่ง LINE' : 'ปิดส่ง LINE' }} ·
+    {{ preview.due ? 'ถึงรอบส่งแล้ว' : 'เริ่มวันที่ 3 เวลา 09:00 น.' }}</p>
+  <p *ngIf="preview.quotaExceededAt" role="status">หยุดส่งรอบนี้แล้ว เนื่องจากโควตา LINE เต็ม</p>
+  <p *ngIf="!preview.recipients.length">ไม่มีผู้รับที่เข้าเงื่อนไขในรอบนี้</p>
+  <ul *ngIf="preview.recipients.length">
+    <li *ngFor="let recipient of preview.recipients">
+      {{ recipient.name }} · เดือน {{ recipient.months.join(', ') }} · {{ status[recipient.status] }}
+    </li>
+  </ul>
+  <details *ngIf="preview.deliveries.length">
+    <summary>ผลการส่งรอบนี้ ({{ preview.deliveries.length }} รายการ)</summary>
+    <ul>
+      <li *ngFor="let delivery of preview.deliveries">
+        {{ delivery.student }} · {{ status[delivery.status] }} · {{ delivery.attempts }} ครั้ง · {{ delivery.reason }}
+      </li>
+    </ul>
+  </details>
+</section>

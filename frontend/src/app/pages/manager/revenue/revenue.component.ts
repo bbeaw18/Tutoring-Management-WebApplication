@@ -16,6 +16,7 @@ import { MonthPickerComponent } from '../../../shared/components/month-picker/mo
 import { DisplayNamePipe } from '../../../shared/pipes/display-name.pipe';
 import { CountUpDirective } from '../../../shared/directives/count-up.directive';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { LineReviewComponent } from './line-review.component';
 
 type KpiMode = 'all' | 'paid' | 'unpaid' | 'teacherExpense' | 'managerIncome' | 'myIncome';
 type TxStatus = 'paid' | 'pending' | 'unpaid';
@@ -55,7 +56,7 @@ interface PieSlice {
 @Component({
   selector: 'app-revenue',
   standalone: true,
-  imports: [CommonModule, FormsModule, LoadingComponent, MonthPickerComponent, DisplayNamePipe, CountUpDirective],
+  imports: [CommonModule, FormsModule, LoadingComponent, MonthPickerComponent, DisplayNamePipe, CountUpDirective, LineReviewComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './revenue.component.html',
   styleUrls: ['./revenue.component.css']
@@ -1142,9 +1143,10 @@ export class RevenueComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /** ข้อมูลการชำระเงินของนักเรียนคนนี้ในคลาสที่กำหนด */
   getStudentEntry(s: IRevenueSchedule, studentId: string)
-    : { amount: number; status?: string; paymentId?: string | null } {
+    : { amount: number; quotedAmount?: number | null; status?: string; paymentId?: string | null } {
     const e = s.attendedStudents?.find(st => st.studentId === studentId);
-    return { amount: e?.paymentAmount || 0, status: e?.paymentStatus, paymentId: e?.paymentId };
+    return { amount: e?.paymentAmount || 0, quotedAmount: e?.quotedAmount,
+      status: e?.paymentStatus, paymentId: e?.paymentId };
   }
 
   /** ชื่อเดือนเต็มในภาษาไทย เช่น "พฤษภาคม 2569" — ใช้บนหัว modal */

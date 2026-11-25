@@ -32,6 +32,7 @@ const PaymentSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  tuitionQuote: { type: mongoose.Schema.Types.ObjectId, ref: 'TuitionQuote' },
   method: {
     type: String,
     enum: ['transfer', 'promptpay', 'credit_card', 'gateway'],

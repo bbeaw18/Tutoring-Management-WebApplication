@@ -1,11 +1,10 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, interval } from 'rxjs';
-import { takeUntil, switchMap, filter, take } from 'rxjs/operators';
+import { Subject, forkJoin } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { AttendanceService } from '../../../services/attendance.service';
-import { PaymentService } from '../../../services/payment.service';
-import { AuthService } from '../../../services/auth.service';
+import { PaymentService, TuitionQuote, TuitionRow } from '../../../services/payment.service';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { MonthPickerComponent } from '../../../shared/components/month-picker/month-picker.component';
 
@@ -20,7 +19,12 @@ export class PaymentComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   loading = false;
-  currentUser: any;
+  @Input() lineMode = false;
+  loadError = '';
+  private tuition = new Map<string, TuitionRow>();
+  private readonly monthFormat = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit'
+  });
 
   attendanceHistory: any[] = [];
   selectedMonth = '';
@@ -30,6 +34,8 @@ export class PaymentComponent implements OnInit, OnDestroy {
   paymentLoading = false;
   paymentAmount = 0;
   paymentDescription = '';
+  quote?: TuitionQuote;
+  quoteLoading = false;
   paymentTarget: { scheduleId?: string; month?: string } = {};
 
   // ข้อมูลบัญชีธนาคาร
@@ -43,45 +49,66 @@ export class PaymentComponent implements OnInit, OnDestroy {
   // ── My payment status (รวมจาก backend) ──
   myPayments: any[] = [];
 
-  private stopPolling$ = new Subject<void>();
-
   // Classes on/after this date bill course price as rate × hours (matches backend)
   private readonly PRICE_HOURLY_FROM = new Date('2026-05-09T00:00:00+07:00');
 
   constructor(
     private attendanceService: AttendanceService,
-    private paymentService: PaymentService,
-    private authService: AuthService
+    private paymentService: PaymentService
   ) {}
 
   ngOnDestroy(): void {
-    this.stopPolling$.next();
-    this.stopPolling$.complete();
     this.destroy$.next();
     this.destroy$.complete();
   }
 
   ngOnInit(): void {
-    this.currentUser = this.authService.getCurrentUser();
-    const now = new Date();
-    this.selectedMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    this.loadHistory();
+    this.selectedMonth = this.monthOf(new Date());
+    this.loadHistory(this.lineMode);
     this.loadBankInfo();
-    this.loadMyPaymentStatus();
   }
 
-  loadHistory(): void {
+  private monthOf(date: string | Date): string {
+    const parts = this.monthFormat.formatToParts(new Date(date));
+    return `${parts.find(part => part.type === 'year')?.value}-${parts.find(part => part.type === 'month')?.value}`;
+  }
+
+  loadHistory(chooseDueMonth = false): void {
     this.loading = true;
-    this.attendanceService.getMyAttendanceHistory()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (data) => {
-          this.attendanceHistory = data || [];
-          this.mergePaymentStatuses();
-          this.loading = false;
-        },
-        error: () => { this.loading = false; }
-      });
+    this.loadError = '';
+    forkJoin({
+      history: this.attendanceService.getMyAttendanceHistory(),
+      payments: this.paymentService.getMyPaymentStatus(),
+      tuition: this.paymentService.getTuition()
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: ({ history, payments, tuition }) => {
+        this.attendanceHistory = history;
+        this.myPayments = payments;
+        this.tuition = new Map(tuition.map(row => [row.scheduleId, row]));
+        if (chooseDueMonth) this.selectedMonth = this.dueMonths.at(-1)?.month ||
+          this.attendanceHistory.filter(row => row.schedule?.date)
+            .map(row => this.monthOf(row.schedule.date)).sort().at(-1) || this.selectedMonth;
+        this.mergePaymentStatuses();
+        this.loading = false;
+      },
+      error: () => {
+        this.loading = false;
+        this.tuition.clear();
+        this.loadError = 'โหลดรายการค่าเรียนไม่สำเร็จ กรุณาลองอีกครั้ง';
+      }
+    });
+  }
+
+  get dueMonths(): { month: string; amount: number }[] {
+    const months = new Map<string, number>();
+    for (const row of this.tuition.values()) {
+      months.set(row.month, (months.get(row.month) || 0) + row.amount);
+    }
+    return [...months].sort(([a], [b]) => a.localeCompare(b)).map(([month, amount]) => ({ month, amount }));
+  }
+
+  payable(row: any): TuitionRow | undefined {
+    return this.tuition.get(row.schedule?._id || row.schedule);
   }
 
   /** ดึงข้อมูลบัญชีธนาคาร — แสดงในโมดอลโอนเงิน */
@@ -99,19 +126,6 @@ export class PaymentComponent implements OnInit, OnDestroy {
             promptpayId: ''
           };
         }
-      });
-  }
-
-  /** ดึงสถานะการชำระทั้งหมดของนักเรียนจาก backend */
-  loadMyPaymentStatus(): void {
-    this.paymentService.getMyPaymentStatus()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (payments) => {
-          this.myPayments = payments || [];
-          this.mergePaymentStatuses();
-        },
-        error: (err) => console.warn('[Payment] loadMyPaymentStatus failed:', err?.message)
       });
   }
 
@@ -149,9 +163,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
     return this.attendanceHistory.filter(a => {
       const d = a.schedule?.date;
       if (!d) return false;
-      const m = new Date(d);
-      const ym = `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}`;
-      return ym === this.selectedMonth;
+      return this.monthOf(d) === this.selectedMonth;
     });
   }
 
@@ -163,17 +175,18 @@ export class PaymentComponent implements OnInit, OnDestroy {
     return this.filteredHistory.filter(a => a.paymentStatus === 'pending').length;
   }
   get unpaidCount(): number {
-    return this.filteredHistory.filter(a => !a.paymentStatus || a.paymentStatus === 'unpaid').length;
+    return this.selectedMonth
+      ? [...this.tuition.values()].filter(row => row.month === this.selectedMonth).length
+      : this.tuition.size;
   }
   get totalUnpaidAmount(): number {
-    return this.filteredHistory
-      .filter(a => !a.paymentStatus || a.paymentStatus === 'unpaid')
-      .reduce((s, a) => s + this.effectivePrice(a.schedule), 0);
+    return this.dueMonths.filter(row => !this.selectedMonth || row.month === this.selectedMonth)
+      .reduce((sum, row) => sum + row.amount, 0);
   }
   get totalPaidAmount(): number {
     return this.filteredHistory
       .filter(a => a.paymentStatus === 'paid')
-      .reduce((s, a) => s + this.effectivePrice(a.schedule), 0);
+      .reduce((s, a) => s + (a.paymentRecord?.amount ?? this.effectivePrice(a.schedule)), 0);
   }
 
   // ─── Effective course price (rate/hr × class hours for hourly classes) ──
@@ -220,7 +233,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
     const [y, m] = this.selectedMonth.split('-').map(Number);
     const nextMonth = m === 12 ? 1 : m + 1;
     const nextYear = m === 12 ? y + 1 : y;
-    return new Date(nextYear, nextMonth - 1, 5, 23, 59, 59);
+    return new Date(Date.UTC(nextYear, nextMonth - 1, 5, 16, 59, 59));
   }
 
   /**
@@ -233,8 +246,8 @@ export class PaymentComponent implements OnInit, OnDestroy {
     if (!this.selectedMonth) return 'upcoming';
     const [y, m] = this.selectedMonth.split('-').map(Number);
     const now = new Date();
-    const startOfNextMonth = new Date(y, m, 1, 0, 0, 0);   // m=5 → Jun 1
-    const endOfGrace = new Date(y, m, 5, 23, 59, 59);       // Jun 5 23:59
+    const startOfNextMonth = new Date(Date.UTC(y, m, 1, -7));   // m=5 → Jun 1
+    const endOfGrace = new Date(Date.UTC(y, m, 5, 16, 59, 59));       // Jun 5 23:59
     if (now < startOfNextMonth) return 'upcoming';
     if (now <= endOfGrace) return 'graceLast';
     return 'overdue';
@@ -251,57 +264,60 @@ export class PaymentComponent implements OnInit, OnDestroy {
 
   // ─── Payment Actions (K-BANK Transfer Flow) ─────────────────
 
-  /** เปิดโมดอลแสดงเลขบัญชี K-BANK ให้นักเรียนโอน */
-  private openPaymentModal(body: { scheduleId?: string; month?: string }, amount: number, description: string): void {
+  private openPaymentModal(target: { scheduleId?: string; month?: string }): void {
     this.showPaymentModal = true;
-    this.paymentTarget = body;
-    this.paymentAmount = amount;
-    this.paymentDescription = description;
+    this.paymentTarget = target;
     this.transferClaimed = false;
     this.transactionRef = '';
-    this.claimError = '';
+    this.loadQuote(true);
   }
 
-  /** เปิดโมดอลชำระต่อคลาส */
   openPaymentQR(item: any): void {
-    const scheduleId = item.schedule?._id || item.schedule;
-    const amount = this.effectivePrice(item.schedule);
-    const courseName = this.getCourseName(item);
-    const dateStr = item.schedule?.date ? new Date(item.schedule.date).toLocaleDateString('th-TH') : '';
-    this.openPaymentModal({ scheduleId }, amount, `ค่าเรียน ${courseName} ${dateStr}`);
+    const scheduleId = this.payable(item)?.scheduleId;
+    if (scheduleId) this.openPaymentModal({ scheduleId });
   }
 
-  /** เปิดโมดอลชำระรายเดือน */
   openMonthlyPaymentQR(): void {
-    if (!this.selectedMonth) return;
-    const total = this.totalUnpaidAmount;
-    this.openPaymentModal({ month: this.selectedMonth }, total, `ค่าเรียนรวมเดือน ${this.formatMonth(this.selectedMonth)}`);
+    if (this.selectedMonth) this.openPaymentModal({ month: this.selectedMonth });
   }
 
-  /** นักเรียนกดยืนยันว่าโอนเงินเรียบร้อยแล้ว */
+  loadQuote(resume: boolean): void {
+    if (this.quoteLoading || this.paymentLoading) return;
+    this.quoteLoading = true;
+    this.claimError = '';
+    this.paymentService.generatePromptpayQR({ ...this.paymentTarget, resume })
+      .pipe(takeUntil(this.destroy$)).subscribe({
+        next: quote => {
+          this.quoteLoading = false;
+          this.quote = quote;
+          this.paymentAmount = quote.amount;
+          this.paymentDescription = quote.description;
+        },
+        error: err => {
+          this.quoteLoading = false;
+          this.claimError = err.error?.message || 'โหลดข้อมูลการโอนไม่สำเร็จ กรุณาลองใหม่';
+        }
+      });
+  }
+
   confirmTransfer(): void {
+    if (!this.quote || this.quoteLoading || this.paymentLoading) return;
     this.paymentLoading = true;
     this.claimError = '';
     this.paymentService.claimTransfer({
-      ...this.paymentTarget,
+      quoteId: this.quote.quoteId,
       transactionRef: this.transactionRef || undefined
-    })
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => {
-          this.paymentLoading = false;
-          this.transferClaimed = true;
-          // reload ข้อมูลให้เห็น status pending
-          setTimeout(() => {
-            this.loadHistory();
-            this.loadMyPaymentStatus();
-          }, 500);
-        },
-        error: (err) => {
-          this.paymentLoading = false;
-          this.claimError = err?.error?.message || 'ไม่สามารถยืนยันการโอนได้ — โปรดลองใหม่';
-        }
-      });
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.paymentLoading = false;
+        this.transferClaimed = true;
+        this.loadHistory();
+      },
+      error: err => {
+        this.paymentLoading = false;
+        this.claimError = err.error?.message || 'ไม่สามารถแจ้งว่าโอนแล้ว กรุณาลองใหม่';
+      }
+    });
   }
 
   /** Copy เลขบัญชีไปยัง clipboard */
@@ -315,6 +331,8 @@ export class PaymentComponent implements OnInit, OnDestroy {
   }
 
   closePaymentModal(): void {
+    if (this.quoteLoading || this.paymentLoading) return;
+    this.quote = undefined;
     this.showPaymentModal = false;
     this.paymentAmount = 0;
     this.paymentDescription = '';

@@ -6,6 +6,21 @@ import { environment } from '@environments/environment';
 import { IPayment, IPaymentRequest, IPaymentConfirmRequest, IPaymentRejectRequest, IRevenueSchedule } from '../interfaces/payment.interface';
 import { IApiResponse, IPaginationParams } from '../interfaces/api-response.interface';
 
+export interface TuitionRow {
+  scheduleId: string;
+  month: string;
+  amount: number;
+}
+
+export interface TuitionQuote {
+  quoteId: string;
+  amount: number;
+  currentAmount: number;
+  stale: boolean;
+  qrDataURL: string | null;
+  description: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -121,14 +136,15 @@ export class PaymentService {
     );
   }
 
-  // POST /payments/generate-promptpay-qr
-  generatePromptpayQR(body: { scheduleId?: string; month?: string }): Observable<{
-    qrDataURL: string; amount: number; description: string;
-    paymentType: string; relatedSchedules: string[]; promptpayId: string;
-  }> {
-    return this.http.post<IApiResponse<any>>(`${this.apiUrl}/generate-promptpay-qr`, body).pipe(
-      map(res => res.data)
-    );
+  getTuition() {
+    return this.http.get<IApiResponse<{ unpaid: TuitionRow[]; totalAmount: number }>>(`${this.apiUrl}/unpaid`)
+      .pipe(map(res => res.data.unpaid));
+  }
+
+  generatePromptpayQR(body: { scheduleId?: string; month?: string; resume: boolean }) {
+    return this.http.post<IApiResponse<TuitionQuote>>(`${this.apiUrl}/generate-promptpay-qr`, {
+      ...body, allowBankTransfer: true
+    }).pipe(map(res => res.data));
   }
 
   // POST /payments/kbank/create-charge — สร้าง QR + PaymentSession
@@ -173,7 +189,7 @@ export class PaymentService {
   }
 
   /** นักเรียนยืนยันว่าได้โอนเงินแล้ว — สร้าง Payment status='pending' รอ Manager */
-  claimTransfer(body: { scheduleId?: string; month?: string; transactionRef?: string; note?: string }): Observable<{
+  claimTransfer(body: { scheduleId?: string; month?: string; quoteId?: string; transactionRef?: string; note?: string }): Observable<{
     paymentIds: string[];
     totalAmount: number;
     description: string;
