@@ -29,6 +29,25 @@
   <app-loading *ngIf="loading"></app-loading>
 
   <ng-container *ngIf="!loading">
+    <p *ngIf="reviewMonths.length" class="deadline-banner" role="status">
+      ผู้จัดการกำลังตรวจสอบยอดที่ชำระไว้เดิม
+      <span *ngIf="!reviewMonths.includes(null)">
+        เดือน <ng-container *ngFor="let month of reviewMonths; let last = last">{{ formatMonth(month || '') }}{{ last ? '' : ', ' }}</ng-container>
+      </span>
+    </p>
+    <section *ngIf="recoverableQuotes.length" class="table-wrapper" aria-label="แจ้งโอนตามยอดเดิม">
+      <div class="table-header-row"><h2>แจ้งโอนตามยอดเดิม</h2></div>
+      <ul>
+        <li *ngFor="let saved of recoverableQuotes">
+          <button type="button" class="btn btn-secondary" (click)="reopenTransfer(saved)">
+            แจ้งโอนยอดเดิม ฿{{ saved.amount | number }}
+            <span *ngIf="saved.month"> · {{ formatMonth(saved.month) }}</span>
+            <span *ngIf="saved.classDate"> · {{ saved.classDate | date:'d MMM y':'+0700':'th' }}</span>
+            <span *ngIf="!saved.month && !saved.classDate"> · ออกเมื่อ {{ saved.createdAt | date:'d MMM y, HH:mm':'+0700':'th' }}</span>
+          </button>
+        </li>
+      </ul>
+    </section>
 
     <!-- ─── KPI Cards ────────────────────────────────────── -->
     <div class="kpi-grid stagger">
@@ -238,12 +257,17 @@
         <a [href]="quote?.qrDataURL" download="kms-promptpay.png">บันทึก QR</a>
         <small>แตะค้างที่รูปเพื่อบันทึก หาก LINE ไม่เปิดไฟล์ดาวน์โหลด</small>
       </div>
-      <button type="button" class="btn btn-secondary" *ngIf="quote && !quoteLoading"
+      <button type="button" class="btn btn-secondary" *ngIf="quote?.canRefresh && !quoteLoading"
         (click)="loadQuote(false)" [disabled]="paymentLoading">
-        {{ quote.stale ? 'ใช้ยอดปัจจุบันและออก QR ใหม่' : 'ตรวจยอดล่าสุด' }}
+        {{ quote?.stale ? 'ใช้ยอดปัจจุบันและออก QR ใหม่' : 'ตรวจยอดล่าสุด' }}
       </button>
 
       <!-- Bank info card -->
+      <p *ngIf="quote && !quote.stale && bankLoading" role="status">กำลังโหลดข้อมูลบัญชีธนาคาร…</p>
+      <div *ngIf="quote && !quote.stale && bankError && !quoteLoading" class="bank-instructions">
+        <p role="alert">โหลดข้อมูลบัญชีธนาคารไม่ได้</p>
+        <button type="button" class="btn btn-secondary" (click)="loadBankInfo()">ลองโหลดข้อมูลบัญชีใหม่</button>
+      </div>
       <div class="bank-card" *ngIf="bankInfo && quote && !quote.stale && !quoteLoading">
         <div class="bank-row">
           <span class="bank-label">ธนาคาร</span>
@@ -266,7 +290,7 @@
       </div>
 
       <!-- Instructions -->
-      <div class="bank-instructions" *ngIf="quote && !quote.stale && !quoteLoading">
+      <div class="bank-instructions" *ngIf="quote && !quote.stale && !quoteLoading && (bankInfo || quote.qrDataURL)">
         <div class="bank-instruction-item">
           <span class="bank-step-num">1</span>
           เปิดแอปธนาคาร เลือก <strong>โอนเงิน</strong>

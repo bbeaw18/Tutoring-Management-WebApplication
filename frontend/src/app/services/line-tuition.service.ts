@@ -17,6 +17,7 @@ export interface ReminderPreview {
   enabled: boolean;
   quotaExceededAt: string | null;
   recipients: { studentId: string; name: string; months: string[]; status: string }[];
+  reviewHolds: { paymentId: string; name: string; month: string | null; amount: number; reference: string | null }[];
   deliveries: { student: string; status: string; attempts: number; reason: string }[];
 }
 

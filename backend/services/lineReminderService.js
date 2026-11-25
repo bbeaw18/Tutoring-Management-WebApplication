@@ -3,7 +3,7 @@ const { randomUUID } = require('crypto');
 const LineConnection = require('../models/LineConnection');
 const User = require('../models/User');
 const { LineReminderRun, LineReminderDelivery } = require('../models/LineReminder');
-const { getTuition, thaiMonth } = require('./tuitionService');
+const { getTuitionDetails, thaiMonth } = require('./tuitionService');
 
 const leaseMs = 2 * 60_000;
 const retryDelayMs = 5 * 60_000;
@@ -16,9 +16,12 @@ function reminderWindow(now) {
   return local.getUTCDate() > 3 || (local.getUTCDate() === 3 && local.getUTCHours() >= 9);
 }
 
-async function eligibleMonths(student, round) {
-  const bills = await getTuition(student);
-  return [...new Set(bills.map(row => row.month).filter(month => month < round))].sort();
+async function reminderBill(student, round) {
+  const { unpaid, coverage } = await getTuitionDetails(student);
+  return {
+    months: [...new Set(unpaid.map(row => row.month).filter(month => month < round))].sort(),
+    review: coverage.review.filter(entry => !entry.month || entry.month < round)
+  };
 }
 
 async function previewReminders(now = new Date()) {
@@ -30,13 +33,16 @@ async function previewReminders(now = new Date()) {
   ]);
   const deliveries = new Map(sent.map(entry => [String(entry.student), entry]));
   const recipients = [];
+  const reviewHolds = [];
   for (const { student } of links) {
     if (student?.role !== 'student' || !student.isActive) continue;
-    const months = await eligibleMonths(student._id, round);
+    const name = student.nickname || `${student.firstName} ${student.lastName}`;
+    const { months, review } = await reminderBill(student._id, round);
+    reviewHolds.push(...review.map(entry => ({ ...entry, studentId: student._id, name })));
     if (months.length) {
       recipients.push({
         studentId: student._id,
-        name: student.nickname || `${student.firstName} ${student.lastName}`,
+        name,
         months,
         status: deliveries.get(String(student._id))?.status || 'ready'
       });
@@ -44,7 +50,7 @@ async function previewReminders(now = new Date()) {
   }
   return {
     round, due: reminderWindow(now), enabled: process.env.LINE_REMINDERS_ENABLED === 'true',
-    quotaExceededAt: run?.quotaExceededAt || null, recipients, deliveries: sent
+    quotaExceededAt: run?.quotaExceededAt || null, recipients, reviewHolds, deliveries: sent
   };
 }
 
@@ -77,6 +83,8 @@ async function runLineReminders(now = new Date()) {
     throw new Error('LINE reminder configuration is incomplete');
   }
   const round = thaiMonth(now);
+  const tuitionUrl = new URL(process.env.LINE_TUITION_URL);
+  tuitionUrl.searchParams.set('tuitionRound', round);
   const owner = randomUUID();
   try {
     await LineReminderRun.findOneAndUpdate({
@@ -98,10 +106,10 @@ async function runLineReminders(now = new Date()) {
       const id = `${round}:${student}`;
       const entry = await LineReminderDelivery.findById(id).lean();
       if (entry && (entry.status !== 'retry' || entry.nextAttemptAt > new Date())) continue;
-      const [current, active, months] = await Promise.all([
+      const [current, active, { months }] = await Promise.all([
         LineConnection.findOne({ ...eligible, student }).select('_id').lean(),
         User.exists({ _id: student, role: 'student', isActive: true }),
-        eligibleMonths(student, round)
+        reminderBill(student, round)
       ]);
       const renewed = await LineReminderRun.updateOne({ ...lease, lockedUntil: { $gt: new Date() } },
         { $set: { lockedUntil: new Date(Date.now() + leaseMs) } });
@@ -118,8 +126,9 @@ async function runLineReminders(now = new Date()) {
           { $set: { status: 'failed', reason: 'retry_window_elapsed' } });
         continue;
       }
+      tuitionUrl.searchParams.set('tuitionMonth', months.at(-1));
       const delivery = await LineReminderDelivery.findOneAndUpdate({ _id: id }, {
-        $setOnInsert: { round, student, recipient: current._id, retryKey: randomUUID(), uri: process.env.LINE_TUITION_URL,
+        $setOnInsert: { round, student, recipient: current._id, retryKey: randomUUID(), uri: tuitionUrl.href,
           firstAttemptAt: new Date(), status: 'retry' },
         $set: { nextAttemptAt: new Date(Date.now() + retryDelayMs) },
         $inc: { attempts: 1 }

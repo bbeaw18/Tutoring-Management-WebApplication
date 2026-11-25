@@ -1,16 +1,18 @@
 const mongoose = require('mongoose');
 const Attendance = require('../models/Attendance');
 const Payment = require('../models/Payment');
+const PaymentSession = require('../models/PaymentSession');
 const TuitionQuote = require('../models/TuitionQuote');
 const User = require('../models/User');
 const { computeEffectivePrice } = require('../utils/helpers');
 
 const thaiMonth = date => new Date(new Date(date).getTime() + 7 * 3600000).toISOString().slice(0, 7);
 const total = items => items.reduce((sum, row) => sum + row.amount, 0);
+const validMonth = value => typeof value === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
 
 const targetFilter = ({ scheduleId, month }) => {
   if (scheduleId && !month && mongoose.isObjectIdOrHexString(scheduleId)) return { schedule: scheduleId };
-  if (!scheduleId && typeof month === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(month)) return { month };
+  if (!scheduleId && validMonth(month)) return { month };
   throw httpError(400, 'กรุณาระบุคลาสหรือเดือนที่ต้องการชำระ');
 };
 
@@ -18,22 +20,63 @@ function httpError(status, message) {
   return Object.assign(new Error(message), { status });
 }
 
-async function getTuition(student, target = {}, session = null) {
+async function resolvePaymentCoverage(payments, session = null) {
+  const aggregate = payment => payment.paymentType === 'monthly' && (payment.method === 'gateway' || !payment.schedule);
+  const lookingUp = payments.filter(p => aggregate(p) && p.method === 'gateway' && p.status === 'confirmed'
+    && !p.scheduleIds?.length && p.transactionRef);
+  const receipts = lookingUp.length ? await PaymentSession.find({
+    status: 'paid', reference: { $in: lookingUp.map(p => p.transactionRef) }
+  }).select('reference student amount paymentType paymentMonth scheduleIds').session(session).lean() : [];
+  const byReference = new Map(receipts.map(receipt => [receipt.reference, receipt]));
+  return payments.map(payment => {
+    const first = payment.schedule?._id || payment.schedule;
+    if (payment.scheduleIds?.length) return { payment, scheduleIds: payment.scheduleIds, review: false };
+    if (!aggregate(payment)) return { payment, scheduleIds: first ? [first] : [], review: false };
+    const receipt = byReference.get(payment.transactionRef);
+    if (receipt?.scheduleIds.length && receipt.paymentType === 'monthly'
+      && receipt.paymentMonth === payment.paymentMonth && receipt.amount === payment.amount
+      && String(receipt.student) === String(payment.student)
+      && (!first || receipt.scheduleIds.some(id => String(id) === String(first)))) {
+      return { payment, scheduleIds: receipt.scheduleIds, review: false };
+    }
+    return { payment, scheduleIds: first ? [first] : [], review: true };
+  });
+}
+
+async function getPaymentCoverage(student, session = null) {
+  const payments = await Payment.find({ student, status: { $in: ['pending', 'confirmed'] } })
+    .select('student schedule scheduleIds paymentType paymentMonth amount method status transactionRef')
+    .session(session).lean();
+  const resolved = await resolvePaymentCoverage(payments, session);
+  return {
+    blocked: new Set(resolved.flatMap(entry => entry.scheduleIds.map(String))),
+    review: resolved.filter(entry => entry.review).map(({ payment }) => ({
+      paymentId: payment._id,
+      month: validMonth(payment.paymentMonth) ? payment.paymentMonth : null,
+      amount: payment.amount,
+      reference: payment.transactionRef || null
+    }))
+  };
+}
+
+const onHold = (coverage, month) => coverage.review.some(entry => !entry.month || !month || entry.month === month);
+
+async function getTuitionDetails(student, target = {}, session = null) {
   const filter = { student };
   if (target.schedule) filter.schedule = target.schedule;
   if (target.schedules) filter.schedule = { $in: target.schedules };
-  const [attendance, blocking] = session
-    ? [await findAttendance(), await findBlocking()]
-    : await Promise.all([findAttendance(), findBlocking()]);
-  const blocked = new Set(blocking.map(row => String(row.schedule)));
-  return attendance.flatMap(({ schedule, scannedAt }) => {
-    if (!schedule?.course || blocked.has(String(schedule._id))
+  const [attendance, coverage] = session
+    ? [await findAttendance(), await getPaymentCoverage(student, session)]
+    : await Promise.all([findAttendance(), getPaymentCoverage(student)]);
+  const schedules = new Map(attendance.filter(row => row.schedule).map(row => [String(row.schedule._id), row.schedule]));
+  const unpaid = attendance.flatMap(({ schedule, scannedAt }) => {
+    if (!schedule?.course || coverage.blocked.has(String(schedule._id))
       || !['completed', 'awaiting_confirmation'].includes(schedule.status)
       || !schedule.students.some(id => String(id) === String(student))) return [];
     const month = thaiMonth(schedule.date);
-    if (target.month && month !== target.month) return [];
+    if ((target.month && month !== target.month) || onHold(coverage, month)) return [];
     const amount = computeEffectivePrice(schedule);
-    if (!Number.isFinite(amount) || (target.includeZero ? amount < 0 : amount <= 0)) return [];
+    if (!Number.isFinite(amount) || amount <= 0) return [];
     return [{
       scheduleId: schedule._id,
       course: schedule.course._id,
@@ -48,6 +91,7 @@ async function getTuition(student, target = {}, session = null) {
       amount
     }];
   });
+  return { unpaid, coverage, schedules };
 
   function findAttendance() {
     return Attendance.find(filter).session(session).populate({
@@ -56,14 +100,23 @@ async function getTuition(student, target = {}, session = null) {
     }).lean();
   }
 
-  function findBlocking() {
-    return Payment.find({ ...filter, status: { $in: ['pending', 'confirmed'] } })
-      .select('schedule').session(session).lean();
-  }
+}
+
+async function getTuition(student, target = {}, session = null) {
+  return (await getTuitionDetails(student, target, session)).unpaid;
+}
+
+function quoteMayBeClaimed(quote, coverage, schedules) {
+  return quote.items.length > 0 && quote.items.every(item => {
+    const id = String(item.schedule);
+    const date = schedules.get(id)?.date;
+    const month = item.month || quote.month || (date && thaiMonth(date));
+    return !coverage.blocked.has(id) && !onHold(coverage, month);
+  });
 }
 
 const quoteItems = rows => rows.map(row => ({
-  schedule: row.scheduleId, course: row.course, amount: row.amount
+  schedule: row.scheduleId, course: row.course, amount: row.amount, month: row.month
 }));
 
 const quoteMatches = (quote, rows) => {
@@ -97,16 +150,11 @@ async function claimTuition(student, body) {
       return;
     }
 
-    const rows = await getTuition(student, quote
-      ? { schedules: quote.items.map(item => item.schedule), includeZero: true }
-      : target, session);
-    const items = quote ? quote.items : quoteItems(rows);
-    if (!items.length || rows.length !== items.length) {
+    const { unpaid, coverage, schedules } = await getTuitionDetails(student,
+      quote ? { schedules: quote.items.map(item => item.schedule) } : target, session);
+    const items = quote ? quote.items : quoteItems(unpaid);
+    if (!items.length || (quote && !quoteMayBeClaimed(quote, coverage, schedules))) {
       throw httpError(409, 'รายการชำระเปลี่ยนแล้ว กรุณาตรวจสถานะหรือติดต่อผู้จัดการหากโอนไปแล้ว');
-    }
-    const current = new Map(rows.map(row => [String(row.scheduleId), row]));
-    if (items.some(item => String(current.get(String(item.schedule)).course) !== String(item.course))) {
-      throw httpError(409, 'ข้อมูลคลาสเปลี่ยนแล้ว กรุณาติดต่อผู้จัดการหากโอนไปแล้ว');
     }
     const payments = await Payment.insertMany(items.map(item => ({
       student,
@@ -131,4 +179,7 @@ async function claimTuition(student, body) {
   return result;
 }
 
-module.exports = { getTuition, thaiMonth, total, targetFilter, quoteItems, quoteMatches, claimTuition };
+module.exports = {
+  getTuition, getTuitionDetails, getPaymentCoverage, resolvePaymentCoverage, quoteMayBeClaimed, onHold,
+  thaiMonth, total, targetFilter, quoteItems, quoteMatches, claimTuition
+};

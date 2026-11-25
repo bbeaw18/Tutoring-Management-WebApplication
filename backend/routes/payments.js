@@ -5,10 +5,12 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const axios = require('axios');
+const mongoose = require('mongoose');
 const Payment = require('../models/Payment');
 const PaymentSession = require('../models/PaymentSession');
 const TuitionQuote = require('../models/TuitionQuote');
-const { getTuition, total, targetFilter, quoteItems, quoteMatches, claimTuition } = require('../services/tuitionService');
+const { getTuition, getTuitionDetails, getPaymentCoverage, resolvePaymentCoverage, quoteMayBeClaimed, onHold,
+  thaiMonth, total, targetFilter, quoteItems, quoteMatches, claimTuition } = require('../services/tuitionService');
 const Schedule = require('../models/Schedule');
 const Attendance = require('../models/Attendance');
 const User = require('../models/User');
@@ -37,12 +39,12 @@ function generateReference() {
 
 /** ตรวจสอบ signature จาก KBank webhook */
 function verifyKBankSignature(rawBody, signature) {
-  if (!KBANK_WEBHOOK_SECRET) return true; // ถ้ายังไม่ได้ตั้งค่า → ผ่าน (dev mode)
+  if (!KBANK_WEBHOOK_SECRET || !Buffer.isBuffer(rawBody) || !/^[a-f0-9]{64}$/i.test(signature)) return false;
   const expected = crypto
     .createHmac('sha256', KBANK_WEBHOOK_SECRET)
     .update(rawBody)
     .digest('hex');
-  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature || ''));
+  return crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(signature, 'hex'));
 }
 
 /**
@@ -232,8 +234,26 @@ router.get('/', authenticateToken, async (req, res) => {
 // ────────────────────────────────────────────────────────────────────────────
 router.get('/unpaid', authenticateToken, roleCheck(['student']), async (req, res) => {
   try {
-    const unpaid = await getTuition(req.user.id);
-    sendResponse(res, 200, true, { unpaid, totalAmount: total(unpaid) }, 'Unpaid items retrieved');
+    const student = req.user.id;
+    const { unpaid, coverage, schedules } = await getTuitionDetails(student);
+    const payable = new Set(unpaid.map(row => String(row.scheduleId)));
+    const quotes = await TuitionQuote.find({ student, 'paymentIds.0': { $exists: false } })
+      .sort({ createdAt: -1, _id: -1 }).lean();
+    const latest = new Set();
+    const recoverableQuotes = [];
+    for (const quote of quotes) {
+      const target = quote.month || String(quote.schedule);
+      if (latest.has(target)) continue;
+      latest.add(target);
+      if (!quote.items.some(item => !payable.has(String(item.schedule))) ||
+        !quoteMayBeClaimed(quote, coverage, schedules)) continue;
+      recoverableQuotes.push({ quoteId: quote._id, month: quote.month, scheduleId: quote.schedule,
+        classDate: schedules.get(String(quote.schedule))?.date,
+        amount: total(quote.items), createdAt: quote.createdAt });
+    }
+    const reviewMonths = [...new Set(coverage.review.map(entry => entry.month))];
+    sendResponse(res, 200, true, { unpaid, totalAmount: total(unpaid), recoverableQuotes, reviewMonths },
+      'Unpaid items retrieved');
   } catch (error) {
     console.error('Get unpaid error:', error);
     sendResponse(res, 500, false, null, error.message);
@@ -332,25 +352,29 @@ router.get('/revenue-report', authenticateToken, roleCheck(['admin', 'manager'])
       attendancesByScheduleId.get(sid).push(att);
     }
 
-    // Batch 2: ดึง payments ของทุก schedule ในครั้งเดียว (รวม pending ด้วย)
+    const attendingStudents = [...new Set(allAttendances.flatMap(att => att.student ? [String(att.student._id)] : []))];
+    // Batch 2: ดึง payments ของทุก schedule รวมใบรับเงิน KBank ที่อ้างคลาสแรกอีกคลาสหนึ่ง
     const allPayments = await Payment.find({
-      schedule: { $in: scheduleIds },
+      $or: [
+        { schedule: { $in: scheduleIds } },
+        { scheduleIds: { $in: scheduleIds } },
+        { method: 'gateway', paymentType: 'monthly', student: { $in: attendingStudents } }
+      ],
       status: { $in: ['pending', 'confirmed'] }
-    }).select('_id student schedule amount status tuitionQuote');
+    }).select('_id student schedule scheduleIds amount status tuitionQuote method paymentType paymentMonth transactionRef');
 
     // สร้าง map: key = "studentId:scheduleId" → sum ของ amount (เฉพาะ confirmed)
     const paidAmountByKey = new Map();
     // สร้าง map: key = "studentId:scheduleId" → payment object (สำหรับสถานะล่าสุด)
     const paymentByKey = new Map();
-    for (const p of allPayments) {
-      const key = `${p.student.toString()}:${p.schedule.toString()}`;
-      if (p.status === 'confirmed') {
-        paidAmountByKey.set(key, (paidAmountByKey.get(key) || 0) + p.amount);
-      }
-      // เก็บ payment ล่าสุด (ใช้ confirmed > pending)
-      const existing = paymentByKey.get(key);
-      if (!existing || (existing.status === 'pending' && p.status === 'confirmed')) {
-        paymentByKey.set(key, p);
+    for (const { payment: p, scheduleIds: coveredIds } of await resolvePaymentCoverage(allPayments)) {
+      for (const coveredId of coveredIds) {
+        const key = `${p.student}:${coveredId}`;
+        if (p.status === 'confirmed') paidAmountByKey.set(key, (paidAmountByKey.get(key) || 0) + p.amount);
+        const existing = paymentByKey.get(key);
+        if (!existing || (existing.status === 'pending' && p.status === 'confirmed')) {
+          paymentByKey.set(key, p);
+        }
       }
     }
 
@@ -543,10 +567,14 @@ router.get('/teacher-payouts', authenticateToken, roleCheck(['admin', 'manager']
 
 // GET /bank-info — ดึงข้อมูลบัญชีธนาคารสำหรับโอน (แสดงให้นักเรียน)
 router.get('/bank-info', authenticateToken, async (req, res) => {
+  const bankName = process.env.BANK_NAME?.trim();
+  const accountNumber = process.env.BANK_ACCOUNT_NUMBER?.trim();
+  const accountName = process.env.BANK_ACCOUNT_NAME?.trim();
+  if (!bankName || !accountNumber || !accountName) {
+    return sendResponse(res, 503, false, null, 'โหลดข้อมูลบัญชีธนาคารไม่ได้');
+  }
   sendResponse(res, 200, true, {
-    bankName:      process.env.BANK_NAME          || 'ธนาคารกสิกรไทย (K-BANK)',
-    accountNumber: process.env.BANK_ACCOUNT_NUMBER || '140-1-28661-2',
-    accountName:   process.env.BANK_ACCOUNT_NAME   || 'น.ส. ณัฐบุษย์ เหมธนาพิพัฒน์',
+    bankName, accountNumber, accountName,
     promptpayId:   process.env.PROMPTPAY_ID        || ''
   }, 'Bank info retrieved');
 });
@@ -559,14 +587,15 @@ router.get('/pending-verification', authenticateToken, roleCheck(['admin', 'mana
       .populate('course', 'name subject')
       .populate({
         path: 'schedule',
-        select: 'date startTime endTime coursePrice totalDurationMinutes',
+        select: 'date startTime endTime coursePrice totalDurationMinutes status',
         populate: { path: 'course', select: 'name subject' }
       })
       .sort({ createdAt: -1 });
 
     sendResponse(res, 200, true, payments.map(payment => ({
       ...payment.toObject(),
-      currentAmount: payment.schedule ? computeEffectivePrice(payment.schedule) : null
+      currentAmount: payment.schedule
+        ? (payment.schedule.status === 'cancelled' ? 0 : computeEffectivePrice(payment.schedule)) : null
     })), 'Pending payments retrieved');
   } catch (error) {
     console.error('Pending verification error:', error);
@@ -587,7 +616,10 @@ router.get('/my-status', authenticateToken, roleCheck(['student']), async (req, 
       .populate('confirmedBy', 'firstName lastName nickname')
       .sort({ createdAt: -1 });
 
-    sendResponse(res, 200, true, payments, 'Payment statuses retrieved');
+    const resolved = await resolvePaymentCoverage(payments);
+    sendResponse(res, 200, true, resolved.map(({ payment, scheduleIds }) => ({
+      ...payment.toObject(), scheduleIds
+    })), 'Payment statuses retrieved');
   } catch (error) {
     console.error('My status error:', error);
     sendResponse(res, 500, false, null, error.message);
@@ -813,6 +845,10 @@ router.post('/manual-confirm', authenticateToken, roleCheck(['admin', 'manager']
     }
 
     if (!schedule.course?._id) return sendResponse(res, 400, false, null, 'ไม่พบคอร์สที่เชื่อมโยง');
+    const coverage = await getPaymentCoverage(studentId);
+    if (coverage.blocked.has(String(scheduleId)) || (!isAbsent && onHold(coverage, thaiMonth(schedule.date)))) {
+      return sendResponse(res, 409, false, null, 'มีหลักฐานชำระเดิม กรุณาตรวจสอบก่อนบันทึกรับเงิน');
+    }
 
     // absent → เก็บ "ค่าปรับ" ที่บันทึกไว้ตอน mark-absent; ปกติ → ราคาคลาส
     const amount = (isAbsent ? (schedule.absencePenalty?.penaltyAmount || 0) : computeEffectivePrice(schedule)) || 0;
@@ -870,6 +906,10 @@ router.post('/bulk-confirm-month', authenticateToken, roleCheck(['admin', 'manag
     const [y, m] = month.split('-').map(Number);
     const startDate = new Date(y, m - 1, 1);
     const endDate   = new Date(y, m, 0, 23, 59, 59);
+    const coverage = await getPaymentCoverage(studentId);
+    if (onHold(coverage, month)) {
+      return sendResponse(res, 409, false, null, 'มีหลักฐานชำระรายเดือนที่รอตรวจสอบ');
+    }
 
     const schedules = await Schedule.find({
       students: studentId,
@@ -911,6 +951,7 @@ router.post('/bulk-confirm-month', authenticateToken, roleCheck(['admin', 'manag
         confirmedFromPending++;
         totalAmount += existing.amount || 0;
       } else {
+        if (coverage.blocked.has(String(s._id))) continue;
         const amount = computeEffectivePrice(s) || 0;
         const p = new Payment({
           student: studentId,
@@ -965,15 +1006,21 @@ router.post('/generate-promptpay-qr', authenticateToken, roleCheck(['student']),
   try {
     const student = req.user.id;
     const target = targetFilter(req.body);
-    const rows = await getTuition(student, target);
-    if (!rows.length) return sendResponse(res, 409, false, null, 'ไม่มียอดที่ชำระได้');
+    const { unpaid: rows, coverage, schedules } = await getTuitionDetails(student, target);
+    const { resumeQuoteId } = req.body;
+    if (resumeQuoteId && !mongoose.isObjectIdOrHexString(resumeQuoteId)) {
+      return sendResponse(res, 400, false, null, 'รายการโอนเดิมไม่ถูกต้อง');
+    }
+    let quote = req.body.resume === true && await TuitionQuote.findOne({
+      student, ...target, 'paymentIds.0': { $exists: false }, ...(resumeQuoteId && { _id: resumeQuoteId })
+    }).sort({ createdAt: -1, _id: -1 });
+    if (quote && !quoteMayBeClaimed(quote, coverage, schedules)) quote = null;
+    if (resumeQuoteId && !quote) return sendResponse(res, 409, false, null, 'รายการโอนเดิมไม่พร้อมให้แจ้งโอนแล้ว');
+    if (!quote && !rows.length) return sendResponse(res, 409, false, null, 'ไม่มียอดที่ชำระได้');
     const promptpayId = process.env.PROMPTPAY_ID;
-    if (!promptpayId && !req.body.allowBankTransfer) {
+    if (!promptpayId && !req.body.allowBankTransfer && !quote) {
       return sendResponse(res, 503, false, null, 'ระบบยังไม่พร้อมออก PromptPay QR');
     }
-    let quote = req.body.resume && await TuitionQuote.findOne({
-      student, ...target, 'paymentIds.0': { $exists: false }
-    }).sort({ createdAt: -1 });
     if (!quote) quote = await TuitionQuote.create({
       student, ...target, items: quoteItems(rows), promptpayId
     });
@@ -985,8 +1032,10 @@ router.post('/generate-promptpay-qr', authenticateToken, roleCheck(['student']),
     const relatedSchedules = quote.items.map(item => item.schedule);
     sendResponse(res, 200, true, {
       quoteId: quote._id, qrDataURL, amount, currentAmount: total(rows), stale, relatedSchedules,
+      canRefresh: rows.length > 0,
       paymentType: target.month ? 'monthly' : 'per_class',
-      description: target.month ? `ค่าเรียนเดือน ${target.month}` : `ค่าเรียน ${rows[0].subject || rows[0].courseName}`
+      description: target.month ? `ค่าเรียนเดือน ${target.month}`
+        : (rows[0] ? `ค่าเรียน ${rows[0].subject || rows[0].courseName}` : 'ค่าเรียนรายคลาส')
     }, 'เรียกดูข้อมูลการโอนสำเร็จ');
   } catch (error) {
     if (!error.status) console.error('Generate PromptPay QR error:', error);
@@ -1000,82 +1049,22 @@ router.post('/generate-promptpay-qr', authenticateToken, roleCheck(['student']),
 // ────────────────────────────────────────────────────────────────────────────
 router.post('/kbank/create-charge', authenticateToken, roleCheck(['student']), async (req, res) => {
   try {
-    const { scheduleId, month } = req.body;
-    let amount = 0;
-    let description = '';
-    let paymentType = '';
-    let relatedSchedules = [];
-    let courseId = null;
-
-    if (scheduleId) {
-      // ── ชำระรายคลาส ──────────────────────────────────────────────────────
-      const schedule = await Schedule.findById(scheduleId).populate('course', 'name subject _id');
-      if (!schedule) return sendResponse(res, 404, false, null, 'Schedule not found');
-
-      const isStudent = schedule.students.some(s => s.toString() === req.user.id);
-      if (!isStudent) return sendResponse(res, 403, false, null, 'คุณไม่ได้ลงทะเบียนในคลาสนี้');
-
-      // ตรวจ status: ชำระได้เฉพาะคลาสที่เสร็จสิ้นการสอนแล้ว
-      if (!['completed', 'awaiting_confirmation'].includes(schedule.status)) {
-        return sendResponse(res, 400, false, null,
-          `ยังไม่สามารถชำระเงินได้: คลาสนี้สถานะ "${schedule.status}" ต้องรอครูยืนยันเสร็จสิ้นการสอนก่อน`);
-      }
-
-      const attended = await Attendance.findOne({ schedule: scheduleId, student: req.user.id });
-      if (!attended) return sendResponse(res, 400, false, null, 'ยังไม่ได้เช็คชื่อในคลาสนี้');
-
-      // ตรวจว่าจ่ายไปแล้วหรือยัง
-      const existingSession = await PaymentSession.findOne({
-        student: req.user.id,
-        scheduleIds: scheduleId,
-        status: { $in: ['pending', 'paid'] }
-      });
-      if (existingSession?.status === 'paid') {
-        return sendResponse(res, 400, false, null, 'ชำระเงินสำหรับคลาสนี้แล้ว');
-      }
-
-      amount = computeEffectivePrice(schedule);
-      description = `ค่าเรียน ${schedule.course?.name || 'คลาส'} ${new Date(schedule.date).toLocaleDateString('th-TH')}`;
-      paymentType = 'per_class';
-      relatedSchedules = [scheduleId];
-      courseId = schedule.course?._id || null;
-
-    } else if (month) {
-      // ── ชำระรายเดือน ──────────────────────────────────────────────────────
-      const [y, m] = month.split('-').map(Number);
-      const startDate = new Date(y, m - 1, 1);
-      const endDate   = new Date(y, m, 0, 23, 59, 59);
-
-      const schedules = await Schedule.find({
-        students: req.user.id,
-        date: { $gte: startDate, $lte: endDate },
-        status: { $in: ['completed', 'awaiting_confirmation'] },
-        coursePrice: { $gt: 0 }
-      });
-
-      for (const s of schedules) {
-        const attended = await Attendance.findOne({ schedule: s._id, student: req.user.id });
-        if (!attended) continue;
-        const paidSession = await PaymentSession.findOne({
-          student: req.user.id,
-          scheduleIds: s._id,
-          status: 'paid'
-        });
-        if (!paidSession) {
-          amount += computeEffectivePrice(s);
-          relatedSchedules.push(s._id.toString());
-          if (!courseId) courseId = s.course;
-        }
-      }
-
-      if (amount === 0) return sendResponse(res, 400, false, null, 'ไม่มียอดค้างชำระในเดือนนี้');
-      description = `ค่าเรียนรวมเดือน ${month} (${relatedSchedules.length} คลาส)`;
-      paymentType = 'monthly';
-    } else {
-      return sendResponse(res, 400, false, null, 'ต้องระบุ scheduleId หรือ month');
-    }
-
-    if (amount <= 0) return sendResponse(res, 400, false, null, 'ยอดชำระต้องมากกว่า 0');
+    const target = targetFilter(req.body);
+    const { month } = target;
+    const rows = await getTuition(req.user.id, target);
+    // A paid legacy session may still exist even if no permanent receipt was written.
+    const paidSessions = await PaymentSession.find({
+      student: req.user.id, status: 'paid', scheduleIds: { $in: rows.map(row => row.scheduleId) }
+    }).select('scheduleIds').lean();
+    const paidIds = new Set(paidSessions.flatMap(session => session.scheduleIds.map(String)));
+    const payable = rows.filter(row => !paidIds.has(String(row.scheduleId)));
+    if (!payable.length) return sendResponse(res, 409, false, null, 'ไม่มียอดที่ชำระได้');
+    const amount = Number(total(payable).toFixed(2));
+    const relatedSchedules = payable.map(row => row.scheduleId);
+    const courseId = payable[0].course;
+    const paymentType = month ? 'monthly' : 'per_class';
+    const description = month ? `ค่าเรียนรวมเดือน ${month} (${payable.length} คลาส)`
+      : `ค่าเรียน ${payable[0].courseName}`;
 
     // สร้าง reference + เรียก KBank (หรือ fallback PromptPay)
     const reference = generateReference();
@@ -1105,6 +1094,7 @@ router.post('/kbank/create-charge', authenticateToken, roleCheck(['student']), a
     }, 'สร้าง QR สำเร็จ');
 
   } catch (error) {
+    if (error.status) return sendResponse(res, error.status, false, null, error.message);
     console.error('KBank create-charge error:', error);
     sendResponse(res, 500, false, null, error.message);
   }
@@ -1143,93 +1133,72 @@ router.get('/kbank/status/:reference', authenticateToken, async (req, res) => {
 // ────────────────────────────────────────────────────────────────────────────
 router.post('/kbank/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
-    // ── 1. ตรวจสอบ KBank Signature ──────────────────────────────────────────
     const signature = req.headers['x-kbank-signature'] || req.headers['x-signature'] || '';
-    const rawBody = req.body; // Buffer (จาก express.raw)
-
-    if (!verifyKBankSignature(rawBody, signature)) {
-      console.warn('[kbank-webhook] Invalid signature');
-      return res.status(401).json({ success: false, message: 'Invalid signature' });
+    if (!verifyKBankSignature(req.body, signature)) {
+      return sendResponse(res, 401, false, null, 'Invalid signature');
+    }
+    let payload;
+    try {
+      payload = JSON.parse(req.body.toString('utf8'));
+    } catch {
+      return sendResponse(res, 400, false, null, 'Invalid KBank payload');
+    }
+    const { partnerTxnRef: reference, kbankTxnId, paymentStatus, amount, currency } = payload || {};
+    if (typeof reference !== 'string' || !reference || !['success', 'failed'].includes(paymentStatus)) {
+      return sendResponse(res, 400, false, null, 'Invalid KBank payment reference or status');
     }
 
-    const payload = JSON.parse(rawBody.toString());
-    console.log('[kbank-webhook] Received:', JSON.stringify(payload));
-
-    // ── 2. แปลง payload จาก KBank ─────────────────────────────────────────
-    // KBank Webhook Payload format:
-    // {
-    //   "partnerTxnRef": "KMS-...",   ← reference ของเรา
-    //   "kbankTxnId":   "...",        ← KBank transaction ID
-    //   "amount":       "100.00",
-    //   "currency":     "THB",
-    //   "paymentStatus": "success",   ← success | failed
-    //   "paidDt":       "2024-01-01T10:00:00+07:00"
-    // }
-    const reference    = payload.partnerTxnRef;
-    const kbankTxnId   = payload.kbankTxnId;
-    const payStatus    = payload.paymentStatus; // 'success' or 'failed'
-
-    if (!reference) {
-      return res.status(400).json({ success: false, message: 'Missing partnerTxnRef' });
+    const charge = await PaymentSession.findOne({ reference, status: 'pending' }).lean();
+    if (!charge) return sendResponse(res, 200, true, null, 'KBank event acknowledged');
+    if (paymentStatus === 'failed') {
+      await PaymentSession.updateOne({ _id: charge._id, status: 'pending' }, { $set: { status: 'failed' } });
+      return sendResponse(res, 200, true, null, 'KBank failure recorded');
+    }
+    if (!['string', 'number'].includes(typeof amount) || Number(amount) !== Number(charge.amount.toFixed(2)) || currency !== 'THB'
+      || !charge.scheduleIds.length || !charge.course
+      || (charge.kbankTransactionId && charge.kbankTransactionId !== kbankTxnId)) {
+      return sendResponse(res, 400, false, null, 'KBank payment does not match charge');
     }
 
-    // ── 3. ค้นหา PaymentSession ─────────────────────────────────────────────
-    const session = await PaymentSession.findOne({ reference });
-    if (!session) {
-      console.warn(`[kbank-webhook] Session not found: ${reference}`);
-      return res.status(200).json({ success: true }); // ตอบ 200 เสมอให้ KBank ไม่ retry
-    }
-
-    if (session.status !== 'pending') {
-      return res.status(200).json({ success: true }); // processed แล้ว
-    }
-
-    // ── 4. อัปเดตสถานะ ───────────────────────────────────────────────────────
-    if (payStatus === 'success') {
-      session.status = 'paid';
-      session.paidAt = new Date();
-      session.kbankTransactionId = kbankTxnId;
-      await session.save();
-
-      // สร้าง Payment record ถาวร (สำหรับ records/reporting)
-      const payment = await Payment.create({
-        student: session.student,
-        course: session.course,
-        schedule: session.scheduleIds?.[0] || null,
-        paymentType: session.paymentType,
-        paymentMonth: session.paymentMonth,
-        amount: session.amount,
+    let payment;
+    await mongoose.connection.transaction(async session => {
+      payment = undefined;
+      // Keep the durable receipt and the gateway session together on duplicate callbacks or a failed write.
+      const updated = await PaymentSession.updateOne({ _id: charge._id, status: 'pending' }, {
+        $set: { status: 'paid', paidAt: new Date(), kbankTransactionId: kbankTxnId }
+      }, { session });
+      if (!updated.modifiedCount) return;
+      [payment] = await Payment.create([{
+        student: charge.student,
+        course: charge.course,
+        schedule: charge.scheduleIds[0],
+        scheduleIds: charge.scheduleIds,
+        paymentType: charge.paymentType,
+        paymentMonth: charge.paymentMonth,
+        amount: charge.amount,
         method: 'gateway',
         transactionRef: reference,
         status: 'confirmed',
-        confirmedBy: null,
-        note: `KBank auto-verified. TxnId: ${kbankTxnId}`
-      });
-
-      // แจ้งเตือนนักเรียน
-      await Notification.create({
-        recipient: session.student,
-        sender: null,
-        type: 'payment',
-        title: '✅ ชำระเงินสำเร็จ',
-        message: `ยืนยันการชำระเงิน ฿${session.amount.toLocaleString()} เรียบร้อยแล้ว (Ref: ${reference})`,
-        relatedId: payment._id
-      });
-
-      console.log(`[kbank-webhook] Payment confirmed: ${reference} | ฿${session.amount}`);
-
-    } else {
-      session.status = 'failed';
-      await session.save();
-      console.log(`[kbank-webhook] Payment failed: ${reference}`);
+        note: `KBank auto-verified. TxnId: ${kbankTxnId || ''}`
+      }], { session });
+    });
+    if (payment) {
+      try {
+        await Notification.create({
+          recipient: charge.student,
+          type: 'payment',
+          title: '✅ ชำระเงินสำเร็จ',
+          message: `ยืนยันการชำระเงิน ฿${charge.amount.toLocaleString()} เรียบร้อยแล้ว (Ref: ${reference})`,
+          relatedId: payment._id
+        });
+      } catch (error) {
+        console.error('[kbank-webhook] Notification failed:', error.message);
+      }
     }
-
-    // ── 5. ตอบ KBank 200 เสมอ ────────────────────────────────────────────────
-    res.status(200).json({ success: true });
-
+    return sendResponse(res, 200, true, null, 'KBank event acknowledged');
   } catch (error) {
     console.error('[kbank-webhook] Error:', error);
-    res.status(200).json({ success: true }); // ตอบ 200 เสมอ ไม่งั้น KBank จะ retry
+    return sendResponse(res, 500, false, null, 'Unable to record KBank payment');
   }
 });
 

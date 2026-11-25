@@ -10,6 +10,7 @@ const schema = new mongoose.Schema({
     _id: false,
     schedule: { type: ObjectId, ref: 'Schedule', required: true },
     course: { type: ObjectId, ref: 'Course', required: true },
+    month: String,
     amount: { type: Number, required: true }
   }],
   paymentIds: [{ type: ObjectId, ref: 'Payment' }],

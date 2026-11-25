@@ -18,7 +18,17 @@ export interface TuitionQuote {
   currentAmount: number;
   stale: boolean;
   qrDataURL: string | null;
+  canRefresh: boolean;
   description: string;
+}
+
+export interface RecoverableTuitionQuote {
+  quoteId: string;
+  scheduleId?: string;
+  month?: string;
+  classDate?: string;
+  amount: number;
+  createdAt: string;
 }
 
 @Injectable({
@@ -137,11 +147,15 @@ export class PaymentService {
   }
 
   getTuition() {
-    return this.http.get<IApiResponse<{ unpaid: TuitionRow[]; totalAmount: number }>>(`${this.apiUrl}/unpaid`)
-      .pipe(map(res => res.data.unpaid));
+    return this.http.get<IApiResponse<{
+      unpaid: TuitionRow[];
+      totalAmount: number;
+      recoverableQuotes: RecoverableTuitionQuote[];
+      reviewMonths: (string | null)[];
+    }>>(`${this.apiUrl}/unpaid`).pipe(map(res => res.data));
   }
 
-  generatePromptpayQR(body: { scheduleId?: string; month?: string; resume: boolean }) {
+  generatePromptpayQR(body: { scheduleId?: string; month?: string; resume: boolean; resumeQuoteId?: string }) {
     return this.http.post<IApiResponse<TuitionQuote>>(`${this.apiUrl}/generate-promptpay-qr`, {
       ...body, allowBankTransfer: true
     }).pipe(map(res => res.data));

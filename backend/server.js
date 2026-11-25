@@ -78,6 +78,7 @@ const generalLimiter = rateLimit({
 });
 
 app.post('/api/line/webhook', generalLimiter, lineRoutes.rawWebhook, lineRoutes.webhook);
+app.post('/api/payments/kbank/webhook', express.raw({ type: 'application/json', limit: '256kb' }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 

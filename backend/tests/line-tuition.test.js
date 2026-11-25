@@ -38,7 +38,8 @@ test('LINE tuition HTTP flow, MongoDB transactions and reminder worker', {
     PROMPTPAY_ID: '0800000000',
     BANK_NAME: 'Test bank',
     BANK_ACCOUNT_NUMBER: '000-0-00000-0',
-    BANK_ACCOUNT_NAME: 'Test account'
+    BANK_ACCOUNT_NAME: 'Test account',
+    KBANK_WEBHOOK_SECRET: 'test-kbank-signature'
   });
   const mongoose = require('mongoose');
   const axios = require('axios');
@@ -51,6 +52,7 @@ test('LINE tuition HTTP flow, MongoDB transactions and reminder worker', {
   const Schedule = require('../models/Schedule');
   const Attendance = require('../models/Attendance');
   const Payment = require('../models/Payment');
+  const PaymentSession = require('../models/PaymentSession');
   const TuitionQuote = require('../models/TuitionQuote');
   const LineConnection = require('../models/LineConnection');
   const { LineReminderDelivery } = require('../models/LineReminder');
@@ -67,6 +69,7 @@ test('LINE tuition HTTP flow, MongoDB transactions and reminder worker', {
 
   const app = express();
   app.post('/line/webhook', line.rawWebhook, line.webhook);
+  app.use('/payments/kbank/webhook', express.raw({ type: 'application/json' }));
   app.use(express.json());
   app.use('/line', line.router);
   app.use('/payments', require('../routes/payments'));
@@ -348,7 +351,9 @@ test('LINE tuition HTTP flow, MongoDB transactions and reminder worker', {
     await Promise.all([runLineReminders(due), runLineReminders(due)]);
     assert.equal(pushes.length, 1);
     assert.equal(pushes[0].to, ids[4]);
-    assert.equal(pushes[0].body.messages[0].template.actions[0].uri, process.env.LINE_TUITION_URL);
+    const reminderLink = new URL(pushes[0].body.messages[0].template.actions[0].uri);
+    assert.equal(reminderLink.searchParams.get('tuitionRound'), '2027-01');
+    assert.equal(reminderLink.searchParams.get('tuitionMonth'), '2026-12');
     assert.equal(accepted.size, 1);
     const delivery = await LineReminderDelivery.findOne({ student: workerStudent._id });
     assert.equal(delivery.status, 'retry');
@@ -407,11 +412,15 @@ test('LINE tuition HTTP flow, MongoDB transactions and reminder worker', {
         'access-control-allow-headers': 'authorization, content-type',
         'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS'
       };
+      let simulateBankFailure = true;
       async function wire(browserContext, lineId = 0) {
         await browserContext.route(/\/\/localhost:5000\/api\//, async route => {
           const request = route.request();
           if (request.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: allowHeaders });
           const url = new URL(request.url());
+          if (url.pathname === '/api/payments/bank-info' && simulateBankFailure) {
+            return route.fulfill({ status: 502, headers: allowHeaders, json: { success: false } });
+          }
           const headers = request.headers();
           const upstream = await browserContext.request.fetch(base + url.pathname.slice(4) + url.search, {
             method: request.method(),
@@ -433,9 +442,12 @@ test('LINE tuition HTTP flow, MongoDB transactions and reminder worker', {
       process.env.LINE_REMINDERS_ENABLED = 'false';
       await webhook('follow', 0, Date.now() + 2000);
       const scheduleId = await lesson({ endTime: '11:30' });
+      await lesson({ date: '2026-12-02T00:00:00+07:00', endTime: '11:45' });
       const page = await context.newPage();
+      await page.clock.setFixedTime(new Date('2026-11-25T12:00:00+07:00'));
       page.setDefaultTimeout(12000);
-      await page.goto(base + '/line/tuition');
+      const reminderPath = '/line/tuition?tuitionRound=2026-12&tuitionMonth=2026-11';
+      await page.goto(base + reminderPath);
       await page.getByRole('link', { name: 'เข้าสู่บัญชี KMS' }).click();
       await page.locator('#email').fill(student.email);
       await page.locator('#password').fill(password);
@@ -447,9 +459,31 @@ test('LINE tuition HTTP flow, MongoDB transactions and reminder worker', {
       await page.getByRole('button', { name: 'รับทราบและยอมรับข้อตกลง' }).click();
       await page.getByRole('checkbox', { name: /รับแจ้งเตือนค่าเรียน/ }).check();
       await page.getByRole('button', { name: 'ยืนยันการผูกบัญชี' }).click();
+      await page.waitForURL('**' + reminderPath);
+      await page.locator('.tuition-months button[aria-pressed="true"]').filter({ hasText: 'พ.ย.' }).waitFor();
+      await page.locator('.tuition-months button[aria-pressed="false"]').filter({ hasText: 'ธ.ค.' }).waitFor();
       const classRow = page.locator('tr').filter({ hasText: '1 ชม. 30 นาที' });
       await classRow.getByRole('button', { name: 'ชำระเงิน', exact: true }).click();
       await page.getByAltText('PromptPay QR สำหรับยอดที่แสดง').waitFor();
+      await page.getByText('โหลดข้อมูลบัญชีธนาคารไม่ได้', { exact: true }).waitFor();
+      assert.equal(await page.getByRole('button', { name: 'คัดลอก', exact: true }).count(), 0);
+      assert.equal(await page.locator('.bank-account-number').count(), 0);
+      simulateBankFailure = false;
+      const accountName = process.env.BANK_ACCOUNT_NAME;
+      process.env.BANK_ACCOUNT_NAME = '';
+      const retryBank = page.getByRole('button', { name: 'ลองโหลดข้อมูลบัญชีใหม่' });
+      try {
+        const unavailable = page.waitForResponse(response => response.url().endsWith('/payments/bank-info'));
+        await retryBank.click();
+        assert.equal((await unavailable).status(), 503);
+        await page.getByText('โหลดข้อมูลบัญชีธนาคารไม่ได้', { exact: true }).waitFor();
+        assert.equal(await page.getByRole('button', { name: 'คัดลอก', exact: true }).count(), 0);
+      } finally {
+        process.env.BANK_ACCOUNT_NAME = accountName;
+      }
+      await retryBank.click();
+      await page.getByRole('button', { name: 'คัดลอก', exact: true }).waitFor();
+      assert.equal(await page.locator('.bank-account-number').innerText(), process.env.BANK_ACCOUNT_NUMBER);
       const qr = await page.getByAltText('PromptPay QR สำหรับยอดที่แสดง').getAttribute('src');
       assert.equal(readQr(qr)['54'], '450.00');
       const downloadPromise = page.waitForEvent('download');
@@ -483,15 +517,149 @@ test('LINE tuition HTTP flow, MongoDB transactions and reminder worker', {
       await managerPage.getByText(/ปิดส่ง LINE/).waitFor();
       await page.reload();
       await page.getByText('ชำระแล้ว', { exact: true }).last().waitFor();
+      for (const [change, time, minutes, amount] of [
+        [{ status: 'cancelled' }, '10:30', '30 นาที', 150],
+        [{ coursePrice: 0 }, '10:45', '45 นาที', 225]
+      ]) {
+        const changed = await lesson({ endTime: time });
+        await page.goto(base + reminderPath);
+        await page.locator('tr').filter({ hasText: minutes }).getByRole('button', { name: 'ชำระเงิน', exact: true }).click();
+        await page.getByAltText('PromptPay QR สำหรับยอดที่แสดง').waitFor();
+        await Schedule.updateOne({ _id: changed }, change);
+        await page.goto(base + reminderPath);
+        await page.getByRole('button', { name: new RegExp(`แจ้งโอนยอดเดิม ฿${amount}`) }).click();
+        await page.getByText(`ยอดเดิม ฿${amount} · ยอดปัจจุบัน ฿0`, { exact: true }).waitFor();
+        assert.equal(await page.getByAltText('PromptPay QR สำหรับยอดที่แสดง').count(), 0);
+        assert.equal(await page.getByRole('button', { name: 'ใช้ยอดปัจจุบันและออก QR ใหม่' }).count(), 0);
+        await page.getByRole('button', { name: 'แจ้งว่าโอนแล้ว', exact: true }).click();
+        await page.locator('.result-state').waitFor();
+      }
+      const paidClasses = [];
+      for (let index = 0; index < 2; index++) {
+        paidClasses.push(await lesson({ date: '2026-09-10T00:00:00+07:00', endTime: '11:00' }));
+      }
+      await Payment.create({ student: student._id, course: course._id, schedule: paidClasses[0],
+        scheduleIds: paidClasses, paymentType: 'monthly', paymentMonth: '2026-09',
+        amount: 600, method: 'gateway', status: 'confirmed' });
+      await page.goto(base + '/line/tuition?tuitionRound=2026-10&tuitionMonth=2026-09');
+      await page.getByRole('heading', { name: /รายการ ก.ย./ }).waitFor();
+      assert.equal(await page.locator('tr .badge-paid').count(), 2);
+      assert.equal(await page.locator('.kpi-card.green .kpi-sub').innerText(), '฿600');
+      assert.equal(await page.getByRole('button', { name: 'ชำระรายเดือนทั้งหมด' }).count(), 0);
       await page.setViewportSize({ width: 1280, height: 850 });
       await page.goto(base + '/dashboard/payments');
       await page.getByRole('heading', { name: 'การชำระเงิน' }).waitFor();
       await page.getByRole('button', { name: 'ชำระรายเดือนทั้งหมด' }).click();
       await page.getByAltText('PromptPay QR สำหรับยอดที่แสดง').waitFor();
       if (process.env.LINE_TEST_SCREENSHOT) await page.screenshot({ path: process.env.LINE_TEST_SCREENSHOT });
-      t.diagnostic('Angular 390px, KMS TOTP, LIFF mock, downloaded QR PNG, reloaded stale quote, manager +150 review, desktop monthly QR');
+      t.diagnostic('Chromium 390px: both KBank classes marked paid (600 total), Nov selected with Dec due, bank 502/503 hides copy, cancelled/zero transfers reopen, manager +150 review and desktop QR');
     } finally {
       await browser.close();
     }
+  });
+
+  await t.test('KBank monthly settlement covers both classes and holds records without evidence', async () => {
+    await link(4, 4);
+    const date = '2026-10-10T00:00:00+07:00';
+    const first = await lesson({ date, endTime: '11:00', students: [workerStudent._id] });
+    const second = await lesson({ date, endTime: '11:00', students: [workerStudent._id] });
+    const reference = 'KMS-test-legacy-payment';
+    const old = await Payment.create({ student: workerStudent._id, course: course._id,
+      schedule: first, paymentType: 'monthly', paymentMonth: '2026-10', amount: 600,
+      method: 'gateway', status: 'confirmed', transactionRef: reference });
+    await PaymentSession.create({ student: workerStudent._id, course: course._id, scheduleIds: [first, second],
+      paymentType: 'monthly', paymentMonth: '2026-10', amount: 600, status: 'paid', reference });
+    const round = new Date('2026-11-03T09:00:00+07:00');
+    const unpaidBefore = (await bill(4)).data.unpaid.filter(row => row.month === '2026-10');
+    assert.deepEqual(unpaidBefore, [], 'the second class must not still be a 300 THB debt');
+    assert.equal((await quote({ scheduleId: second }, 4)).status, 409);
+    assert.equal((await quote({ month: '2026-10' }, 4)).status, 409);
+    assert.equal((await previewReminders(round)).recipients.some(item => item.months.includes('2026-10')), false);
+    const statuses = (await request('/payments/my-status', { who: 4 })).data;
+    assert.deepEqual(statuses.find(item => item._id === String(old._id)).scheduleIds.sort(), [first, second].sort());
+    const report = (await request(`/payments/revenue-report?month=2026-10&studentId=${workerStudent._id}`, { who: 2 })).data;
+    assert.deepEqual(report.schedules.map(row => row.attendedStudents[0].paymentStatus), ['confirmed', 'confirmed']);
+    assert.equal((await request('/payments/manual-confirm', {
+      who: 2, method: 'POST', body: { studentId: String(workerStudent._id), scheduleId: second }
+    })).status, 409);
+    await PaymentSession.deleteOne({ reference });
+    const hold = await previewReminders(round);
+    assert.equal(hold.reviewHolds.some(item => String(item.paymentId) === String(old._id)), true);
+    assert.equal(hold.recipients.some(item => item.months.includes('2026-10')), false);
+    assert.equal((await quote({ month: '2026-10' }, 4)).status, 409);
+    assert.equal((await request('/payments/bulk-confirm-month', {
+      who: 2, method: 'POST', body: { studentId: String(workerStudent._id), month: '2026-10' }
+    })).status, 409);
+
+    const fresh = await request('/payments/kbank/create-charge', { who: 4, method: 'POST', body: { month: '2026-10' } });
+    assert.equal(fresh.status, 409);
+    const invalid = await request('/payments/kbank/create-charge', { who: 4, method: 'POST', body: { month: '2026-13' } });
+    assert.equal(invalid.status, 400);
+    const ids = [];
+    for (let n = 0; n < 2; n++) {
+      ids.push(await lesson({ date: '2026-09-10T00:00:00+07:00', endTime: '11:00', students: [workerStudent._id] }));
+    }
+    const charge = await request('/payments/kbank/create-charge', { who: 4, method: 'POST', body: { month: '2026-09' } });
+    assert.equal(charge.status, 200);
+    const pay = async (amount, validSignature = true) => {
+      const body = JSON.stringify({ partnerTxnRef: charge.data.reference, kbankTxnId: 'test-kbank-txn',
+        paymentStatus: 'success', amount, currency: 'THB' });
+      const signature = createHmac('sha256', process.env.KBANK_WEBHOOK_SECRET).update(body).digest('hex');
+      return fetch(base + '/payments/kbank/webhook', { method: 'POST', body, headers: {
+        'Content-Type': 'application/json', 'X-KBank-Signature': validSignature ? signature : 'invalid'
+      } });
+    };
+    assert.equal((await pay('600.00', false)).status, 401);
+    assert.equal((await pay('300.00')).status, 400);
+    assert.deepEqual((await Promise.all([pay('600.00'), pay('600.00')])).map(response => response.status), [200, 200]);
+    await PaymentSession.deleteOne({ reference: charge.data.reference });
+    const settled = await Payment.find({ transactionRef: charge.data.reference });
+    assert.equal(settled.length, 1);
+    assert.equal(settled[0].amount, 600);
+    assert.deepEqual(settled[0].scheduleIds.map(String).sort(), ids.sort());
+    assert.ok(!(await bill(4)).data.unpaid.some(row => row.month === '2026-09'));
+    assert.equal((await quote({ month: '2026-09' }, 4)).status, 409);
+    assert.equal((await previewReminders(round)).recipients.some(item => item.months.includes('2026-09')), false);
+  });
+
+  await t.test('reopens old transfers after cancellation or zero tuition without making a new bill', async () => {
+    for (const change of [{ status: 'cancelled' }, { coursePrice: 0 }]) {
+      const scheduleId = await lesson({ date: '2026-07-05T00:00:00+07:00', endTime: '11:30' });
+      const issued = (await quote({ scheduleId })).data;
+      await Schedule.updateOne({ _id: scheduleId }, change);
+      const unpaid = (await bill(0)).data;
+      assert.ok(!unpaid.unpaid.some(row => row.scheduleId === scheduleId));
+      assert.equal((await quote({ scheduleId })).status, 409);
+      const response = await quote({ scheduleId, resume: true });
+      assert.equal(response.status, 200, response.message);
+      assert.ok(unpaid.recoverableQuotes.some(row => row.quoteId === issued.quoteId));
+      const reopened = response.data;
+      assert.equal(reopened.quoteId, issued.quoteId);
+      assert.equal(reopened.qrDataURL, null);
+      assert.equal(reopened.currentAmount, 0);
+      assert.equal((await claim({ quoteId: issued.quoteId }, 1)).status, 404);
+      const result = await claim({ quoteId: issued.quoteId, amount: 1 });
+      assert.equal(result.status, 201, result.message);
+      assert.equal(result.data.totalAmount, 450);
+      const pending = (await request('/payments/pending-verification', { who: 2 })).data;
+      const review = pending.find(item => item._id === result.data.paymentIds[0]);
+      assert.equal(review.amount, 450);
+      assert.equal(review.currentAmount, 0);
+    }
+  });
+
+  await t.test('bank details require all configured fields', async () => {
+    const account = process.env.BANK_ACCOUNT_NUMBER;
+    process.env.BANK_ACCOUNT_NUMBER = '   ';
+    try {
+      const incomplete = await request('/payments/bank-info');
+      assert.equal(incomplete.status, 503);
+      assert.equal(incomplete.data, undefined);
+    } finally {
+      process.env.BANK_ACCOUNT_NUMBER = account;
+    }
+    const complete = await request('/payments/bank-info');
+    assert.equal(complete.status, 200);
+    assert.equal(complete.data.accountNumber, account);
   });
 });

@@ -17,6 +17,8 @@ const PaymentSchema = new mongoose.Schema({
     ref: 'Schedule',
     default: null
   },
+  // An aggregate gateway receipt keeps its original amount and every covered class.
+  scheduleIds: { type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Schedule' }], default: undefined },
   // ชำระรายเดือน: เก็บ year/month ที่ชำระ
   paymentMonth: {
     type: String, // format: "YYYY-MM"

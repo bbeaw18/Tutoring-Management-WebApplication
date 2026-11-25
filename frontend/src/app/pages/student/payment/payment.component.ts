@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject, forkJoin } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AttendanceService } from '../../../services/attendance.service';
-import { PaymentService, TuitionQuote, TuitionRow } from '../../../services/payment.service';
+import { PaymentService, RecoverableTuitionQuote, TuitionQuote, TuitionRow } from '../../../services/payment.service';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { MonthPickerComponent } from '../../../shared/components/month-picker/month-picker.component';
 
@@ -20,6 +20,10 @@ export class PaymentComponent implements OnInit, OnDestroy {
 
   loading = false;
   @Input() lineMode = false;
+  @Input() reminderRound = '';
+  @Input() reminderMonth = '';
+  recoverableQuotes: RecoverableTuitionQuote[] = [];
+  reviewMonths: (string | null)[] = [];
   loadError = '';
   private tuition = new Map<string, TuitionRow>();
   private readonly monthFormat = new Intl.DateTimeFormat('en-CA', {
@@ -40,6 +44,8 @@ export class PaymentComponent implements OnInit, OnDestroy {
 
   // ข้อมูลบัญชีธนาคาร
   bankInfo: { bankName: string; accountNumber: string; accountName: string; promptpayId: string } | null = null;
+  bankLoading = false;
+  bankError = false;
 
   // สถานะการแจ้งโอน
   transferClaimed = false;          // กดยืนยันโอนแล้วหรือยัง
@@ -65,7 +71,6 @@ export class PaymentComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.selectedMonth = this.monthOf(new Date());
     this.loadHistory(this.lineMode);
-    this.loadBankInfo();
   }
 
   private monthOf(date: string | Date): string {
@@ -84,16 +89,25 @@ export class PaymentComponent implements OnInit, OnDestroy {
       next: ({ history, payments, tuition }) => {
         this.attendanceHistory = history;
         this.myPayments = payments;
-        this.tuition = new Map(tuition.map(row => [row.scheduleId, row]));
-        if (chooseDueMonth) this.selectedMonth = this.dueMonths.at(-1)?.month ||
-          this.attendanceHistory.filter(row => row.schedule?.date)
-            .map(row => this.monthOf(row.schedule.date)).sort().at(-1) || this.selectedMonth;
+        this.tuition = new Map(tuition.unpaid.map(row => [row.scheduleId, row]));
+        this.recoverableQuotes = tuition.recoverableQuotes || [];
+        this.reviewMonths = tuition.reviewMonths || [];
+        if (chooseDueMonth) {
+          const historyMonths = this.attendanceHistory.filter(row => row.schedule?.date)
+            .map(row => this.monthOf(row.schedule.date)).sort();
+          this.selectedMonth = this.reminderRound
+            ? (this.reminderMonth || this.dueMonths.filter(row => row.month < this.reminderRound).at(-1)?.month
+              || historyMonths.filter(month => month < this.reminderRound).at(-1) || this.previousMonth(this.reminderRound))
+            : (this.dueMonths.at(-1)?.month || historyMonths.at(-1) || this.selectedMonth);
+        }
         this.mergePaymentStatuses();
         this.loading = false;
       },
       error: () => {
         this.loading = false;
         this.tuition.clear();
+        this.recoverableQuotes = [];
+        this.reviewMonths = [];
         this.loadError = 'โหลดรายการค่าเรียนไม่สำเร็จ กรุณาลองอีกครั้ง';
       }
     });
@@ -111,20 +125,28 @@ export class PaymentComponent implements OnInit, OnDestroy {
     return this.tuition.get(row.schedule?._id || row.schedule);
   }
 
+  private previousMonth(round: string): string {
+    const [year, month] = round.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 2, 1)).toISOString().slice(0, 7);
+  }
+
   /** ดึงข้อมูลบัญชีธนาคาร — แสดงในโมดอลโอนเงิน */
   loadBankInfo(): void {
+    if (this.bankLoading) return;
+    this.bankInfo = null;
+    this.bankError = false;
+    this.bankLoading = true;
     this.paymentService.getBankInfo()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (info) => { this.bankInfo = info; },
+        next: (info) => {
+          this.bankLoading = false;
+          if (info?.bankName?.trim() && info.accountName?.trim() && info.accountNumber?.trim()) this.bankInfo = info;
+          else this.bankError = true;
+        },
         error: () => {
-          // fallback ถ้า endpoint ยังไม่ deploy
-          this.bankInfo = {
-            bankName: 'ธนาคารกสิกรไทย (K-BANK)',
-            accountNumber: '140-1-28661-2',
-            accountName: 'น.ส. ณัฐบุษย์ เหมธนาพิพัฒน์',
-            promptpayId: ''
-          };
+          this.bankLoading = false;
+          this.bankError = true;
         }
       });
   }
@@ -133,14 +155,14 @@ export class PaymentComponent implements OnInit, OnDestroy {
   private mergePaymentStatuses(): void {
     if (!this.attendanceHistory.length || !this.myPayments.length) return;
     const paymentByScheduleId = new Map<string, any>();
+    const rank = { confirmed: 3, pending: 2, rejected: 1, unpaid: 0 } as any;
     for (const p of this.myPayments) {
-      const sid = (p.schedule?._id || p.schedule)?.toString();
-      if (!sid) continue;
-      const existing = paymentByScheduleId.get(sid);
-      // confirmed > pending > rejected
-      const rank = { confirmed: 3, pending: 2, rejected: 1, unpaid: 0 } as any;
-      if (!existing || (rank[p.status] || 0) > (rank[existing.status] || 0)) {
-        paymentByScheduleId.set(sid, p);
+      const scheduleIds = p.scheduleIds?.length ? p.scheduleIds : [p.schedule?._id || p.schedule];
+      for (const sid of scheduleIds.filter(Boolean).map(String)) {
+        const existing = paymentByScheduleId.get(sid);
+        if (!existing || (rank[p.status] || 0) > (rank[existing.status] || 0)) {
+          paymentByScheduleId.set(sid, p);
+        }
       }
     }
     this.attendanceHistory = this.attendanceHistory.map(a => {
@@ -184,9 +206,14 @@ export class PaymentComponent implements OnInit, OnDestroy {
       .reduce((sum, row) => sum + row.amount, 0);
   }
   get totalPaidAmount(): number {
-    return this.filteredHistory
-      .filter(a => a.paymentStatus === 'paid')
-      .reduce((s, a) => s + (a.paymentRecord?.amount ?? this.effectivePrice(a.schedule)), 0);
+    const counted = new Set<string>();
+    return this.filteredHistory.filter(a => a.paymentStatus === 'paid').reduce((sum, row) => {
+      const payment = row.paymentRecord;
+      if (!payment) return sum + this.effectivePrice(row.schedule);
+      if (counted.has(payment._id)) return sum;
+      counted.add(payment._id);
+      return sum + payment.amount;
+    }, 0);
   }
 
   // ─── Effective course price (rate/hr × class hours for hourly classes) ──
@@ -264,12 +291,13 @@ export class PaymentComponent implements OnInit, OnDestroy {
 
   // ─── Payment Actions (K-BANK Transfer Flow) ─────────────────
 
-  private openPaymentModal(target: { scheduleId?: string; month?: string }): void {
+  private openPaymentModal(target: { scheduleId?: string; month?: string }, resumeQuoteId?: string): void {
     this.showPaymentModal = true;
     this.paymentTarget = target;
     this.transferClaimed = false;
     this.transactionRef = '';
-    this.loadQuote(true);
+    this.loadBankInfo();
+    this.loadQuote(true, resumeQuoteId);
   }
 
   openPaymentQR(item: any): void {
@@ -281,11 +309,15 @@ export class PaymentComponent implements OnInit, OnDestroy {
     if (this.selectedMonth) this.openPaymentModal({ month: this.selectedMonth });
   }
 
-  loadQuote(resume: boolean): void {
+  reopenTransfer(quote: RecoverableTuitionQuote): void {
+    this.openPaymentModal({ scheduleId: quote.scheduleId, month: quote.month }, quote.quoteId);
+  }
+
+  loadQuote(resume: boolean, resumeQuoteId?: string): void {
     if (this.quoteLoading || this.paymentLoading) return;
     this.quoteLoading = true;
     this.claimError = '';
-    this.paymentService.generatePromptpayQR({ ...this.paymentTarget, resume })
+    this.paymentService.generatePromptpayQR({ ...this.paymentTarget, resume, resumeQuoteId })
       .pipe(takeUntil(this.destroy$)).subscribe({
         next: quote => {
           this.quoteLoading = false;

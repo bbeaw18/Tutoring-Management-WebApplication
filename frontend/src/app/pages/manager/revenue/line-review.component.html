@@ -35,6 +35,15 @@
       {{ recipient.name }} · เดือน {{ recipient.months.join(', ') }} · {{ status[recipient.status] }}
     </li>
   </ul>
+  <div *ngIf="preview.reviewHolds.length">
+    <h3>พักเตือนเพื่อรอตรวจสอบยอดที่ชำระไว้</h3>
+    <ul>
+      <li *ngFor="let hold of preview.reviewHolds">
+        {{ hold.name }} · {{ hold.month || 'ไม่ทราบเดือน' }} · ฿{{ hold.amount | number:'1.2-2' }}
+        · {{ hold.reference || hold.paymentId }}
+      </li>
+    </ul>
+  </div>
   <details *ngIf="preview.deliveries.length">
     <summary>ผลการส่งรอบนี้ ({{ preview.deliveries.length }} รายการ)</summary>
     <ul>

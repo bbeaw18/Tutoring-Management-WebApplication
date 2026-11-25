@@ -35,7 +35,9 @@ export class LineTuitionComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
   private sdk?: LiffSdk;
   private destroyed = false;
-  readonly returnUrl = '/line/tuition';
+  returnUrl = '/line/tuition';
+  reminderRound = '';
+  reminderMonth = '';
   ready = false;
   busy = false;
   error = '';
@@ -57,6 +59,19 @@ export class LineTuitionComponent implements OnInit, OnDestroy {
           if (this.destroyed) return;
           await this.sdk.init({ liffId });
           if (this.destroyed) return;
+          const query = new URLSearchParams(window.location.search);
+          const round = query.get('tuitionRound') || '';
+          const month = query.get('tuitionMonth') || '';
+          const validMonth = /^\d{4}-(0[1-9]|1[0-2])$/;
+          if (validMonth.test(round)) {
+            this.reminderRound = round;
+            const returnQuery = new URLSearchParams({ tuitionRound: round });
+            if (validMonth.test(month) && month < round) {
+              this.reminderMonth = month;
+              returnQuery.set('tuitionMonth', month);
+            }
+            this.returnUrl = `/line/tuition?${returnQuery}`;
+          }
           this.ready = true;
           if (this.auth.getUserRole() === 'student' && this.lineLoggedIn) this.loadConnection();
         } catch {
